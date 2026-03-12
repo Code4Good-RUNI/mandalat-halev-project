@@ -11,6 +11,9 @@
     },
     {
       "path": "./apps/server"
+    },
+    {
+      "path": "./libs/shared"
     }
   ]
 }
