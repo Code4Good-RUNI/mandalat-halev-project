@@ -1,7 +1,3 @@
-import { initContract } from '@ts-rest/core';
-
-const c = initContract();
-
 /**
  * AUTHENTICATION SCHEMAS
  */
@@ -13,21 +9,22 @@ export interface LoginRequestDto {
   }
   
   // Response from the Login endpoint
-  export interface AuthResponseDto {
+  export interface LoginResponseDto {
     accessToken: string;
-    userId: number;
+    salesforceUserId: number;
   }
   
   /**
-   * USER SCHEMAS
+   * USER INFO SCHEMAS
    */
   
   export interface UserProfileDto {
-    id: number;
+    salesforceUserId: number;
     firstName: string;
     lastName: string;
     email: string;
     phoneNumber: string;
+    idNumber: string; // The Israeli ID number
     address: string;
     city: string;
     birthDate: string; // DD/MM/YYYY
@@ -41,6 +38,7 @@ export interface LoginRequestDto {
     id: number;
     name: string;
     description: string;
+    imageUrl: string; // URL of the campaign image
     startDate: string; // DD/MM/YYYY
     endDate: string; // DD/MM/YYYY
     durationInHours: number;
@@ -61,4 +59,31 @@ export interface GetFutureCampaignDto extends CampaignDto {
 
 export interface GetPastCampaignDto extends CampaignDto {
     hasUserParticipated: boolean;
+}
+
+export interface RegisterForCampaignDto {
+    campaignId: number;
+    salesforceUserId: number;
+    numOfParticipantsToRegister: number;
+    additionalInfo?: string;
+}
+
+export interface UnregisterFromCampaignDto {
+    campaignId: number;
+    salesforceUserId: number;
+    numOfParticipantsToUnregister: number;
+    additionalInfo?: string;
+}
+
+export interface RegisterResponseDto {
+    campaignId: number;
+    salesforceUserId: number;
+    requestReceivedSuccessfully: boolean;
+}
+
+export interface GetRegistrationStatusDto {
+    campaignId: number;
+    salesforceUserId: number;
+    registrationStatus: approvalStatus;
+    additionalInfo?: string;
 }
