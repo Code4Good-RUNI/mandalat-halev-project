@@ -61,3 +61,5 @@ test-output
 
 # Claude Code
 CLAUDE.md
+# Env Files
+.env
