@@ -58,3 +58,6 @@ cache/
 
 
 test-output
+
+# Env Files
+.env
