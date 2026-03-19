@@ -32,6 +32,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@dotenvx/dotenvx": "^1.55.1",
     "@eslint/js": "^9.8.0",
     "@expo/cli": "~54.0.16",
     "@nestjs/schematics": "^11.0.0",
