@@ -60,4 +60,11 @@ cache/
 test-output
 
 # Env Files
-.env
+.env.keys
+
+.nx/polygraph
+.claude/worktrees
+.claude/settings.local.json
+.agents/
+.cursor/
+AGENTS.md
