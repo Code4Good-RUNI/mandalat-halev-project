@@ -2,9 +2,6 @@ import React from 'react';
 import { View, Text, FlatList, SafeAreaView, TextInput, StyleSheet } from 'react-native';
 import { ActivityItem } from '../components/ActivityItem';
 
-interface ActivitiesScreenProps {
-  onTempPress: () => void;
-}
 
 const ACTIVITIES = [
   {
@@ -25,7 +22,7 @@ const ACTIVITIES = [
   },
 ];
 
-export const ActivitiesScreen = ({ onTempPress }: ActivitiesScreenProps) => {
+export const ActivitiesScreen = () => {
   
   return (
     <SafeAreaView style={styles.safe}>
@@ -51,7 +48,6 @@ export const ActivitiesScreen = ({ onTempPress }: ActivitiesScreenProps) => {
         )}
       />
 
-      {/* Navigation hidden for PR */}
     </SafeAreaView>
   );
 };
