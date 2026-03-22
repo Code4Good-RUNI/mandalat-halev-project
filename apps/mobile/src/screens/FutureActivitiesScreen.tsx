@@ -54,9 +54,12 @@ export const FutureActivitiesScreen = ({ onTempPress }: FutureActivitiesProps) =
         renderItem={renderItem}
         keyExtractor={item => item.id}
       />
-      <TouchableOpacity onPress={onTempPress}>
+
+      {/* COMMENTED THIS OUT TO PREVENT ERRORS DURING THE GIT PULL */}
+      {/* <TouchableOpacity onPress={onTempPress}>
         <Text>עבור לפעילויות קודמות (זמני)</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> 
+      */}
     </SafeAreaView>
   );
 };
