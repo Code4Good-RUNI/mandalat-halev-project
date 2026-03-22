@@ -11,9 +11,11 @@
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/swagger": "^11.2.6",
+    "@tanstack/react-query": "^5.90.21",
     "@ts-rest/core": "^3.52.1",
     "@ts-rest/nest": "^3.52.1",
     "axios": "^1.6.0",
+    "dotenv": "^17.3.1",
     "expo": "~54.0.0",
     "expo-splash-screen": "~31.0.11",
     "expo-status-bar": "~3.0.8",
@@ -26,9 +28,11 @@
     "react-native-web": "~0.21.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@dotenvx/dotenvx": "^1.55.1",
     "@eslint/js": "^9.8.0",
     "@expo/cli": "~54.0.16",
     "@nestjs/schematics": "^11.0.0",
