@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, SafeAreaView, TouchableOpacity } from 'react-native';
 
-interface LoginScreenProps {
-  onTempPress: () => void;
-}
 
-export const LoginScreen = ({ onTempPress }: LoginScreenProps) => {
+export const LoginScreen = () => {
     const [idNumber, setIdNumber] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
 
@@ -13,12 +10,10 @@ export const LoginScreen = ({ onTempPress }: LoginScreenProps) => {
     <SafeAreaView>
         <View>
         
-        {/* Logo and Titles */}
         <Text>[Logo Here]</Text>
         <Text>שלום!</Text>
         <Text>התחבר על מנת להמשיך</Text>
 
-        {/* ID Input */}
         <View>
           <Text>מספר תעודת זהות</Text>
           <TextInput
@@ -29,7 +24,6 @@ export const LoginScreen = ({ onTempPress }: LoginScreenProps) => {
           />
         </View>
 
-        {/* Phone Input */}
         <View>
           <Text>מספר טלפון נייד</Text>
           <TextInput
@@ -39,7 +33,7 @@ export const LoginScreen = ({ onTempPress }: LoginScreenProps) => {
           />
         </View>
 
-        {/* Buttons */}
+        {/* Action Buttons */}
         <TouchableOpacity>
           <Text>נתקלת בבעיה? צור איתנו קשר</Text>
         </TouchableOpacity>
@@ -51,12 +45,6 @@ export const LoginScreen = ({ onTempPress }: LoginScreenProps) => {
         <TouchableOpacity>
           <Text>התחבר</Text>
         </TouchableOpacity>
-
-        {/* COMMENTED THIS OUT TO PREVENT ERRORS DURING THE GIT PULL */}
-        {/* <TouchableOpacity onPress={onTempPress}>
-          <Text>עבור לפרופיל (זמני)</Text>
-        </TouchableOpacity> 
-        */}
 
       </View>
     </SafeAreaView>
