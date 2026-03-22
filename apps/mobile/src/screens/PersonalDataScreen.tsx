@@ -108,9 +108,11 @@ export const ProfileScreen = ({ onTempPress }: PersonalDataScreenProps) => {
           <Text>עדכון פרטים אישיים</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={onTempPress}>
+        {/* COMMENTED THIS OUT TO PREVENT ERRORS DURING THE GIT PULL */}
+        {/* <TouchableOpacity onPress={onTempPress}>
           <Text>עבור למסך פעילויות (זמני)</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> 
+        */}
 
       </ScrollView>
     </SafeAreaView>
