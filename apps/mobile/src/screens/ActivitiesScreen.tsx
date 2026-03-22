@@ -58,9 +58,11 @@ export const ActivitiesScreen = ({ onTempPress }: ActivitiesScreenProps) => {
         keyExtractor={item => item.id}
       />
 
-      <TouchableOpacity onPress={onTempPress}>
+      {/* COMMENTED THIS OUT TO PREVENT ERRORS */}
+      {/* <TouchableOpacity onPress={onTempPress}>
         <Text>עבור לפעילויות עתידיות (זמני)</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> 
+      */}
     </SafeAreaView>
   );
 };
