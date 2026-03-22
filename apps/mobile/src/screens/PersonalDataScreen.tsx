@@ -1,12 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, SafeAreaView, ScrollView, Switch, TouchableOpacity} from 'react-native';
 
-interface PersonalDataScreenProps {
-  onTempPress: () => void;
-}
 
-export const ProfileScreen = ({ onTempPress }: PersonalDataScreenProps) => {
-  // These handle the toggle switches for the notifications
+export const ProfileScreen = () => {
+  // toggle switches for the notifications
   const [activityUpdates, setActivityUpdates] = useState(true);
   const [futureActivities, setFutureActivities] = useState(true);
   const [orgMessages, setOrgMessages] = useState(true);
@@ -17,7 +14,7 @@ export const ProfileScreen = ({ onTempPress }: PersonalDataScreenProps) => {
         {/* Header */}
         <Text>איזור אישי</Text>
 
-        {/* Section: My Details */}
+        {/* My Details */}
         <View>
           <Text>הפרטים שלי</Text>
           
@@ -52,7 +49,7 @@ export const ProfileScreen = ({ onTempPress }: PersonalDataScreenProps) => {
           </View>
         </View>
 
-        {/* Section: Family Members */}
+        {/* Family Members */}
         <View>
           <Text>בני משפחה</Text>
           
@@ -71,7 +68,7 @@ export const ProfileScreen = ({ onTempPress }: PersonalDataScreenProps) => {
           </View>
         </View>
 
-        {/* Section: Notification Settings */}
+        {/* Notification Settings */}
         <View>
           <Text>הגדרת התראות</Text>
 
@@ -107,12 +104,6 @@ export const ProfileScreen = ({ onTempPress }: PersonalDataScreenProps) => {
         <TouchableOpacity>
           <Text>עדכון פרטים אישיים</Text>
         </TouchableOpacity>
-
-        {/* COMMENTED THIS OUT TO PREVENT ERRORS DURING THE GIT PULL */}
-        {/* <TouchableOpacity onPress={onTempPress}>
-          <Text>עבור למסך פעילויות (זמני)</Text>
-        </TouchableOpacity> 
-        */}
 
       </ScrollView>
     </SafeAreaView>
