@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, FlatList, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, SafeAreaView, StyleSheet } from 'react-native';
+import { ActivityItem } from '../components/ActivityItem';
 
 interface PreviousActivitiesProps {
   onTempPress: () => void;
@@ -28,41 +29,30 @@ const PAST_ACTIVITIES = [
 
 export const PreviousActivitiesScreen = ({ onTempPress }: PreviousActivitiesProps) => {
   
-  const renderItem = ({ item }: { item: typeof PAST_ACTIVITIES[0] }) => (
-    <View>
-      <Text>{item.status}</Text>
-      <View>
-        <Text>{item.title}</Text>
-        <Text>{item.time} 🕒</Text>
-        <Text>{item.location} 📍</Text>
-      </View>
-      <View>
-        <Text>{item.day}</Text>
-        <Text>{item.month}</Text>
-      </View>
-      <TouchableOpacity>
-        <Text>לפרטים נוספים</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
   return (
-    <SafeAreaView>
-      <View>
-        <Text>פעילויות קודמות</Text>
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.header}>
+        <Text style={styles.title}>פעילויות קודמות</Text>
       </View>
       
       <FlatList
         data={PAST_ACTIVITIES}
-        renderItem={renderItem}
         keyExtractor={item => item.id}
+        renderItem={({ item }) => (
+          <ActivityItem 
+            title={item.title}
+            time={item.time}
+            location={item.location}
+            status={item.status}
+          />
+        )}
       />
-
-      {/* COMMENTED THIS OUT TO PREVENT ERRORS DURING THE GIT PULL */}
-      {/* <TouchableOpacity onPress={onTempPress}>
-        <Text>חזור להתחלה (זמני)</Text>
-      </TouchableOpacity> 
-      */}
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  safe: { flex: 1 },
+  header: { padding: 15 },
+  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right' }
+});

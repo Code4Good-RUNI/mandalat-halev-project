@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, FlatList, SafeAreaView, TouchableOpacity } from 'react-native';
+import { FlatList, SafeAreaView, Text, StyleSheet } from 'react-native';
+import { ActivityItem } from '../components/ActivityItem';
 
 interface FutureActivitiesProps {
   onTempPress: () => void;
@@ -28,38 +29,29 @@ const MY_ACTIVITIES = [
 
 export const FutureActivitiesScreen = ({ onTempPress }: FutureActivitiesProps) => {
   
-  const renderItem = ({ item }: { item: typeof MY_ACTIVITIES[0] }) => (
-    <View>
-      <Text>{item.status}</Text>
-      <View>
-        <Text>{item.title}</Text>
-        <Text>{item.time} 🕒</Text>
-        <Text>{item.location} 📍</Text>
-      </View>
-      <View>
-        <Text>{item.day}</Text>
-        <Text>{item.month}</Text>
-      </View>
-      <TouchableOpacity>
-        <Text>לפרטים נוספים</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
   return (
-    <SafeAreaView>
-      <Text>פעילויות עתידיות</Text>
+    <SafeAreaView style={styles.safe}>
+      <Text style={styles.title}>פעילויות עתידיות</Text>
+      
       <FlatList
         data={MY_ACTIVITIES}
-        renderItem={renderItem}
         keyExtractor={item => item.id}
+        renderItem={({ item }) => (
+          <ActivityItem 
+            title={item.title}
+            time={item.time}
+            location={item.location}
+            status={item.status}
+          />
+        )}
       />
 
-      {/* COMMENTED THIS OUT TO PREVENT ERRORS DURING THE GIT PULL */}
-      {/* <TouchableOpacity onPress={onTempPress}>
-        <Text>עבור לפעילויות קודמות (זמני)</Text>
-      </TouchableOpacity> 
-      */}
+      {/* Navigation hidden for PR */}
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  safe: { flex: 1 },
+  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right', padding: 15 }
+});
