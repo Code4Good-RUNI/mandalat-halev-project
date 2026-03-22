@@ -2,9 +2,6 @@ import React from 'react';
 import { View, Text, FlatList, SafeAreaView, StyleSheet } from 'react-native';
 import { ActivityItem } from '../components/ActivityItem';
 
-interface PreviousActivitiesProps {
-  onTempPress: () => void;
-}
 
 const PAST_ACTIVITIES = [
   {
@@ -27,7 +24,7 @@ const PAST_ACTIVITIES = [
   },
 ];
 
-export const PreviousActivitiesScreen = ({ onTempPress }: PreviousActivitiesProps) => {
+export const PreviousActivitiesScreen = () => {
   
   return (
     <SafeAreaView style={styles.safe}>
