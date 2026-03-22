@@ -2,9 +2,6 @@ import React from 'react';
 import { FlatList, SafeAreaView, Text, StyleSheet } from 'react-native';
 import { ActivityItem } from '../components/ActivityItem';
 
-interface FutureActivitiesProps {
-  onTempPress: () => void;
-}
 
 const MY_ACTIVITIES = [
   {
@@ -27,7 +24,7 @@ const MY_ACTIVITIES = [
   },
 ];
 
-export const FutureActivitiesScreen = ({ onTempPress }: FutureActivitiesProps) => {
+export const FutureActivitiesScreen = () => {
   
   return (
     <SafeAreaView style={styles.safe}>
@@ -46,7 +43,6 @@ export const FutureActivitiesScreen = ({ onTempPress }: FutureActivitiesProps) =
         )}
       />
 
-      {/* Navigation hidden for PR */}
     </SafeAreaView>
   );
 };
