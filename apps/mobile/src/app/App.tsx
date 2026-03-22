@@ -6,10 +6,11 @@ import { FutureActivitiesScreen } from '../screens/FutureActivitiesScreen';
 import { PreviousActivitiesScreen } from '../screens/PreviousActivitiesScreen';
 
 export const App = () => {
+  /* MANUAL NAVIGATION SWITCH
+    Change the string below to view different screens:
+    'login' | 'profile' | 'activities' | 'futureActivities' | 'previousActivities'
+  */
   const [currentScreen, setCurrentScreen] = useState('login');
-  
-  // Update the chain:
-  // Login -> Profile -> Activities -> Future -> Previous -> Login
   
   if (currentScreen === 'previousActivities') {
     return <PreviousActivitiesScreen onTempPress={() => setCurrentScreen('login')} />;
