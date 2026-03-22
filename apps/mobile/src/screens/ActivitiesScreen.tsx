@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, FlatList, Image, TouchableOpacity, SafeAreaView, TextInput } from 'react-native';
+import { View, Text, FlatList, SafeAreaView, TextInput, StyleSheet } from 'react-native';
+import { ActivityItem } from '../components/ActivityItem';
 
 interface ActivitiesScreenProps {
   onTempPress: () => void;
@@ -12,7 +13,7 @@ const ACTIVITIES = [
     date: '2025-05-28 10:00',
     duration: '2 שעות',
     location: 'מתחם מנדלת הלב',
-    image: 'https://picsum.photos/seed/yoga/600/400', 
+    status: 'פתוח להרשמה'
   },
   {
     id: '2',
@@ -20,49 +21,44 @@ const ACTIVITIES = [
     date: '2025-05-29 10:00',
     duration: '1.5 שעות',
     location: 'מתחם מנדלת הלב',
-    image: 'https://picsum.photos/seed/yoga/600/400',
+    status: 'פתוח להרשמה',
   },
 ];
 
 export const ActivitiesScreen = ({ onTempPress }: ActivitiesScreenProps) => {
   
-  const renderItem = ({ item }: { item: typeof ACTIVITIES[0] }) => (
-    <View>
-      <Image source={{ uri: item.image }} style={{ width: 100, height: 100 }} />
-      <View>
-        <Text>{item.title}</Text>
-        <Text>📅 {item.date}</Text>
-        <Text>🕒 {item.duration}</Text>
-        <Text>📍 {item.location}</Text>
-        
-        <TouchableOpacity>
-          <Text>בקשת הרשמה</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
   return (
-    <SafeAreaView>
-      <View>
-        <Text>פעילויות זמינות בשבילך</Text>
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.header}>
+        <Text style={styles.title}>פעילויות זמינות בשבילך</Text>
         <TextInput 
           placeholder="חיפוש..." 
           textAlign="right" 
+          style={styles.searchInput}
         />
       </View>
 
       <FlatList
         data={ACTIVITIES}
-        renderItem={renderItem}
         keyExtractor={item => item.id}
+        renderItem={({ item }) => (
+          <ActivityItem 
+            title={item.title}
+            time={`${item.date} (${item.duration})`}
+            location={item.location}
+            status={item.status}
+          />
+        )}
       />
 
-      {/* COMMENTED THIS OUT TO PREVENT ERRORS */}
-      {/* <TouchableOpacity onPress={onTempPress}>
-        <Text>עבור לפעילויות עתידיות (זמני)</Text>
-      </TouchableOpacity> 
-      */}
+      {/* Navigation hidden for PR */}
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  safe: { flex: 1 },
+  header: { padding: 15 },
+  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right', marginBottom: 10 },
+  searchInput: { borderWidth: 1, borderColor: '#ccc', padding: 8, borderRadius: 5 }
+});
