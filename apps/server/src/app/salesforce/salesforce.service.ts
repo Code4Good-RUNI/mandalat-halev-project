@@ -7,6 +7,7 @@ import {
   LoginRequestDto,
   UserProfileDto,
   GetFutureCampaignDto,
+  GetPastCampaignDto,
 } from '@mandalat-halev-project/api-interfaces';
 
 @Injectable()
@@ -191,29 +192,24 @@ export class SalesforceService {
   /**
    * Get user's future campaigns
    * @param salesforceUserId - Salesforce user ID received when logged in
-   * @returns UserProfileDto or null if not found
+   * @returns GetFutureCampaignDto or null if not found
    */
-  async getFutureCampaigns(salesforceUserId: number,): Promise<GetFutureCampaignDto[]> {
-    // gets user ID in salesforce server
-    const contact = await this.query<any>(
-      `SELECT Id FROM Contact WHERE External_ID__c = '${salesforceUserId}' LIMIT 1`,
-    );
-
-    if (contact.length === 0) {
-      this.logger.warn(`User with External ID ${salesforceUserId} not found in Salesforce`,);
-      return [];
-    }
-    const contactId = contact[0].Id;
+  async getFutureCampaigns(
+    salesforceUserId: number,
+  ): Promise<GetFutureCampaignDto[]> {
+    const contactId = await this.getInternalContactId(salesforceUserId);
+    if (!contactId) return [];
 
     // SOQL query for relative date
-    const soql = `
-      SELECT
+    const soql = `SELECT
         External_ID__c, Name, Description, StartDate, EndDate, IsActive,
         ActivityLocation__c, Max_Participants__c, Image_URL__c,
         (SELECT Status FROM CampaignMembers WHERE ContactId = '${contactId}' LIMIT 1)
-      FROM Campaign
-      WHERE StartDate >= TODAY AND IsActive = true
-    `;
+        FROM Campaign
+        WHERE EndDate >= TODAY
+          AND IsActive = true
+          AND Id IN (SELECT CampaignId FROM CampaignMember WHERE ContactId = '${contactId}')
+        ORDER BY StartDate ASC`;
 
     const records = await this.query<any>(soql);
 
@@ -226,18 +222,7 @@ export class SalesforceService {
 
       return {
         // fields of CampaignDto
-        id: reg.External_ID__c ? Number(reg.External_ID__c) : 0,
-        name: reg.Name || '',
-        description: reg.Description || '',
-        imageUrl: reg.Image_URL__c || '',
-        startDate: this.formatDateToIsraeli(reg.StartDate),
-        endDate: this.formatDateToIsraeli(reg.EndDate),
-        durationInHours: this.calculateDuration(reg.StartDate, reg.EndDate),
-        locationAddress: reg.Location_Address__c || '',
-        locationCity: reg.Location_City__c || '',
-        numOfParticipants: reg.Max_Participants__c || 0,
-        numOfParticipantsRegistered: 0, // need to check if exist or need to calculate
-        isActive: !!reg.IsActive,
+        ...this.mapBaseCampaign(reg),
 
         // fields of GetFutureCampaignDto
         isRelevantToUser: true,
@@ -245,6 +230,82 @@ export class SalesforceService {
         userApprovalStatus: this.mapStatusToApproval(membership?.Status),
       };
     });
+  }
+
+  /**
+   * Get user's past campaigns
+   * @param salesforceUserId - Salesforce user ID received when logged in
+   * @returns GetPastCampaignDto[]
+   */
+  async getPastCampaigns(
+    salesforceUserId: number,
+  ): Promise<GetPastCampaignDto[]> {
+    const contactId = await this.getInternalContactId(salesforceUserId);
+    if (!contactId) return [];
+
+    // SOQL query for relative date
+    const soql = `
+      SELECT
+        External_ID__c, Name, Description, StartDate, EndDate, IsActive,
+        ActivityLocation__c, Max_Participants__c, Image_URL__c,
+        (SELECT Status FROM CampaignMembers WHERE ContactId = '${contactId}' LIMIT 1)
+      FROM Campaign
+      WHERE EndDate < TODAY
+      AND Id IN (SELECT CampaignId FROM CampaignMember WHERE ContactId = '${contactId}')
+      ORDER BY EndDate DESC`;
+
+    const records = await this.query<any>(soql);
+
+    // map data to GetPastCampaignDto array
+    return records.map((reg): GetPastCampaignDto => {
+      return {
+        // fields of CampaignDto
+        ...this.mapBaseCampaign(reg),
+
+        // fields of GetPastCampaignDto
+        hasUserParticipated: true,
+      };
+    });
+  }
+
+  /**
+   * Maps the fields of CampaignDto
+   */
+  private mapBaseCampaign(reg: any) {
+    return {
+      id: reg.External_ID__c ? Number(reg.External_ID__c) : 0,
+      name: reg.Name || '',
+      description: reg.Description || '',
+      imageUrl: reg.Image_URL__c || '',
+      startDate: this.formatDateToIsraeli(reg.StartDate),
+      endDate: this.formatDateToIsraeli(reg.EndDate),
+      durationInHours: this.calculateDuration(reg.StartDate, reg.EndDate),
+      locationAddress: reg.ActivityLocation__c || '', // השדה הנכון מה-Describe
+      locationCity: '',
+      numOfParticipants: reg.Max_Participants__c || 0,
+      numOfParticipantsRegistered: 0,
+      isActive: !!reg.IsActive,
+    };
+  }
+
+  /**
+   * Gets internal contact ID in salesforce server
+   */
+  private async getInternalContactId(
+    salesforceUserId: number,
+  ): Promise<string | null> {
+    // gets user ID in salesforce server
+    const contact = await this.query<any>(
+      `SELECT Id FROM Contact WHERE External_ID__c = '${salesforceUserId}' LIMIT 1`,
+    );
+
+    if (contact.length === 0) {
+      this.logger.warn(
+        `User with External ID ${salesforceUserId} not found in Salesforce`,
+      );
+      return null;
+    }
+    return contact[0].Id;
   }
 
   /**
@@ -267,3 +328,5 @@ export class SalesforceService {
     return Math.max(0, Math.floor(diffInMs / (1000 * 60 * 60)));
   }
 }
+
+
