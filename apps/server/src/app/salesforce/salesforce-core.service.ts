@@ -19,7 +19,65 @@ export class SalesforceCoreService {
     //});
   }
 
-  // Private method to authenticate to Salesforce's server (Server-to-Server)
+  /**
+   * Handles all kind of requests, includes renew token if expired
+   * @param method - Type of request ('GET', 'POST', 'DELETE', 'PATCH')
+   * @param endpoint - The relative Salesforce API path
+   * @param options - An optional object containing 'params' for URL query strings or 'data' for the request body
+   * @returns A Promise that resolves to the response data of type T from Salesforce
+   * @throws {InternalServerErrorException} If the request fails after a retry or if a non-401 error occurs
+   */
+  private async request<T>(
+    method: 'GET' | 'POST' | 'DELETE' | 'PATCH',
+    endpoint: string,
+    options: { params?: any; data?: any } = {},
+  ): Promise<T> {
+    // establish connection if doesnt exist
+    if (!this.accessToken || !this.instanceUrl) {
+      await this.authenticate();
+    }
+
+    const url = `${this.instanceUrl}/services/data/v60.0/${endpoint}`;
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.request({
+          method,
+          url,
+          params: options.params,
+          data: options.data,
+          headers: {
+            Authorization: `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }),
+      );
+      return response.data;
+    } catch (error) {
+      // When token expired - error 401
+      if (isAxiosError(error) && error.response?.status === 401) {
+        this.logger.warn(
+          `Salesforce 401 on ${method} ${endpoint}. Retrying...`,
+        );
+        await this.authenticate();
+        return this.request<T>(method, endpoint, options); // retry
+      }
+
+      // Other errors
+      const errorData = isAxiosError(error) ? error.response?.data : error;
+      this.logger.error(
+        `Salesforce API error: ${method} ${endpoint}`,
+        errorData,
+      );
+      throw new InternalServerErrorException('Salesforce operation failed');
+    }
+  }
+
+  /**
+   * Authenticates with Salesforce using the OAuth2 Client Credentials flow
+   * Retrieves an access token and the instance URL required for subsequent API calls
+   * @throws {InternalServerErrorException} If configuration is missing or the authentication request fails
+   */
   private async authenticate(): Promise<void> {
     this.logger.log('Initiating Salesforce authentication...');
 
@@ -62,43 +120,42 @@ export class SalesforceCoreService {
     }
   }
 
-  // Generic SOQL query to server, includes renew token if expired
+  /**
+   * Run SOQL query
+   * @param soql - The query
+   * @returns A Promise that resolves to an array of records of type T
+   */
   async query<T>(soql: string): Promise<T[]> {
-    if (!this.accessToken || !this.instanceUrl) {
-      await this.authenticate();
-    }
+    const response = await this.get<{ records: T[] }>('query', { q: soql });
+    return response.records;
+  }
 
-    const url = `${this.instanceUrl}/services/data/v60.0/query`;
+  /**
+   * Performs a generic GET request to a Salesforce endpoint
+   * @param endpoint - The relative Salesforce API path
+   * @param params - Optional query string parameters to append to the URL
+   * @returns A Promise that resolves to the response data of type T
+   */
+  async get<T>(endpoint: string, params?: any): Promise<T> {
+    return this.request<T>('GET', endpoint, { params });
+  }
 
-    try {
-      const { data } = await firstValueFrom(
-        this.httpService.get(url, {
-          params: { q: soql },
-          headers: {
-            Authorization: `Bearer ${this.accessToken}`,
-          },
-        }),
-      );
+  /**
+   * Performs a generic POST request to create or update data in Salesforce
+   * @param endpoint - The relative Salesforce API path
+   * @param body - The JSON payload to be sent in the request body
+   * @returns A Promise that resolves to the response data of type T
+   */
+  async post<T>(endpoint: string, body: any): Promise<T> {
+    return this.request<T>('POST', endpoint, { data: body });
+  }
 
-      // Salesforce's results
-      return data.records as T[];
-    } catch (error) {
-      // When token expired - error 401
-      if (isAxiosError(error) && error.response?.status === 401) {
-        this.logger.warn('Salesforce token expired during query. Retrying...');
-        await this.authenticate();
-        return this.query<T>(soql);
-      }
-
-      // Other errors
-      if (isAxiosError(error)) {
-        this.logger.error(`SOQL Query failed: ${soql}`, error.response?.data);
-      } else {
-        this.logger.error('Unexpected error during Salesforce query', error);
-      }
-      throw new InternalServerErrorException(
-        'Failed to fetch data from Salesforce',
-      );
-    }
+  /**
+   * Performs a generic DELETE request to remove a resource from Salesforce
+   * @param endpoint - The relative Salesforce API path including the record ID
+   * @returns A Promise that resolves when the deletion is successful
+   */
+  async delete(endpoint: string): Promise<void> {
+    await this.request('DELETE', endpoint);
   }
 }
