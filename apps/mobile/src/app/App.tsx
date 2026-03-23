@@ -1,12 +1,22 @@
 import React, { useState } from 'react';
-import { LoginScreen } from '../screens/LogInScreen'; 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { LoginScreen } from '../screens/LogInScreen';
 import { ProfileScreen } from '../screens/PersonalDataScreen';
 import { ActivitiesScreen } from '../screens/ActivitiesScreen';
 import { FutureActivitiesScreen } from '../screens/FutureActivitiesScreen';
 import { PreviousActivitiesScreen } from '../screens/PreviousActivitiesScreen';
 
-export const App = () => {
-  /* 
+// One client for the whole app — required for useQuery / useMutation from hooks.ts
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+    },
+  },
+});
+
+function AppContent() {
+  /*
     Change the string below to view a specific screen.
     Options: 'login', 'profile', 'activities', 'futureActivities', 'previousActivities'
   */
@@ -17,8 +27,13 @@ export const App = () => {
   if (currentScreen === 'futureActivities') return <FutureActivitiesScreen />;
   if (currentScreen === 'previousActivities') return <PreviousActivitiesScreen />;
 
-  // Default fallback
   return <LoginScreen />;
-};
+}
+
+export const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AppContent />
+  </QueryClientProvider>
+);
 
 export default App;
