@@ -3,10 +3,14 @@
  * This is only a minimal backend to get started.
  */
 
+import { config as loadEnv } from 'dotenv';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+
+loadEnv({ path: '.env' });
+loadEnv({ path: '.env.local', override: true });
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

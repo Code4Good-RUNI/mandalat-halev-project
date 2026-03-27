@@ -61,3 +61,15 @@ cache/
 
 
 test-output
+
+# Claude Code
+CLAUDE.md
+# Env Files
+.env.keys
+
+.nx/polygraph
+.claude/worktrees
+.claude/settings.local.json
+.agents/
+.cursor/
+AGENTS.md
