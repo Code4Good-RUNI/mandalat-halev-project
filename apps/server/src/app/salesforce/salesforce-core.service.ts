@@ -17,6 +17,10 @@ export class SalesforceCoreService {
     // ---------------------- test auth ----------------
     //this.authenticate().catch(err => {//
     //});
+
+    //console.log('--- ENV CHECK ---');
+    //console.log('SF_HOST:', this.configService.get('SF_HOST'));
+    //console.log('------------------');
   }
 
   /**

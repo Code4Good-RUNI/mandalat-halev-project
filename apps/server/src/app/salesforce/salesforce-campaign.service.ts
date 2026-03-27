@@ -9,7 +9,6 @@ import {
   RegisterResponseDto,
   UnregisterFromCampaignDto,
   GetRegistrationStatusDto,
-  approvalStatus,
 } from '@mandalat-halev-project/api-interfaces';
 
 // Campaign's fields
@@ -246,7 +245,7 @@ export class SalesforceCampaignService {
       campaignId: campaignId,
       salesforceUserId: salesforceUserId,
       registrationStatus: "approved", // need to be determined how to get this
-      additionalInfo: '', // need to be decided what and if to add
+      additionalInfo: records[0], // need to be decided what and if to add
     };
   }
 
