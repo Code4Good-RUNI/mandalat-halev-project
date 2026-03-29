@@ -6,5 +6,5 @@ module.exports = {
   ...baseConfig,
   displayName: 'mobile-integration',
   testMatch: ['**/*.integration.spec.ts'],
-  setupFiles: ['<rootDir>/src/test-support/integration-env-setup.ts'],
+  setupFiles: [],
 };
