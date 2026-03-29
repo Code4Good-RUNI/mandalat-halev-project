@@ -1,15 +1,20 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, SafeAreaView, TouchableOpacity } from 'react-native';
+import { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  SafeAreaView,
+  TouchableOpacity,
+} from 'react-native';
+import { router } from 'expo-router';
 
+export default function LoginScreen() {
+  const [idNumber, setIdNumber] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
 
-export const LoginScreen = () => {
-    const [idNumber, setIdNumber] = useState('');
-    const [phoneNumber, setPhoneNumber] = useState('');
-
-    return (
+  return (
     <SafeAreaView>
-        <View>
-        
+      <View>
         <Text>[Logo Here]</Text>
         <Text>שלום!</Text>
         <Text>התחבר על מנת להמשיך</Text>
@@ -33,7 +38,6 @@ export const LoginScreen = () => {
           />
         </View>
 
-        {/* Action Buttons */}
         <TouchableOpacity>
           <Text>נתקלת בבעיה? צור איתנו קשר</Text>
         </TouchableOpacity>
@@ -41,12 +45,11 @@ export const LoginScreen = () => {
         <TouchableOpacity>
           <Text>🤍 לתרומות</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.replace('/(tabs)/activities')}>
           <Text>התחבר</Text>
         </TouchableOpacity>
-
       </View>
     </SafeAreaView>
   );
-};
+}
