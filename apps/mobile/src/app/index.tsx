@@ -5,6 +5,7 @@ import {
   TextInput,
   SafeAreaView,
   TouchableOpacity,
+  StyleSheet,
 } from 'react-native';
 import { router } from 'expo-router';
 
@@ -46,10 +47,29 @@ export default function LoginScreen() {
           <Text>🤍 לתרומות</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.replace('/(tabs)/activities')}>
-          <Text>התחבר</Text>
+        <TouchableOpacity
+          style={styles.loginButton}
+          onPress={() => router.replace('/(tabs)/activities')}
+        >
+          <Text style={styles.loginButtonText}>התחבר</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  loginButton: {
+    backgroundColor: '#FF8C00',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 20,
+    marginHorizontal: 15,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+});
