@@ -3,6 +3,9 @@ import { LoginRequestDto, UserProfileDto} from '@mandalat-halev-project/api-inte
 import { SalesforceCoreService } from './salesforce-core.service';
 import { SalesforceMapper } from './salesforce.mapper';
 
+// SOQL injection avoiding tag
+const soql = SalesforceCoreService.soql;
+
 @Injectable()
 export class SalesforceUserService {
   private readonly logger = new Logger(SalesforceUserService.name);
@@ -17,15 +20,12 @@ export class SalesforceUserService {
   async validateLogin(credentials: LoginRequestDto): Promise<number | null> {
     const { phoneNumber, idNumber } = credentials;
 
-    // sql query
-    const soql = `
-    SELECT External_ID__c 
-    FROM Contact 
-    WHERE (Phone = '${phoneNumber}' OR MobilePhone = '${phoneNumber}')
-    AND RegisteredID__c = '${idNumber}' 
-    LIMIT 1`;
+    // soql query
+    const query = soql`SELECT External_ID__c FROM Contact 
+        WHERE (Phone = '${phoneNumber}' OR MobilePhone = '${phoneNumber}')
+        AND RegisteredID__c = '${idNumber}' LIMIT 1`;
 
-    const records = await this.core.query<any>(soql);
+    const records = await this.core.query<any>(query);
 
     // login failed
     if (records.length === 0) {
@@ -44,12 +44,12 @@ export class SalesforceUserService {
     salesforceUserId: number,
   ): Promise<UserProfileDto | null> {
     // soql query
-    const soql = `SELECT External_ID__c, FirstName, LastName, Email, Phone,
+    const query = soql`SELECT External_ID__c, FirstName, LastName, Email, Phone,
        RegisteredID__c, MailingStreet, CityName__c, Birthdate
-    FROM Contact WHERE External_ID__c = '${salesforceUserId}' LIMIT 1`;
+        FROM Contact WHERE External_ID__c = '${salesforceUserId}' LIMIT 1`;
 
     try {
-      const records = await this.core.query<any>(soql);
+      const records = await this.core.query<any>(query);
 
       if (records.length === 0) {
         this.logger.warn(
@@ -87,7 +87,7 @@ export class SalesforceUserService {
   async getInternalContactId(salesforceUserId: number): Promise<string | null> {
     // gets user ID in salesforce server
     const contact = await this.core.query<any>(
-      `SELECT Id FROM Contact WHERE External_ID__c = '${salesforceUserId}' LIMIT 1`,
+      soql`SELECT Id FROM Contact WHERE External_ID__c = '${salesforceUserId}' LIMIT 1`,
     );
 
     if (contact.length === 0) {

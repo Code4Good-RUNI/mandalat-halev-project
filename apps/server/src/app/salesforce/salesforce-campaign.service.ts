@@ -39,6 +39,8 @@ const CAMPAIGN_QUERY_FIELDS = [
   CF.END_DATE, CF.IS_ACTIVE, CF.LOCATION, CF.MAX_PARTICIPANTS, CF.IMAGE_URL
 ].join(', ');
 
+// SOQL injection avoiding tag
+const soql = SalesforceCoreService.soql;
 
 @Injectable()
 export class SalesforceCampaignService {
@@ -60,7 +62,7 @@ export class SalesforceCampaignService {
     if (!contactId) return [];
 
     // SOQL query for relative date
-    const soql = `SELECT ${CAMPAIGN_QUERY_FIELDS},
+    const query = soql`SELECT ${CAMPAIGN_QUERY_FIELDS},
         (SELECT ${CMF.STATUS} FROM CampaignMembers WHERE ${CMF.CONTACT_ID} = '${contactId}' LIMIT 1)
         FROM Campaign
         WHERE ${CF.END_DATE} >= TODAY
@@ -68,7 +70,7 @@ export class SalesforceCampaignService {
           AND ${CF.ID} IN (SELECT ${CMF.CAMPAIGN_ID} FROM CampaignMember WHERE ${CMF.CONTACT_ID} = '${contactId}')
         ORDER BY ${CF.START_DATE} ASC`;
 
-    const records = await this.core.query<any>(soql);
+    const records = await this.core.query<any>(query);
 
     // map data to GetFutureCampaignDto array
     return records.map((reg): GetFutureCampaignDto => {
@@ -104,13 +106,13 @@ export class SalesforceCampaignService {
     if (!contactId) return [];
 
     // SOQL query for relative date
-    const soql = `SELECT ${CAMPAIGN_QUERY_FIELDS}
+    const query = soql`SELECT ${CAMPAIGN_QUERY_FIELDS}
       FROM Campaign
       WHERE ${CF.END_DATE} < TODAY
         AND ${CF.ID} IN (SELECT ${CMF.CAMPAIGN_ID} FROM CampaignMember WHERE ${CMF.CONTACT_ID} = '${contactId}')
       ORDER BY ${CF.END_DATE} DESC`;
 
-    const records = await this.core.query<any>(soql);
+    const records = await this.core.query<any>(query);
 
     // map data to GetPastCampaignDto array
     return records.map((reg): GetPastCampaignDto => {
@@ -191,9 +193,9 @@ export class SalesforceCampaignService {
     };
 
     // gets user's CampaignMember ID to delete him
-    const soql = `SELECT ${CMF.ID} FROM CampaignMember
+    const query = soql`SELECT ${CMF.ID} FROM CampaignMember
                   WHERE ${CMF.CONTACT_ID} = '${contactId}' AND ${CMF.CAMPAIGN_ID} = '${campaignId}' LIMIT 1`;
-    const records = await this.core.query<any>(soql);
+    const records = await this.core.query<any>(query);
 
     if (records.length === 0) {
       throw new Error('User is not registered to the campaign');
@@ -234,12 +236,12 @@ export class SalesforceCampaignService {
       throw new Error('User or Campaign not found');
     }
 
-    const soql = `SELECT ${CMF.STATUS} FROM CampaignMember
+    const query = soql`SELECT ${CMF.STATUS} FROM CampaignMember
       WHERE ${CMF.CONTACT_ID} = '${contactId}'
         AND ${CMF.CAMPAIGN_ID} = '${internalCampaignId}'
         LIMIT 1`;
 
-    const records = await this.core.query<any>(soql);
+    const records = await this.core.query<any>(query);
 
     return {
       campaignId: campaignId,
@@ -256,7 +258,7 @@ export class SalesforceCampaignService {
     externalId: number,
   ): Promise<string | null> {
     const res = await this.core.query<any>(
-      `SELECT ${CF.ID} FROM Campaign WHERE ${CF.EXTERNAL_ID} = '${externalId}' LIMIT 1`,
+      soql`SELECT ${CF.ID} FROM Campaign WHERE ${CF.EXTERNAL_ID} = '${externalId}' LIMIT 1`,
     );
     return res[0]?.Id || null;
   }

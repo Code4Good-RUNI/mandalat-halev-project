@@ -17,7 +17,6 @@ export class SalesforceCoreService {
     // ---------------------- test auth ----------------
     //this.authenticate().catch(err => {//
     //});
-
     //console.log('--- ENV CHECK ---');
     //console.log('SF_HOST:', this.configService.get('SF_HOST'));
     //console.log('------------------');
@@ -161,5 +160,21 @@ export class SalesforceCoreService {
    */
   async delete(endpoint: string): Promise<void> {
     await this.request('DELETE', endpoint);
+  }
+
+  /**
+   * Rebuilds the SOQL query to prevent Injection attacks
+   * @param strings - The static parts of the SOQL template literal
+   * @param values - The dynamic variables injected using ${} syntax
+   * @returns Modified SOQL query string ready for execution
+   */
+  static soql(strings: TemplateStringsArray, ...values: any[]): string {
+    return strings.reduce((result, str, i) => {
+      let value = values[i];
+      if (typeof value === 'string') {
+        value = value.replace(/'/g, "\\'");
+      }
+      return result + str + (value ?? '');
+    }, '');
   }
 }
