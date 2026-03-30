@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ClientAppModule } from './client-app/client-app.module';
+import { SalesforceModule } from './salesforce/salesforce.module';
 
 @Module({
-  imports: [ClientAppModule],
+  imports: [SalesforceModule, ClientAppModule],
   controllers: [AppController],
   providers: [AppService],
 })
