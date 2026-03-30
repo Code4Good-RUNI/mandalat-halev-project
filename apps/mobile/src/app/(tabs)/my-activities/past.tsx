@@ -1,9 +1,8 @@
 import React from 'react';
-import { FlatList, SafeAreaView, Text, StyleSheet } from 'react-native';
-import { ActivityItem } from '../components/ActivityItem';
+import { View, Text, FlatList, SafeAreaView, StyleSheet } from 'react-native';
+import { ActivityItem } from '../../../components/ActivityItem';
 
-
-const MY_ACTIVITIES = [
+const PAST_ACTIVITIES = [
   {
     id: '1',
     title: 'יוגה למתקדמים',
@@ -11,7 +10,7 @@ const MY_ACTIVITIES = [
     location: 'מתחם מנדלת הלב',
     day: '15',
     month: 'May',
-    status: 'מאושר',
+    status: 'נוכח',
   },
   {
     id: '2',
@@ -20,21 +19,22 @@ const MY_ACTIVITIES = [
     location: 'מתחם מנדלת הלב',
     day: '15',
     month: 'May',
-    status: 'ממתין לאישור',
+    status: 'לא נוכח',
   },
 ];
 
-export const FutureActivitiesScreen = () => {
-  
+export default function PreviousActivitiesScreen() {
   return (
     <SafeAreaView style={styles.safe}>
-      <Text style={styles.title}>פעילויות עתידיות</Text>
-      
+      <View style={styles.header}>
+        <Text style={styles.title}>פעילויות קודמות</Text>
+      </View>
+
       <FlatList
-        data={MY_ACTIVITIES}
-        keyExtractor={item => item.id}
+        data={PAST_ACTIVITIES}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <ActivityItem 
+          <ActivityItem
             title={item.title}
             time={item.time}
             location={item.location}
@@ -42,12 +42,12 @@ export const FutureActivitiesScreen = () => {
           />
         )}
       />
-
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right', padding: 15 }
+  header: { padding: 15 },
+  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right' },
 });

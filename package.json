@@ -31,9 +31,11 @@
     "react-native-web": "~0.21.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@dotenvx/dotenvx": "^1.55.1",
     "@eslint/js": "^9.8.0",
     "@expo/cli": "~54.0.16",
     "@nestjs/schematics": "^11.0.0",
@@ -73,6 +75,7 @@
     "metro-resolver": "~0.83.0",
     "nx": "22.5.4",
     "prettier": "~3.6.2",
+    "react-test-renderer": "19.1.0",
     "ts-jest": "^29.4.0",
     "ts-node": "10.9.1",
     "tslib": "^2.3.0",
