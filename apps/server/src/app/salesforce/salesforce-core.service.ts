@@ -171,8 +171,13 @@ export class SalesforceCoreService {
   static soql(strings: TemplateStringsArray, ...values: any[]): string {
     return strings.reduce((result, str, i) => {
       let value = values[i];
-      if (typeof value === 'string') {
-        value = value.replace(/'/g, "\\'");
+      if (value !== undefined && value !== null) {
+        if (typeof value === 'string') {
+          // first clean \ and then '
+          value = value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        } else if (typeof value === 'number') {
+          value = Number(value);
+        }
       }
       return result + str + (value ?? '');
     }, '');
