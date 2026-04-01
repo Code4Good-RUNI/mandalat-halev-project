@@ -8,9 +8,7 @@ export class UserController {
   @TsRestHandler(userContract.user.profile)
   async getProfile() {
     return tsRestHandler(userContract.user.profile, async ({ params }) => {
-      console.log(`Fetching profile for salesforceUserId: ${params.salesforceUserId}`);
 
-      // 404 Error: Testing the consistent error structure
       if (params.salesforceUserId === 999) {
         return {
           status: 404,
@@ -20,8 +18,6 @@ export class UserController {
           },
         };
       }
-
-      // 200 Success: Return dummy user data
 
       return {
         status: 200,

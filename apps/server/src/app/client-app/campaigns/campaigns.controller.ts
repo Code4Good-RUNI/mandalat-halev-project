@@ -10,7 +10,6 @@ export class CampaignsController {
   async getFutureCampaigns() {
     return tsRestHandler(userContract.campaigns.future, async ({ params }) => {
 
-      // 404 Error: Simulate user not found in DB
       if (params.salesforceUserId === 999) {
         return {
           status: 404,
@@ -85,7 +84,6 @@ export class CampaignsController {
   async getPastCampaigns() {
     return tsRestHandler(userContract.campaigns.past, async ({ params }) => {
 
-      // 404 Error: Simulate user not found in DB
       if (params.salesforceUserId === 999) {
         return {
           status: 404,
@@ -139,7 +137,6 @@ export class CampaignsController {
   async registerForCampaign() {
     return tsRestHandler(userContract.campaigns.register, async ({ body }) => {
 
-      // 400 Error: Simulating a logic error
       if (body.campaignId === 999) {
         return {
           status: 400, // Returning a logic-based Bad Request, distinct from Zod's validation
@@ -181,7 +178,6 @@ export class CampaignsController {
   async getRegistrationStatus() {
     return tsRestHandler(userContract.campaigns.registrationStatus, async ({ query }) => {
 
-      // 404 Error
       if (query.campaignId === 999) {
          return {
             status: 404,
@@ -206,12 +202,11 @@ export class CampaignsController {
     });
   }
 
-// 6. Active campaigns (GET) 
+  // 6. Active campaigns (GET) 
   @TsRestHandler(userContract.campaigns.active)
   async getActiveCampaigns() { 
     return tsRestHandler(userContract.campaigns.active, async ({ params }) => {
       
-      // 404 Error: Simulate user not found in DB
       if (params.salesforceUserId === 999) {
         return {
           status: 404,
