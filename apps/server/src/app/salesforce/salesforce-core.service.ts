@@ -1,25 +1,44 @@
 import { Injectable, Logger, InternalServerErrorException, } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { isAxiosError } from 'axios';
+import * as jsforce from 'jsforce';
 
 @Injectable()
 export class SalesforceCoreService {
-  private readonly logger = new Logger(SalesforceCoreService.name);
-  private accessToken: string | undefined = undefined;
-  private instanceUrl: string | undefined = undefined;
+  //private readonly logger = new Logger(SalesforceCoreService.name);
+  //private accessToken: string | undefined = undefined;
+  //private instanceUrl: string | undefined = undefined;
 
-  constructor(
-    private readonly httpService: HttpService,
-    private configService: ConfigService,
-  ) {
-    // ---------------------- test auth ----------------
-    //this.authenticate().catch(err => {//
-    //});
-    //console.log('--- ENV CHECK ---');
-    //console.log('SF_HOST:', this.configService.get('SF_HOST'));
-    //console.log('------------------');
+  private conn: jsforce.Connection;
+  private readonly logger = new Logger(SalesforceCoreService.name);
+
+  constructor(private configService: ConfigService) {
+    this.conn = new jsforce.Connection({
+      loginUrl: this.configService.get('SF_HOST'),
+      version: '60.0',
+    });
+  }
+
+  /**
+   * Authenticates with Salesforce using the OAuth2 Client Credentials flow.
+   * Ensures that connection is alive and managing the token refreshing.
+   */
+  private async ensureConnected(): Promise<void> {
+    if (!this.conn.accessToken) {
+      const clientId = this.configService.get<string>('SF_CLIENT_ID');
+      const clientSecret = this.configService.get<string>('SF_CLIENT_SECRET');
+
+      // ensures that values exist
+      if (!clientId || !clientSecret) {
+        throw new Error(
+          'Salesforce credentials are missing in environment variables',
+        );
+      }
+
+      this.logger.log('Authenticating with Salesforce...');
+      await this.conn.login(clientId, clientSecret);
+    }
   }
 
   /**
@@ -76,52 +95,6 @@ export class SalesforceCoreService {
     }
   }
 
-  /**
-   * Authenticates with Salesforce using the OAuth2 Client Credentials flow
-   * Retrieves an access token and the instance URL required for subsequent API calls
-   * @throws {InternalServerErrorException} If configuration is missing or the authentication request fails
-   */
-  private async authenticate(): Promise<void> {
-    this.logger.log('Initiating Salesforce authentication...');
-
-    const host = this.configService.get<string>('SF_HOST');
-    const clientId = this.configService.get<string>('SF_CLIENT_ID');
-    const clientSecret = this.configService.get<string>('SF_CLIENT_SECRET');
-
-    if (!clientId || !clientSecret || !host) {
-      this.logger.error('Missing Salesforce configuration in .env');
-      throw new InternalServerErrorException('Salesforce configuration error');
-    }
-
-    const url = `${host}/services/oauth2/token`;
-    const params = new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: clientId,
-      client_secret: clientSecret,
-    });
-
-    try {
-      const { data } = await firstValueFrom(
-        this.httpService.post(url, params.toString(), {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        }),
-      );
-
-      this.accessToken = data.access_token;
-      this.instanceUrl = data.instance_url;
-      this.logger.log('Salesforce authentication successful.');
-    } catch (error) {
-      // HTTP error
-      if (isAxiosError(error)) {
-        const errorData = error.response?.data;
-        this.logger.error('Failed to authenticate with Salesforce', errorData);
-      } else {
-        // General error
-        this.logger.error('An unexpected error occurred', error);
-      }
-      throw new InternalServerErrorException('Salesforce connection failed');
-    }
-  }
 
   /**
    * Run SOQL query
@@ -129,8 +102,9 @@ export class SalesforceCoreService {
    * @returns A Promise that resolves to an array of records of type T
    */
   async query<T>(soql: string): Promise<T[]> {
-    const response = await this.get<{ records: T[] }>('query', { q: soql });
-    return response.records;
+    await this.ensureConnected();
+    const result = await this.conn.query<T>(soql);
+    return result.records;
   }
 
   /**
