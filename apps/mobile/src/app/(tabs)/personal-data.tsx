@@ -1,10 +1,39 @@
 import React, { useState } from 'react';
-import { View, Text, SafeAreaView, ScrollView, Switch, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  SafeAreaView,
+  ScrollView,
+  Switch,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
+import { useUserProfile } from '../../api/hooks';
 
 export default function PersonalDataScreen() {
   const [activityUpdates, setActivityUpdates] = useState(true);
   const [futureActivities, setFutureActivities] = useState(true);
   const [orgMessages, setOrgMessages] = useState(true);
+
+  // TODO: get salesforceUserId from auth state after login
+  const { data, isPending, isError } = useUserProfile(1);
+  const profile = data?.status === 200 ? data.body : undefined;
+
+  if (isPending) {
+    return (
+      <SafeAreaView>
+        <ActivityIndicator size="large" />
+      </SafeAreaView>
+    );
+  }
+
+  if (isError) {
+    return (
+      <SafeAreaView>
+        <Text>שגיאה בטעינת הנתונים</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView>
@@ -18,32 +47,36 @@ export default function PersonalDataScreen() {
 
           <View>
             <Text>שם מלא</Text>
-            <Text>ישראל ישראלי</Text>
+            <Text>
+              {profile?.firstName} {profile?.lastName}
+            </Text>
           </View>
 
           <View>
             <Text>מספר תעודת זהות</Text>
-            <Text>000000000</Text>
+            <Text>{profile?.idNumber}</Text>
           </View>
 
           <View>
             <Text>מספר טלפון</Text>
-            <Text>050-0000000</Text>
+            <Text>{profile?.phoneNumber}</Text>
           </View>
 
           <View>
             <Text>כתובת דואר אלקטרוני</Text>
-            <Text>aaaaaaaa@gmail.com</Text>
+            <Text>{profile?.email}</Text>
           </View>
 
           <View>
             <Text>כתובת מגורים</Text>
-            <Text>ישראל</Text>
+            <Text>
+              {profile?.address}, {profile?.city}
+            </Text>
           </View>
 
           <View>
             <Text>תאריך לידה</Text>
-            <Text>1/1/2000</Text>
+            <Text>{profile?.birthDate}</Text>
           </View>
         </View>
 
@@ -73,13 +106,19 @@ export default function PersonalDataScreen() {
           <View>
             <Text>עדכוני פעילויות</Text>
             <Text>קבל הודעות על שינויים בסטטוס הרישום</Text>
-            <Switch value={activityUpdates} onValueChange={setActivityUpdates} />
+            <Switch
+              value={activityUpdates}
+              onValueChange={setActivityUpdates}
+            />
           </View>
 
           <View>
             <Text>פעילויות עתידיות</Text>
             <Text>קבל תזכורות לפני פעילויות מתוזמנות</Text>
-            <Switch value={futureActivities} onValueChange={setFutureActivities} />
+            <Switch
+              value={futureActivities}
+              onValueChange={setFutureActivities}
+            />
           </View>
 
           <View>

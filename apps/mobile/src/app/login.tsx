@@ -8,10 +8,12 @@ import {
   StyleSheet,
 } from 'react-native';
 import { router } from 'expo-router';
+import { useLogin } from '../api/hooks';
 
 export default function LoginScreen() {
   const [idNumber, setIdNumber] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const { mutate: login, isPending, error } = useLogin();
 
   return (
     <SafeAreaView>
@@ -47,11 +49,20 @@ export default function LoginScreen() {
           <Text>🤍 לתרומות</Text>
         </TouchableOpacity>
 
+        {error && (
+          <Text style={styles.errorText}>ההתחברות נכשלה, נסה שנית</Text>
+        )}
+
         <TouchableOpacity
-          style={styles.loginButton}
-          onPress={() => router.replace('/(tabs)/activities')}
+          style={[styles.loginButton, isPending && { opacity: 0.6 }]}
+          disabled={isPending}
+          onPress={() => login({ phoneNumber, idNumber }, {
+            onSuccess: () => router.replace('/(tabs)/activities'),
+          })}
         >
-          <Text style={styles.loginButtonText}>התחבר</Text>
+          <Text style={styles.loginButtonText}>
+            {isPending ? 'מתחבר...' : 'התחבר'}
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -71,5 +82,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center' as const,
+    marginHorizontal: 15,
+    marginBottom: 10,
   },
 });
