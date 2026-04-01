@@ -10,6 +10,19 @@ export class UserController {
     return tsRestHandler(userContract.user.profile, async ({ params }) => {
       console.log(`Fetching profile for salesforceUserId: ${params.salesforceUserId}`);
 
+      // 404 Error: Testing the consistent error structure
+      if (params.salesforceUserId === 999) {
+        return {
+          status: 404,
+          body: {
+            status_code: 'NOT_FOUND',
+            message: 'User not found in Salesforce',
+          },
+        };
+      }
+
+      // 200 Success: Return dummy user data
+
       return {
         status: 200,
         body: {

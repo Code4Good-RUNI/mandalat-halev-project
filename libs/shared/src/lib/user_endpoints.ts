@@ -1,14 +1,16 @@
 import { initContract } from '@ts-rest/core';
+import { z } from 'zod'; 
 import {
-  LoginRequestDto,
-  LoginResponseDto,
-  UserProfileDto,
-  GetFutureCampaignDto,
-  GetPastCampaignDto,
-  RegisterForCampaignDto,
-  UnregisterFromCampaignDto,
-  RegisterResponseDto,
-  GetRegistrationStatusDto,
+  LoginRequestSchema,
+  LoginResponseSchema,
+  UserProfileSchema,
+  GetFutureCampaignSchema,
+  GetPastCampaignSchema,
+  RegisterForCampaignSchema,
+  UnregisterFromCampaignSchema,
+  RegisterResponseSchema,
+  GetRegistrationStatusSchema,
+  ErrorResponseSchema, 
 } from './user_schemas.js';
 
 const c = initContract();
@@ -18,63 +20,123 @@ export const userContract = c.router({
     login: {
       method: 'POST',
       path: '/auth/login',
-      body: c.type<LoginRequestDto>(),
+      body: LoginRequestSchema,
       responses: {
-        200: c.type<LoginResponseDto>(),
+        200: LoginResponseSchema,
+        400: ErrorResponseSchema, // Validation failed
+        401: ErrorResponseSchema, // Invalid credentials
+        500: ErrorResponseSchema, // Internal server error
       },
+      summary: 'Login to the application',
     },
   },
   user: {
     profile: {
       method: 'GET',
       path: '/user/profile/:salesforceUserId',
-      pathParams: c.type<{ salesforceUserId: number }>(),
+      pathParams: z.object({
+        salesforceUserId: z.coerce.number(),
+      }),
       responses: {
-        200: c.type<UserProfileDto>(),
+        200: UserProfileSchema,
+        400: ErrorResponseSchema, // Validation failed
+        401: ErrorResponseSchema, // Unauthorized (Missing/invalid token)
+        403: ErrorResponseSchema, // Forbidden (No permission)
+        404: ErrorResponseSchema, // User not found in Salesforce
+        500: ErrorResponseSchema, // Internal server error 
       },
+      summary: 'Get user profile details',
     },
   },
-  campaigns: {
+ campaigns: {
     future: {
       method: 'GET',
       path: '/campaigns/future/:salesforceUserId',
-      pathParams: c.type<{ salesforceUserId: number }>(),
+      pathParams: z.object({
+        salesforceUserId: z.coerce.number(),
+      }),
       responses: {
-        200: c.type<GetFutureCampaignDto[]>(),
+        200: z.array(GetFutureCampaignSchema),
+        400: ErrorResponseSchema,
+        401: ErrorResponseSchema,
+        403: ErrorResponseSchema,
+        500: ErrorResponseSchema,
       },
+      summary: 'Get future campaigns for a user',
     },
     past: {
       method: 'GET',
       path: '/campaigns/past/:salesforceUserId',
-      pathParams: c.type<{ salesforceUserId: number }>(),
+      pathParams: z.object({
+        salesforceUserId: z.coerce.number(),
+      }),
       responses: {
-        200: c.type<GetPastCampaignDto[]>(),
+        200: z.array(GetPastCampaignSchema),
+        400: ErrorResponseSchema,
+        401: ErrorResponseSchema,
+        403: ErrorResponseSchema,
+        500: ErrorResponseSchema,
       },
+      summary: 'Get past campaigns for a user',
+    },
+    active: {
+      method: 'GET',
+      path: '/campaigns/active/:salesforceUserId',
+      pathParams: z.object({
+        salesforceUserId: z.coerce.number(),
+      }),
+      responses: {
+        200: z.array(GetFutureCampaignSchema), 
+        400: ErrorResponseSchema,
+        401: ErrorResponseSchema,
+        403: ErrorResponseSchema,
+        404: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+      summary: 'Get active campaigns available for registration',
     },
     register: {
       method: 'POST',
       path: '/campaigns/register',
-      body: c.type<RegisterForCampaignDto>(),
+      body: RegisterForCampaignSchema,
       responses: {
-        200: c.type<RegisterResponseDto>(),
+        200: RegisterResponseSchema,
+        400: ErrorResponseSchema,
+        401: ErrorResponseSchema,
+        403: ErrorResponseSchema,
+        500: ErrorResponseSchema,
       },
+      summary: 'Register a user to a campaign',
     },
     unregister: {
       method: 'POST',
       path: '/campaigns/unregister',
-      body: c.type<UnregisterFromCampaignDto>(),
+      body: UnregisterFromCampaignSchema,
       responses: {
-        200: c.type<RegisterResponseDto>(),
+        200: RegisterResponseSchema,
+        400: ErrorResponseSchema,
+        401: ErrorResponseSchema,
+        403: ErrorResponseSchema,
+        500: ErrorResponseSchema,
       },
+      summary: 'Unregister a user from a campaign',
     },
     registrationStatus: {
       method: 'GET',
       path: '/campaigns/registration-status',
-      query: c.type<{ campaignId: number; salesforceUserId: number }>(),
+      query: z.object({
+        campaignId: z.coerce.number(),
+        salesforceUserId: z.coerce.number(),
+      }),
       responses: {
-        200: c.type<GetRegistrationStatusDto>(),
+        200: GetRegistrationStatusSchema,
+        400: ErrorResponseSchema,
+        401: ErrorResponseSchema,
+        403: ErrorResponseSchema,
+        404: ErrorResponseSchema,
+        500: ErrorResponseSchema,
       },
+      summary: 'Get registration status for a specific user and campaign',
     },
   },
-} as const);
-
+});
