@@ -2,6 +2,7 @@
   "name": "@mandalat-halev-project/mobile",
   "version": "0.0.1",
   "private": true,
+  "main": "expo-router/entry",
   "scripts": {
     "eas-build-post-install": "cd ../../ && node tools/scripts/eas-build-post-install.mjs . apps/mobile"
   },
@@ -10,8 +11,11 @@
   },
   "dependencies": {
     "@expo/metro-config": "*",
+    "@react-navigation/material-top-tabs": "^7.4.23",
     "@testing-library/react-native": "*",
     "expo": "*",
+    "expo-linking": "*",
+    "expo-router": "~6.0.23",
     "expo-splash-screen": "*",
     "expo-status-bar": "*",
     "expo-system-ui": "*",
@@ -20,6 +24,9 @@
     "metro-resolver": "*",
     "react": "*",
     "react-native": "*",
+    "react-native-pager-view": "6.9.1",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
     "react-native-svg": "*",
     "react-native-svg-transformer": "*",
     "react-native-web": "*"
