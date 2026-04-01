@@ -1,15 +1,9 @@
-import { Injectable, Logger, InternalServerErrorException, } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
-import { isAxiosError } from 'axios';
 import * as jsforce from 'jsforce';
 
 @Injectable()
 export class SalesforceCoreService {
-  //private readonly logger = new Logger(SalesforceCoreService.name);
-  //private accessToken: string | undefined = undefined;
-  //private instanceUrl: string | undefined = undefined;
-
   private conn: jsforce.Connection;
   private readonly logger = new Logger(SalesforceCoreService.name);
 
@@ -56,39 +50,42 @@ export class SalesforceCoreService {
    * @param soql - The query
    * @returns A Promise that resolves to an array of records of type T
    */
-  async query<T>(soql: string): Promise<T[]> {
+  async query<T extends jsforce.Record>(soql: string): Promise<T[]> {
     await this.ensureConnected();
     const result = await this.conn.query<T>(soql);
     return result.records;
   }
 
   /**
-   * Performs a generic GET request to a Salesforce endpoint
-   * @param endpoint - The relative Salesforce API path
-   * @param params - Optional query string parameters to append to the URL
-   * @returns A Promise that resolves to the response data of type T
+   * Creates a new record in Salesforce for the specified SObject
+   * @param sobjectName - The name of the SObject
+   * @param data - The record data to be created
+   * @returns A Promise that resolves to the Salesforce creation result
    */
-  async get<T>(endpoint: string, params?: any): Promise<T> {
-    return this.request<T>('GET', endpoint, { params });
+  async create(sobjectName: string, data: any): Promise<any> {
+    const obj = await this.sobject(sobjectName);
+    return obj.create(data);
   }
 
   /**
-   * Performs a generic POST request to create or update data in Salesforce
-   * @param endpoint - The relative Salesforce API path
-   * @param body - The JSON payload to be sent in the request body
-   * @returns A Promise that resolves to the response data of type T
+   * Delete a record in Salesforce for the specified SObject
+   * @param sobjectName - The name of the SObject
+   * @param id - user's salefocre id
+   * @returns A Promise that resolves to the Salesforce deletion result
    */
-  async post<T>(endpoint: string, body: any): Promise<T> {
-    return this.request<T>('POST', endpoint, { data: body });
+  async destroy(sobjectName: string, id: string): Promise<any> {
+    const obj = await this.sobject(sobjectName);
+    return obj.destroy(id);
   }
 
   /**
-   * Performs a generic DELETE request to remove a resource from Salesforce
-   * @param endpoint - The relative Salesforce API path including the record ID
-   * @returns A Promise that resolves when the deletion is successful
-   */
-  async delete(endpoint: string): Promise<void> {
-    await this.request('DELETE', endpoint);
+   * Updates a record in Salesforce for the specified SObject
+   * @param sobjectName - The name of the SObject
+   * @param data - The record data to be updated
+   * @returns A Promise that resolves to the Salesforce update result
+   */ async update(sobjectName: string, data: any): Promise<any> {
+    const obj = await this.sobject(sobjectName);
+    return obj.update(data);
   }
 
   /**
@@ -110,20 +107,5 @@ export class SalesforceCoreService {
       }
       return result + str + (value ?? '');
     }, '');
-  }
-
-  /**
-   * Gets internal contact ID in salesforce server
-   */
-  async getInternalContactId(salesforceUserId: number): Promise<string | null> {
-    const contactSObject = (await this.sobject(
-      'Contact',
-    )) as jsforce.SObject<any, any>;
-    const records = await contactSObject
-      .find({ External_ID__c: salesforceUserId }, ['Id'])
-      .limit(1)
-      .execute();
-
-    return records[0]?.Id || null;
   }
 }

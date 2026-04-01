@@ -2,6 +2,7 @@ import { Injectable, Logger, } from '@nestjs/common';
 import { LoginRequestDto, UserProfileDto} from '@mandalat-halev-project/api-interfaces';
 import { SalesforceCoreService } from './salesforce-core.service';
 import { SalesforceMapper } from './salesforce.mapper';
+import * as jsforce from 'jsforce';
 
 @Injectable()
 export class SalesforceUserService {
@@ -40,15 +41,24 @@ export class SalesforceUserService {
    * @param salesforceUserId - Salesforce user ID received when logged in
    * @returns UserProfileDto or null if not found
    */
-  async getUserProfile(salesforceUserId: number,): Promise<UserProfileDto | null> {
+  async getUserProfile(
+    salesforceUserId: number,
+  ): Promise<UserProfileDto | null> {
     try {
-
       // try to get user's profile using jsforce find
       const contactObj = await this.core.sobject('Contact');
 
       const fields = [
-        'External_ID__c', 'FirstName', 'LastName', 'Email', 'Phone',
-        'RegisteredID__c', 'MailingStreet', 'CityName__c', 'Birthdate',];
+        'External_ID__c',
+        'FirstName',
+        'LastName',
+        'Email',
+        'Phone',
+        'RegisteredID__c',
+        'MailingStreet',
+        'CityName__c',
+        'Birthdate',
+      ];
 
       const records = await contactObj
         .find({ External_ID__c: salesforceUserId }, fields)
@@ -84,4 +94,18 @@ export class SalesforceUserService {
       throw error;
     }
   }
+
+  /**
+   * Gets internal contact ID in salesforce server
+   */
+  async getInternalContactId(salesforceUserId: number): Promise<string | null> {
+    const contactSObject = (await this.core.sobject('Contact')) as jsforce.SObject<any, any>;
+    const records = await contactSObject
+      .find({ External_ID__c: salesforceUserId }, ['Id'])
+      .limit(1)
+      .execute();
+
+    return records[0]?.Id || null;
+  }
+
 }
