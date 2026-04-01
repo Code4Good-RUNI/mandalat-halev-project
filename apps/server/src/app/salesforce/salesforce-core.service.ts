@@ -42,59 +42,14 @@ export class SalesforceCoreService {
   }
 
   /**
-   * Handles all kind of requests, includes renew token if expired
-   * @param method - Type of request ('GET', 'POST', 'DELETE', 'PATCH')
-   * @param endpoint - The relative Salesforce API path
-   * @param options - An optional object containing 'params' for URL query strings or 'data' for the request body
-   * @returns A Promise that resolves to the response data of type T from Salesforce
-   * @throws {InternalServerErrorException} If the request fails after a retry or if a non-401 error occurs
+   * Create an SObject ready to use while ensuring connectivity
+   * @param name
+   * @returns A Promise that resolves to a SObject
    */
-  private async request<T>(
-    method: 'GET' | 'POST' | 'DELETE' | 'PATCH',
-    endpoint: string,
-    options: { params?: any; data?: any } = {},
-  ): Promise<T> {
-    // establish connection if doesnt exist
-    if (!this.accessToken || !this.instanceUrl) {
-      await this.authenticate();
-    }
-
-    const url = `${this.instanceUrl}/services/data/v60.0/${endpoint}`;
-
-    try {
-      const response = await firstValueFrom(
-        this.httpService.request({
-          method,
-          url,
-          params: options.params,
-          data: options.data,
-          headers: {
-            Authorization: `Bearer ${this.accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        }),
-      );
-      return response.data;
-    } catch (error) {
-      // When token expired - error 401
-      if (isAxiosError(error) && error.response?.status === 401) {
-        this.logger.warn(
-          `Salesforce 401 on ${method} ${endpoint}. Retrying...`,
-        );
-        await this.authenticate();
-        return this.request<T>(method, endpoint, options); // retry
-      }
-
-      // Other errors
-      const errorData = isAxiosError(error) ? error.response?.data : error;
-      this.logger.error(
-        `Salesforce API error: ${method} ${endpoint}`,
-        errorData,
-      );
-      throw new InternalServerErrorException('Salesforce operation failed');
-    }
+  async sobject(name: string): Promise<jsforce.SObject<any, any>> {
+    await this.ensureConnected();
+    return this.conn.sobject(name);
   }
-
 
   /**
    * Run SOQL query
@@ -155,5 +110,20 @@ export class SalesforceCoreService {
       }
       return result + str + (value ?? '');
     }, '');
+  }
+
+  /**
+   * Gets internal contact ID in salesforce server
+   */
+  async getInternalContactId(salesforceUserId: number): Promise<string | null> {
+    const contactSObject = (await this.sobject(
+      'Contact',
+    )) as jsforce.SObject<any, any>;
+    const records = await contactSObject
+      .find({ External_ID__c: salesforceUserId }, ['Id'])
+      .limit(1)
+      .execute();
+
+    return records[0]?.Id || null;
   }
 }
