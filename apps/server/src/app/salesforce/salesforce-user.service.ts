@@ -2,9 +2,7 @@ import { Injectable, Logger, } from '@nestjs/common';
 import { LoginRequestDto, UserProfileDto} from '@mandalat-halev-project/api-interfaces';
 import { SalesforceCoreService } from './salesforce-core.service';
 import { SalesforceMapper } from './salesforce.mapper';
-
-// SOQL injection avoiding tag
-const soql = SalesforceCoreService.soql;
+import * as jsforce from 'jsforce';
 
 @Injectable()
 export class SalesforceUserService {
@@ -13,19 +11,22 @@ export class SalesforceUserService {
   constructor(private readonly core: SalesforceCoreService) {}
 
   /**
-   * Authenticate User
+   * Authenticate User using JSForce Query Builder
    * @param credentials - LoginRequestDto (phoneNumber, idNumber)
    * @returns User's ID or null if not exists
    */
   async validateLogin(credentials: LoginRequestDto): Promise<number | null> {
     const { phoneNumber, idNumber } = credentials;
 
-    // soql query
-    const query = soql`SELECT External_ID__c FROM Contact 
-        WHERE (Phone = '${phoneNumber}' OR MobilePhone = '${phoneNumber}')
-        AND RegisteredID__c = '${idNumber}' LIMIT 1`;
-
-    const records = await this.core.query<any>(query);
+    // using jsforce find to check if user exists
+    const contactObj = await this.core.sobject('Contact');
+    const records = await contactObj
+      .find({
+        $or: [{ Phone: phoneNumber }, { MobilePhone: phoneNumber }],
+        RegisteredID__c: idNumber,
+      })
+      .limit(1)
+      .execute();
 
     // login failed
     if (records.length === 0) {
@@ -43,13 +44,26 @@ export class SalesforceUserService {
   async getUserProfile(
     salesforceUserId: number,
   ): Promise<UserProfileDto | null> {
-    // soql query
-    const query = soql`SELECT External_ID__c, FirstName, LastName, Email, Phone,
-       RegisteredID__c, MailingStreet, CityName__c, Birthdate
-        FROM Contact WHERE External_ID__c = '${salesforceUserId}' LIMIT 1`;
-
     try {
-      const records = await this.core.query<any>(query);
+      // try to get user's profile using jsforce find
+      const contactObj = await this.core.sobject('Contact');
+
+      const fields = [
+        'External_ID__c',
+        'FirstName',
+        'LastName',
+        'Email',
+        'Phone',
+        'RegisteredID__c',
+        'MailingStreet',
+        'CityName__c',
+        'Birthdate',
+      ];
+
+      const records = await contactObj
+        .find({ External_ID__c: salesforceUserId }, fields)
+        .limit(1)
+        .execute();
 
       if (records.length === 0) {
         this.logger.warn(
@@ -85,17 +99,13 @@ export class SalesforceUserService {
    * Gets internal contact ID in salesforce server
    */
   async getInternalContactId(salesforceUserId: number): Promise<string | null> {
-    // gets user ID in salesforce server
-    const contact = await this.core.query<any>(
-      soql`SELECT Id FROM Contact WHERE External_ID__c = '${salesforceUserId}' LIMIT 1`,
-    );
+    const contactSObject = (await this.core.sobject('Contact')) as jsforce.SObject<any, any>;
+    const records = await contactSObject
+      .find({ External_ID__c: salesforceUserId }, ['Id'])
+      .limit(1)
+      .execute();
 
-    if (contact.length === 0) {
-      this.logger.warn(
-        `User with External ID ${salesforceUserId} not found in Salesforce`,
-      );
-      return null;
-    }
-    return contact[0].Id;
+    return records[0]?.Id || null;
   }
+
 }
