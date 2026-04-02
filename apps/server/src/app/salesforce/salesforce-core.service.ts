@@ -14,6 +14,27 @@ export class SalesforceCoreService {
     });
   }
 
+  async onModuleInit() {
+    const loginUrl = this.configService.get<string>('SF_HOST');
+
+    this.logger.log(`DEBUG: loginUrl is "${loginUrl}"`);
+    this.logger.log(
+      '🚀 Server started, attempting to test Salesforce connection...',
+    );
+    try {
+      await this.ensureConnected();
+      this.logger.log('✅ SUCCESS: Connected to Salesforce successfully!');
+    } catch (error) {
+      this.logger.error('❌ FAILED: Could not connect to Salesforce.');
+
+      if (error instanceof Error) {
+        this.logger.error(`Reason: ${error.message}`);
+      } else {
+        this.logger.error(`An unexpected error occurred: ${String(error)}`);
+      }
+    }
+  }
+
   /**
    * Authenticates with Salesforce using the OAuth2 Client Credentials flow.
    * Ensures that connection is alive and managing the token refreshing.
