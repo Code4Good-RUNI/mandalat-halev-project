@@ -8,8 +8,17 @@ export class AuthController {
   @TsRestHandler(userContract.auth.login)
   async executeLogin() {
     return tsRestHandler(userContract.auth.login, async ({ body }) => {
-      console.log(`Processing login for phone: ${body.phoneNumber}`);
 
+      if (body.phoneNumber === '0500000000') {
+        return {
+          status: 401,
+          body: {
+            status_code: 'UNAUTHORIZED',
+            message: 'Invalid phone number or ID number',
+          },
+        };
+      }
+      
       return {
         status: 200,
         body: {
