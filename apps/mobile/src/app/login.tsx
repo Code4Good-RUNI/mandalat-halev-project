@@ -56,9 +56,14 @@ export default function LoginScreen() {
         <TouchableOpacity
           style={[styles.loginButton, isPending && { opacity: 0.6 }]}
           disabled={isPending}
-          onPress={() => login({ phoneNumber, idNumber }, {
-            onSuccess: () => router.replace('/(tabs)/activities'),
-          })}
+          onPress={() =>
+            login(
+              { phoneNumber, idNumber },
+              {
+                onSuccess: () => router.replace('/(tabs)/activities'),
+              },
+            )
+          }
         >
           <Text style={styles.loginButtonText}>
             {isPending ? 'מתחבר...' : 'התחבר'}
