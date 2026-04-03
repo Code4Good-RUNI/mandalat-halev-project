@@ -8,7 +8,16 @@ export class UserController {
   @TsRestHandler(userContract.user.profile)
   async getProfile() {
     return tsRestHandler(userContract.user.profile, async ({ params }) => {
-      console.log(`Fetching profile for salesforceUserId: ${params.salesforceUserId}`);
+
+      if (params.salesforceUserId === 999) {
+        return {
+          status: 404,
+          body: {
+            status_code: 'NOT_FOUND',
+            message: 'User not found in Salesforce',
+          },
+        };
+      }
 
       return {
         status: 200,
