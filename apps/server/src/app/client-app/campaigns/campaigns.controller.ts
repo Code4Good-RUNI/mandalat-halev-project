@@ -5,10 +5,61 @@ import { userContract } from '@mandalat-halev-project/api-interfaces';
 @Controller()
 export class CampaignsController {
   
-  // 1. Future campaigns (GET) - Multiple diverse examples
+  // 1. Active campaigns (GET) 
+  @TsRestHandler(userContract.campaigns.active)
+  async getActiveCampaigns() { 
+    return tsRestHandler(userContract.campaigns.active, async ({ params }) => {
+      
+      if (params.salesforceUserId === 999) {
+        return {
+          status: 404,
+          body: {
+            status_code: 'NOT_FOUND',
+            message: 'User not found in Salesforce',
+          },
+        };
+      }
+
+      return {
+        status: 200,
+        body: [
+          {
+            id: 5,
+            name: 'Park Restoration',
+            description: 'Help us paint benches and plant new flowers at the central park.',
+            imageUrl: 'https://example.com/images/park.jpg',
+            startDate: '2026-07-01',
+            endDate: '2026-07-01',
+            durationInHours: 4,
+            locationAddress: 'Hashalom 5',
+            locationCity: 'Tel Aviv',
+            numOfParticipants: 30,
+            numOfParticipantsRegistered: 10,
+            isActive: true,
+            isRelevantToUser: true,
+            isUserRegistered: false, 
+            userApprovalStatus: 'pending' 
+          }
+        ]
+      };
+    });
+  }
+  
+  // 2. Future campaigns (GET) - Multiple diverse examples
   @TsRestHandler(userContract.campaigns.future)
   async getFutureCampaigns() {
     return tsRestHandler(userContract.campaigns.future, async ({ params }) => {
+
+      if (params.salesforceUserId === 999) {
+        return {
+          status: 404,
+          body: {
+            status_code: 'NOT_FOUND',
+            message: 'User not found in Salesforce',
+          },
+        };
+      }
+
       return {
         status: 200,
         body: [
@@ -26,8 +77,8 @@ export class CampaignsController {
             numOfParticipantsRegistered: 48, 
             isActive: true,
             isRelevantToUser: true,
-            isUserRegistered: false,
-            userApprovalStatus: 'pending'
+            isUserRegistered: true,
+            userApprovalStatus: 'approved'
           },
           {
             id: 3,
@@ -60,18 +111,29 @@ export class CampaignsController {
             numOfParticipantsRegistered: 2,
             isActive: true,
             isRelevantToUser: true,
-            isUserRegistered: false,
-            userApprovalStatus: 'rejected' // User was rejected previously
+            isUserRegistered: true,
+            userApprovalStatus: 'rejected' // User was rejected
           }
         ]
       };
     });
   }
 
-  // 2. Past campaigns (GET) - Historical data
+  // 3. Past campaigns (GET) - Historical data
   @TsRestHandler(userContract.campaigns.past)
   async getPastCampaigns() {
     return tsRestHandler(userContract.campaigns.past, async ({ params }) => {
+
+      if (params.salesforceUserId === 999) {
+        return {
+          status: 404,
+          body: {
+            status_code: 'NOT_FOUND',
+            message: 'User not found in Salesforce',
+          },
+        };
+      }
+
       return {
         status: 200,
         body: [
@@ -110,10 +172,21 @@ export class CampaignsController {
     });
   }
 
-  // 3. Register for campaign (POST)
+  // 4. Register for campaign (POST)
   @TsRestHandler(userContract.campaigns.register)
   async registerForCampaign() {
     return tsRestHandler(userContract.campaigns.register, async ({ body }) => {
+
+      if (body.campaignId === 999) {
+        return {
+          status: 400, // Returning a logic-based Bad Request, distinct from Zod's validation
+          body: {
+            status_code: 'REGISTRATION_FAILED',
+            message: 'This campaign is full or no longer accepting registrations.',
+          },
+        };
+      }
+
       return {
         status: 200,
         body: {
@@ -125,7 +198,7 @@ export class CampaignsController {
     });
   }
 
-  // 4. Unregister from campaign (POST)
+  // 5. Unregister from campaign (POST)
   @TsRestHandler(userContract.campaigns.unregister)
   async unregisterFromCampaign() {
     return tsRestHandler(userContract.campaigns.unregister, async ({ body }) => {
@@ -140,10 +213,21 @@ export class CampaignsController {
     });
   }
 
-  // 5. Check registration status (GET)
+  // 6. Check registration status (GET)
   @TsRestHandler(userContract.campaigns.registrationStatus)
   async getRegistrationStatus() {
     return tsRestHandler(userContract.campaigns.registrationStatus, async ({ query }) => {
+
+      if (query.campaignId === 999) {
+         return {
+            status: 404,
+            body: {
+               status_code: 'NOT_FOUND',
+               message: 'Campaign not found'
+            }
+         }
+      }
+
       // Logic simulation: If campaignId is 1, return approved, otherwise pending
       const status = query.campaignId === 1 ? 'approved' : 'pending';
       return {
