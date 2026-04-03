@@ -59,7 +59,8 @@ export class SalesforceCampaignService {
   async getFutureCampaigns(
     salesforceUserId: number,
   ): Promise<GetFutureCampaignDto[]> {
-    const contactId = await this.userService.getInternalContactId(salesforceUserId);
+    const contactId =
+      await this.userService.getInternalContactId(salesforceUserId);
     if (!contactId) return [];
 
     // SOQL query for relative date
@@ -74,15 +75,57 @@ export class SalesforceCampaignService {
     const records = await this.core.query<any>(query);
 
     // map data to GetFutureCampaignDto array
-    return records.map((reg): GetFutureCampaignDto => {
-      const membership =
-        reg.CampaignMembers && reg.CampaignMembers.records
-          ? reg.CampaignMembers.records[0]
-          : null;
+    return records.map((campaign): GetFutureCampaignDto => {
+      const membership = campaign.CampaignMembers?.records?.[0];
 
       return {
         // fields of CampaignDto
-        ...SalesforceMapper.mapBaseCampaign(reg),
+        ...SalesforceMapper.mapBaseCampaign(campaign),
+
+        // fields of GetFutureCampaignDto
+        isRelevantToUser: true,
+        isUserRegistered: !!membership,
+        userApprovalStatus: SalesforceMapper.mapStatusToApproval(
+          membership?.Status,
+        ),
+      };
+    });
+  }
+
+  /**
+   * Get campaigns available for registration (Future and user NOT registered)
+   * @param salesforceUserId - Salesforce user ID
+   * @returns GetFutureCampaignDto[]
+   */
+  async getActiveCampaigns(
+    salesforceUserId: number,
+  ): Promise<GetFutureCampaignDto[]> {
+    const contactId =
+      await this.userService.getInternalContactId(salesforceUserId);
+    if (!contactId) return [];
+
+    // SOQL query for relative date
+    const query = SalesforceCoreService.soql`
+        SELECT ${CAMPAIGN_QUERY_FIELDS}
+        FROM Campaign
+        WHERE ${CF.END_DATE} >= TODAY
+          AND ${CF.IS_ACTIVE} = true
+          AND ${CF.ID} NOT IN (
+            SELECT ${CMF.CAMPAIGN_ID}
+            FROM CampaignMember
+            WHERE ${CMF.CONTACT_ID} = '${contactId}'
+        )
+        ORDER BY ${CF.START_DATE} ASC`;
+
+    const records = await this.core.query<any>(query);
+
+    // map data to GetFutureCampaignDto array
+    return records.map((campaign): GetFutureCampaignDto => {
+      const membership = campaign.CampaignMembers?.records?.[0];
+
+      return {
+        // fields of CampaignDto
+        ...SalesforceMapper.mapBaseCampaign(campaign),
 
         // fields of GetFutureCampaignDto
         isRelevantToUser: true,
@@ -102,7 +145,8 @@ export class SalesforceCampaignService {
   async getPastCampaigns(
     salesforceUserId: number,
   ): Promise<GetPastCampaignDto[]> {
-    const contactId = await this.userService.getInternalContactId(salesforceUserId);
+    const contactId =
+      await this.userService.getInternalContactId(salesforceUserId);
     if (!contactId) return [];
 
     // SOQL query for relative date
