@@ -10,35 +10,11 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useLogin } from '../api/hooks';
-import { TEST_ID_NUMBER, TEST_PHONE_NUMBER } from '../constants/auth';
 
 export default function LoginScreen() {
-  const [idNumber, setIdNumber] = useState(TEST_ID_NUMBER);
-  const [phoneNumber, setPhoneNumber] = useState(TEST_PHONE_NUMBER);
-  // localError is first null, then can be a string or null
-  const [localError, setLocalError] = useState<string | null>(null);
-
-  const { mutate: login, isPending } = useLogin();
-
-  const handleLogin = () => {
-    setLocalError(null); // clear previous errors
-
-    login(
-      { phoneNumber, idNumber },
-      {
-        onSuccess: (response) => {
-          if (response.status === 200) {
-            router.replace('/(tabs)/activities');
-          } else {
-            setLocalError('פרטי התחברות שגויים. נסה שנית.');
-          }
-        },
-        onError: () => {
-          setLocalError('משהו השתבש...');
-        },
-      }
-    );
-  };
+  const [idNumber, setIdNumber] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const { mutate: login, isPending, error } = useLogin();
 
   return (
     <SafeAreaView>
@@ -66,7 +42,7 @@ export default function LoginScreen() {
           />
         </View>
 
-        {localError && <Text style={styles.errorText}>{localError}</Text>}
+        {error && <Text style={styles.errorText}>{error.message}</Text>}
 
         <TouchableOpacity>
           <Text style={styles.linkText}>נתקלת בבעיה? צור איתנו קשר</Text>
@@ -76,17 +52,21 @@ export default function LoginScreen() {
           <Text>🤍 לתרומות</Text>
         </TouchableOpacity>
 
-
         <TouchableOpacity
-          style={[styles.loginButton, isPending && { opacity: 0.7 }]}
-          onPress={handleLogin}
-          disabled={isPending} // prevent double-submitting
+          style={[styles.loginButton, isPending && { opacity: 0.6 }]}
+          disabled={isPending}
+          onPress={() =>
+            login(
+              { phoneNumber, idNumber },
+              {
+                onSuccess: () => router.replace('/(tabs)/activities'),
+              },
+            )
+          }
         >
-          {isPending ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.loginButtonText}>התחבר</Text>
-          )}
+          <Text style={styles.loginButtonText}>
+            {isPending ? 'מתחבר...' : 'התחבר'}
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -96,11 +76,24 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   logo: { fontSize: 24, textAlign: 'center', marginTop: 40 },
-  welcome: { fontSize: 32, fontWeight: 'bold', textAlign: 'right', marginRight: 20 },
-  subText: { fontSize: 18, textAlign: 'right', marginRight: 20, marginBottom: 20 },
+  welcome: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    textAlign: 'right',
+    marginRight: 20,
+  },
+  subText: {
+    fontSize: 18,
+    textAlign: 'right',
+    marginRight: 20,
+    marginBottom: 20,
+  },
   inputContainer: { marginHorizontal: 20, marginBottom: 15 },
-  input: { borderBottomWidth: 1, borderBottomColor: '#ccc', paddingVertical: 8 },
-  errorText: { color: 'red', textAlign: 'center', marginTop: 10 },
+  input: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+    paddingVertical: 8,
+  },
   linkText: { textAlign: 'center', marginTop: 20, color: '#666' },
   loginButton: {
     backgroundColor: '#FF8C00',
@@ -110,5 +103,15 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginHorizontal: 20,
   },
-  loginButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center' as const,
+    marginHorizontal: 15,
+    marginBottom: 10,
+  },
 });
