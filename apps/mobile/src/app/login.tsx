@@ -11,9 +11,13 @@ import {
 import { router } from 'expo-router';
 import { useLogin } from '../api/hooks';
 
+// Temporary constant to store user ID until full auth context is implemented
+export let temporarySalesforceUserId: number | null = null;
+
 export default function LoginScreen() {
   const [idNumber, setIdNumber] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [customError, setCustomError] = useState('');
   const { mutate: login, isPending, error } = useLogin();
 
   return (
@@ -42,7 +46,9 @@ export default function LoginScreen() {
           />
         </View>
 
-        {error && <Text style={styles.errorText}>{error.message}</Text>}
+        {(error || customError !== '') && (
+          <Text style={styles.errorText}>{customError || error?.message}</Text>
+        )}
 
         <TouchableOpacity>
           <Text style={styles.linkText}>נתקלת בבעיה? צור איתנו קשר</Text>
@@ -55,14 +61,23 @@ export default function LoginScreen() {
         <TouchableOpacity
           style={[styles.loginButton, isPending && { opacity: 0.6 }]}
           disabled={isPending}
-          onPress={() =>
+          onPress={() => {
+            setCustomError('');
             login(
               { phoneNumber, idNumber },
               {
-                onSuccess: () => router.replace('/(tabs)/activities'),
+                onSuccess: (data) => {
+                  if (data.status === 200) {
+                    temporarySalesforceUserId = data.body.salesforceUserId;
+                    router.replace('/(tabs)/activities');
+                  } else {
+                    setCustomError('משהו השתבש. אנא נסה שוב.');
+                  }
+                },
+                onError: () => setCustomError('שגיאת תקשורת. אנא נסה שוב.'),
               },
-            )
-          }
+            );
+          }}
         >
           <Text style={styles.loginButtonText}>
             {isPending ? 'מתחבר...' : 'התחבר'}

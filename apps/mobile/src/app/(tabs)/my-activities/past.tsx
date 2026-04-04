@@ -1,29 +1,29 @@
 import React from 'react';
-import { View, Text, FlatList, SafeAreaView, StyleSheet } from 'react-native';
+import { View, Text, FlatList, SafeAreaView, StyleSheet, ActivityIndicator } from 'react-native';
 import { ActivityItem } from '../../../components/ActivityItem';
-
-const PAST_ACTIVITIES = [
-  {
-    id: '1',
-    title: 'יוגה למתקדמים',
-    time: '6:00',
-    location: 'מתחם מנדלת הלב',
-    day: '15',
-    month: 'May',
-    status: 'נוכח',
-  },
-  {
-    id: '2',
-    title: 'סדנת קרמיקה',
-    time: '6:00',
-    location: 'מתחם מנדלת הלב',
-    day: '15',
-    month: 'May',
-    status: 'לא נוכח',
-  },
-];
+import { temporarySalesforceUserId } from '../../login';
+import { usePastCampaigns } from '../../../api/hooks';
 
 export default function PreviousActivitiesScreen() {
+  const userId = Number(temporarySalesforceUserId);
+  const { data, isPending, isError } = usePastCampaigns(userId);
+
+  if (isPending) {
+    return (
+      <SafeAreaView style={[styles.safe, styles.center]}>
+        <ActivityIndicator size="large" color="#FF8C00" />
+      </SafeAreaView>
+    );
+  }
+
+  if (isError || (data && data.status !== 200)) {
+    return (
+      <SafeAreaView style={[styles.safe, styles.center]}>
+        <Text style={styles.errorText}>משהו השתבש בטעינת הפעילויות. אנא נסה שוב.</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
@@ -31,16 +31,17 @@ export default function PreviousActivitiesScreen() {
       </View>
 
       <FlatList
-        data={PAST_ACTIVITIES}
-        keyExtractor={(item) => item.id}
+        data={data.body}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <ActivityItem
-            title={item.title}
-            time={item.time}
-            location={item.location}
-            status={item.status}
+            title={item.name}
+            time={`${item.startDate} | ${item.durationInHours} שעות`}
+            location={`${item.locationAddress}, ${item.locationCity}`}
+            status={item.hasUserParticipated ? 'נוכח' : 'לא נוכח'}
           />
         )}
+        contentContainerStyle={{ paddingBottom: 20, paddingHorizontal: 15 }}
       />
     </SafeAreaView>
   );
@@ -48,6 +49,8 @@ export default function PreviousActivitiesScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
+  center: { justifyContent: 'center', alignItems: 'center' },
   header: { padding: 15 },
   title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right' },
+  errorText: { color: 'red', textAlign: 'center', marginBottom: 5, fontSize: 12 },
 });

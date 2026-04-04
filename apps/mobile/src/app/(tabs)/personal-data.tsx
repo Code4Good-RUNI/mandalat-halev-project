@@ -10,6 +10,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useUserProfile } from '../../api/hooks';
+import { temporarySalesforceUserId } from '../login';
 
 export default function PersonalDataScreen() {
   // switch states
@@ -17,8 +18,7 @@ export default function PersonalDataScreen() {
   const [futureActivities, setFutureActivities] = useState(true);
   const [orgMessages, setOrgMessages] = useState(true);
 
-  // TODO: get salesforceUserId from auth state after login
-  const { data, isPending, isError } = useUserProfile(1);
+  const { data, isPending, isError } = useUserProfile(Number(temporarySalesforceUserId));
   const profile = data?.status === 200 ? data.body : undefined;
 
   if (isPending) {
@@ -98,21 +98,27 @@ export default function PersonalDataScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>הגדרת התראות</Text>
 
-          <View>
-            <Text>עדכוני פעילויות</Text>
-            <Text>קבל הודעות על שינויים בסטטוס הרישום</Text>
+          <View style={styles.switchRow}>
+            <View style={styles.switchTextContainer}>
+              <Text style={styles.switchTitle}>עדכוני פעילויות</Text>
+              <Text style={styles.switchSub}>קבל הודעות על שינויים בסטטוס הרישום</Text>
+            </View>
             <Switch
               value={activityUpdates}
               onValueChange={setActivityUpdates}
+              trackColor={{ true: '#FF8C00' }}
             />
           </View>
 
-          <View>
-            <Text>פעילויות עתידיות</Text>
-            <Text>קבל תזכורות לפני פעילויות מתוזמנות</Text>
+          <View style={styles.switchRow}>
+            <View style={styles.switchTextContainer}>
+              <Text style={styles.switchTitle}>פעילויות עתידיות</Text>
+              <Text style={styles.switchSub}>קבל תזכורות לפני פעילויות מתוזמנות</Text>
+            </View>
             <Switch
               value={futureActivities}
               onValueChange={setFutureActivities}
+              trackColor={{ true: '#FF8C00' }}
             />
           </View>
 
@@ -182,7 +188,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   updateButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  // ADDED MISSING STYLES:
   switchRow: {
     flexDirection: 'row-reverse',
     justifyContent: 'space-between',
