@@ -14,6 +14,10 @@ loadEnv({ path: '.env.local', override: true });
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const corsOrigin = process.env.CORS_ORIGIN?.split(',') || [];
+  app.enableCors({
+    origin: corsOrigin,
+  });
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
   const port = process.env.PORT || 3000;
