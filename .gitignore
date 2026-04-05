@@ -1,7 +1,12 @@
 # See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
-# .env file - secret keys
+# env files - secret keys
 .env.keys
+.env
+env.server.keys
+env.mobile.keys
+env.server
+env.mobile
 
 # compiled output
 dist
@@ -21,11 +26,7 @@ node_modules
 *.sublime-workspace
 
 # IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+.vscode/
 
 # misc
 /.sass-cache
@@ -64,8 +65,12 @@ test-output
 
 # Claude Code
 CLAUDE.md
+
 # Env Files
 .env.keys
+.env
+env.server.keys
+env.mobile.keys
 
 .nx/polygraph
 .claude/worktrees

@@ -1,11 +1,7 @@
 const path = require('path');
 const dotenv = require('dotenv');
 
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
-dotenv.config({
-  path: path.resolve(__dirname, '../../.env.local'),
-  override: true,
-});
+dotenv.config({ path: path.resolve(__dirname, 'env.mobile') });
 
 const { withNxMetro } = require('@nx/expo');
 const { getDefaultConfig } = require('@expo/metro-config');

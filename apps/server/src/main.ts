@@ -9,8 +9,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
-loadEnv({ path: '.env' });
-loadEnv({ path: '.env.local', override: true });
+loadEnv({ path: 'env.server' });
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
