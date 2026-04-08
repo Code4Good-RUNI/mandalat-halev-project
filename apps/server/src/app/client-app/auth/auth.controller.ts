@@ -1,8 +1,7 @@
-import { Controller } from '@nestjs/common';
+import { Controller, UnauthorizedException } } from '@nestjs/common';
 import { tsRestHandler, TsRestHandler } from '@ts-rest/nest';
 import {
   userContract,
-  type ErrorResponseDto,
   type LoginResponseDto,
 } from '@mandalat-halev-project/api-interfaces';
 
@@ -11,14 +10,11 @@ export class AuthController {
   @TsRestHandler(userContract.auth.login)
   async executeLogin() {
     return tsRestHandler(userContract.auth.login, async ({ body }) => {
-      if (body.phoneNumber === '0500000000') {
-        const errorBody: ErrorResponseDto = {
-          status_code: 'UNAUTHORIZED',
-          message: 'Invalid phone number or ID number',
-        };
-        return { status: 401, body: errorBody };
-      }
 
+      if (body.phoneNumber === '0500000000') {
+        throw new UnauthorizedException('Invalid phone number or ID number');
+      }
+      
       const successBody: LoginResponseDto = {
         accessToken: 'mock-jwt-token-abcd-1234',
         salesforceUserId: 101,

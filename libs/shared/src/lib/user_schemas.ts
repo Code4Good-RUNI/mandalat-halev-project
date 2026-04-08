@@ -7,7 +7,6 @@ import { z } from 'zod';
 export const ErrorResponseSchema = z.object({
   status_code: z.string(),
   message: z.string(),
-  details: z.unknown().optional(),
 });
 
 export type ErrorResponseDto = z.infer<typeof ErrorResponseSchema>;
