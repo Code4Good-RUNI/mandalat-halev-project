@@ -1,4 +1,4 @@
-import { Controller, UnauthorizedException } } from '@nestjs/common';
+import { Controller, UnauthorizedException } from '@nestjs/common';
 import { tsRestHandler, TsRestHandler } from '@ts-rest/nest';
 import {
   userContract,
@@ -14,7 +14,7 @@ export class AuthController {
       if (body.phoneNumber === '0500000000') {
         throw new UnauthorizedException('Invalid phone number or ID number');
       }
-      
+
       const successBody: LoginResponseDto = {
         accessToken: 'mock-jwt-token-abcd-1234',
         salesforceUserId: 101,
