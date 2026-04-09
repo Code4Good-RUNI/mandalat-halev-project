@@ -5,7 +5,7 @@ import { z } from 'zod';
  */
 // Structured error response for API validation failures
 export const ErrorResponseSchema = z.object({
-  status_code: z.string(),
+  statusCode: z.number(),
   message: z.string(),
 });
 
