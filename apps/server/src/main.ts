@@ -3,7 +3,8 @@
  * This is only a minimal backend to get started.
  */
 
-import { config as loadEnv } from 'dotenv';
+import { join } from 'path';
+import { config as loadEnv } from '@dotenvx/dotenvx';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
@@ -11,7 +12,19 @@ import { SwaggerModule } from '@nestjs/swagger';
 import { generateOpenApi } from '@ts-rest/open-api';
 import { userContract } from '@mandalat-halev-project/api-interfaces';
 
-loadEnv({ path: 'env.server' });
+// Encrypted values need @dotenvx/dotenvx (not plain dotenv). Paths are relative to
+// main's location (src/ or dist/) so apps/server/.env.server always resolves.
+const serverEnvDir = join(__dirname, '..');
+loadEnv({
+  path: [
+    join(serverEnvDir, '.env.server'),
+    join(serverEnvDir, '.env.server.local'),
+  ],
+  envKeysFile: join(serverEnvDir, '.env.server.keys'),
+  ignore: ['MISSING_ENV_FILE'],
+  overload: true,
+  quiet: true,
+});
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
