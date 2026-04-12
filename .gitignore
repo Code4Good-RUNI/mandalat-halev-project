@@ -2,11 +2,8 @@
 
 # env files - secret keys
 .env.keys
-.env
-env.server.keys
-env.mobile.keys
-env.server
-env.mobile
+.env.server.keys
+.env.mobile.keys
 
 # compiled output
 dist
@@ -66,11 +63,6 @@ test-output
 # Claude Code
 CLAUDE.md
 
-# Env Files
-.env.keys
-.env
-env.server.keys
-env.mobile.keys
 
 .nx/polygraph
 .claude/worktrees

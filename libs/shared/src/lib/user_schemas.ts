@@ -5,9 +5,8 @@ import { z } from 'zod';
  */
 // Structured error response for API validation failures
 export const ErrorResponseSchema = z.object({
-  status_code: z.string(),
+  statusCode: z.number(),
   message: z.string(),
-  details: z.unknown().optional(),
 });
 
 export type ErrorResponseDto = z.infer<typeof ErrorResponseSchema>;
@@ -18,8 +17,14 @@ export type ErrorResponseDto = z.infer<typeof ErrorResponseSchema>;
 
 // Request body for the Login endpoint
 export const LoginRequestSchema = z.object({
-    phoneNumber: z.string(),
-    idNumber: z.string(), // The Israeli ID number
+    phoneNumber: z
+      .string()
+      .regex(/^\d+$/, { message: 'Phone number must contain digits only' })
+      .length(10, { message: 'Phone number must be 10 digits long' }),
+    idNumber: z
+      .string()
+      .regex(/^\d+$/, { message: 'ID number must contain digits only' })
+      .length(9, { message: 'ID number must be 9 digits long' }),
   });
   
   // Response from the Login endpoint

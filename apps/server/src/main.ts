@@ -7,7 +7,9 @@ import { config as loadEnv } from 'dotenv';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
+import { generateOpenApi } from '@ts-rest/open-api';
+import { userContract } from '@mandalat-halev-project/api-interfaces';
 
 loadEnv({ path: 'env.server' });
 
@@ -22,13 +24,16 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
 
   // Swagger
-  const config = new DocumentBuilder()
-    .setTitle('Mandalat Halev Project API')
-    .setDescription('API for the Mandalat Halev Project')
-    .setVersion('1.0')
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  const document = generateOpenApi(userContract, {
+    info: {
+      title: 'Mandalat Halev Project API',
+      description: 'API for the Mandalat Halev Project (Generated from ts-rest Contract)',
+      version: '1.0.0',
+    },
+    servers: [{ url: '/api' }],
+  })
+
+  SwaggerModule.setup('api/docs', app, document);
 
   await app.listen(port);
   Logger.log(

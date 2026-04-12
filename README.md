@@ -88,3 +88,6 @@ And join the Nx community:
 - [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
 - [Our Youtube channel](https://www.youtube.com/@nxdevtools)
 - [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+
+## API Documentation:
+- Run the backend server and navigate to [http://localhost:3000/api/docs](http://localhost:3000/api/docs). to view the interactive Swagger UI.
