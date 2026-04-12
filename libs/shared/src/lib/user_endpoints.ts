@@ -1,5 +1,5 @@
 import { initContract } from '@ts-rest/core';
-import { z } from 'zod'; 
+import { z } from 'zod';
 import {
   LoginRequestSchema,
   LoginResponseSchema,
@@ -10,7 +10,7 @@ import {
   UnregisterFromCampaignSchema,
   RegisterResponseSchema,
   GetRegistrationStatusSchema,
-  ErrorResponseSchema, 
+  ErrorResponseSchema,
 } from './user_schemas.js';
 
 const c = initContract();
@@ -43,12 +43,12 @@ export const userContract = c.router({
         401: ErrorResponseSchema, // Unauthorized (Missing/invalid token)
         403: ErrorResponseSchema, // Forbidden (No permission)
         404: ErrorResponseSchema, // User not found in Salesforce
-        500: ErrorResponseSchema, // Internal server error 
+        500: ErrorResponseSchema, // Internal server error
       },
       summary: 'Get user profile details',
     },
   },
- campaigns: {
+  campaigns: {
     future: {
       method: 'GET',
       path: '/campaigns/future/:salesforceUserId',
@@ -86,7 +86,7 @@ export const userContract = c.router({
         salesforceUserId: z.coerce.number(),
       }),
       responses: {
-        200: z.array(GetFutureCampaignSchema), 
+        200: z.array(GetFutureCampaignSchema),
         400: ErrorResponseSchema,
         401: ErrorResponseSchema,
         403: ErrorResponseSchema,

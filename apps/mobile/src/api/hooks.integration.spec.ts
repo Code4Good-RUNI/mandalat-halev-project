@@ -87,12 +87,13 @@ describe('useFutureCampaigns (integration)', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    const body = result.current.data?.body;
-    expect(result.current.data?.status).toBe(200);
-    expect(body).toHaveLength(3);
-    expect(body?.[0].name).toBe('Passover Food Packing');
-    expect(body?.[1].name).toBe('Beach Cleanup Morning');
-    expect(body?.[2].name).toBe('Tech Tutoring for Youth');
+    const data = result.current.data;
+    expect(data?.status).toBe(200);
+    if (data?.status !== 200) throw new Error('Expected 200');
+    expect(data.body).toHaveLength(3);
+    expect(data.body[0].name).toBe('Passover Food Packing');
+    expect(data.body[1].name).toBe('Beach Cleanup Morning');
+    expect(data.body[2].name).toBe('Tech Tutoring for Youth');
   });
 });
 
@@ -104,11 +105,12 @@ describe('usePastCampaigns (integration)', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    const body = result.current.data?.body;
-    expect(result.current.data?.status).toBe(200);
-    expect(body).toHaveLength(2);
-    expect(body?.[0].name).toBe('Winter Blanket Drive');
-    expect(body?.[1].name).toBe('Community Garden Planting');
+    const data = result.current.data;
+    expect(data?.status).toBe(200);
+    if (data?.status !== 200) throw new Error('Expected 200');
+    expect(data.body).toHaveLength(2);
+    expect(data.body[0].name).toBe('Winter Blanket Drive');
+    expect(data.body[1].name).toBe('Community Garden Planting');
   });
 });
 
