@@ -6,6 +6,7 @@ import {
   useLogin,
   useUserProfile,
   useFutureCampaigns,
+  useActiveCampaigns,
   usePastCampaigns,
   useRegisterForCampaign,
   useUnregisterFromCampaign,
@@ -23,6 +24,7 @@ jest.mock('./client', () => ({
     },
     campaigns: {
       future: jest.fn(),
+      active: jest.fn(),
       past: jest.fn(),
       register: jest.fn(),
       unregister: jest.fn(),
@@ -152,6 +154,45 @@ describe('useFutureCampaigns', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(mockedApi.campaigns.future).toHaveBeenCalledWith({
+      params: { salesforceUserId: 42 },
+    });
+    expect(result.current.data).toEqual(mockCampaigns);
+  });
+});
+
+describe('useActiveCampaigns', () => {
+  it('should call api.campaigns.active with the salesforceUserId', async () => {
+    const mockCampaigns = {
+      status: 200,
+      body: [
+        {
+          id: 3,
+          name: 'Food Drive',
+          description: 'Collect food donations',
+          imageUrl: 'https://example.com/food.jpg',
+          startDate: '01/04/2026',
+          endDate: '30/04/2026',
+          durationInHours: 4,
+          locationAddress: 'Community Center',
+          locationCity: 'Jerusalem',
+          numOfParticipants: 20,
+          numOfParticipantsRegistered: 15,
+          isActive: true,
+          isRelevantToUser: true,
+          isUserRegistered: true,
+          userApprovalStatus: 'approved' as const,
+        },
+      ],
+    };
+    (mockedApi.campaigns.active as jest.Mock).mockResolvedValue(mockCampaigns);
+
+    const { result } = renderHook(() => useActiveCampaigns(42), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockedApi.campaigns.active).toHaveBeenCalledWith({
       params: { salesforceUserId: 42 },
     });
     expect(result.current.data).toEqual(mockCampaigns);

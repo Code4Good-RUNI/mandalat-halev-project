@@ -31,8 +31,7 @@ export function useLogin() {
 export function useUserProfile(salesforceUserId: number) {
   return useQuery({
     queryKey: ['user', 'profile', salesforceUserId],
-    queryFn: () =>
-      api.user.profile({ params: { salesforceUserId } }),
+    queryFn: () => api.user.profile({ params: { salesforceUserId } }),
   });
 }
 
@@ -43,24 +42,21 @@ export function useUserProfile(salesforceUserId: number) {
 export function useFutureCampaigns(salesforceUserId: number) {
   return useQuery({
     queryKey: ['campaigns', 'future', salesforceUserId],
-    queryFn: () =>
-      api.campaigns.future({ params: { salesforceUserId } }),
+    queryFn: () => api.campaigns.future({ params: { salesforceUserId } }),
   });
 }
 
 export function useActiveCampaigns(salesforceUserId: number) {
   return useQuery({
     queryKey: ['campaigns', 'active', salesforceUserId],
-    queryFn: () =>
-      api.campaigns.active({ params: { salesforceUserId } }),
+    queryFn: () => api.campaigns.active({ params: { salesforceUserId } }),
   });
 }
 
 export function usePastCampaigns(salesforceUserId: number) {
   return useQuery({
     queryKey: ['campaigns', 'past', salesforceUserId],
-    queryFn: () =>
-      api.campaigns.past({ params: { salesforceUserId } }),
+    queryFn: () => api.campaigns.past({ params: { salesforceUserId } }),
   });
 }
 
@@ -84,7 +80,7 @@ export function useUnregisterFromCampaign() {
 
 export function useRegistrationStatus(
   campaignId: number,
-  salesforceUserId: number
+  salesforceUserId: number,
 ) {
   return useQuery({
     queryKey: ['campaigns', 'registrationStatus', campaignId, salesforceUserId],
