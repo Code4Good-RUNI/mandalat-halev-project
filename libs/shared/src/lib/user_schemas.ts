@@ -17,30 +17,30 @@ export type ErrorResponseDto = z.infer<typeof ErrorResponseSchema>;
 
 // Request body for the Login endpoint
 export const LoginRequestSchema = z.object({
-    phoneNumber: z
-      .string()
-      .regex(/^\d+$/, { message: 'Phone number must contain digits only' })
-      .length(10, { message: 'Phone number must be 10 digits long' }),
-    idNumber: z
-      .string()
-      .regex(/^\d+$/, { message: 'ID number must contain digits only' })
-      .length(9, { message: 'ID number must be 9 digits long' }),
-  });
-  
-  // Response from the Login endpoint
-  export const LoginResponseSchema = z.object({
+  phoneNumber: z
+    .string()
+    .regex(/^\d+$/, { message: 'Phone number must contain digits only' })
+    .length(10, { message: 'Phone number must be 10 digits long' }),
+  idNumber: z
+    .string()
+    .regex(/^\d+$/, { message: 'ID number must contain digits only' })
+    .length(9, { message: 'ID number must be 9 digits long' }),
+});
+
+// Response from the Login endpoint
+export const LoginResponseSchema = z.object({
   accessToken: z.string(),
   salesforceUserId: z.number(),
 });
-  
+
 export type LoginRequestDto = z.infer<typeof LoginRequestSchema>;
 export type LoginResponseDto = z.infer<typeof LoginResponseSchema>;
-  /**
-   * USER INFO SCHEMAS
-   */
-  
-  // Schema for User Profile details
- export const UserProfileSchema = z.object({
+/**
+ * USER INFO SCHEMAS
+ */
+
+// Schema for User Profile details
+export const UserProfileSchema = z.object({
   salesforceUserId: z.number(),
   firstName: z.string(),
   lastName: z.string(),
@@ -54,15 +54,15 @@ export type LoginResponseDto = z.infer<typeof LoginResponseSchema>;
 
 export type UserProfileDto = z.infer<typeof UserProfileSchema>;
 
-    /**
-   * CAMPAIGN SCHEMAS
-   */
+/**
+ * CAMPAIGN SCHEMAS
+ */
 
 // Define allowed status values using Zod Enum
 export const ApprovalStatusSchema = z.enum(['pending', 'approved', 'rejected']);
 export type ApprovalStatus = z.infer<typeof ApprovalStatusSchema>;
 
- // Base schema for a Campaign
+// Base schema for a Campaign
 export const CampaignSchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -103,7 +103,6 @@ export const RegisterForCampaignSchema = z.object({
 
 export type RegisterForCampaignDto = z.infer<typeof RegisterForCampaignSchema>;
 
-
 export const UnregisterFromCampaignSchema = z.object({
   campaignId: z.number(),
   salesforceUserId: z.number(),
@@ -111,7 +110,9 @@ export const UnregisterFromCampaignSchema = z.object({
   additionalInfo: z.string().optional(),
 });
 
-export type UnregisterFromCampaignDto = z.infer<typeof UnregisterFromCampaignSchema>;
+export type UnregisterFromCampaignDto = z.infer<
+  typeof UnregisterFromCampaignSchema
+>;
 
 export const RegisterResponseSchema = z.object({
   campaignId: z.number(),
@@ -128,4 +129,6 @@ export const GetRegistrationStatusSchema = z.object({
   additionalInfo: z.string().optional(),
 });
 
-export type GetRegistrationStatusDto = z.infer<typeof GetRegistrationStatusSchema>;
+export type GetRegistrationStatusDto = z.infer<
+  typeof GetRegistrationStatusSchema
+>;

@@ -1,4 +1,9 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
+import {
+  LoginRequestDto,
+  RegisterForCampaignDto,
+  UnregisterFromCampaignDto,
+} from '@mandalat-halev-project/api-interfaces';
 import { api } from './client';
 
 // ---------------------------------------------------------------------------
@@ -11,8 +16,7 @@ import { api } from './client';
 //   login({ phoneNumber: '0501234567', idNumber: '123456789' });
 export function useLogin() {
   return useMutation({
-    mutationFn: (body: { phoneNumber: string; idNumber: string }) =>
-      api.auth.login({ body }),
+    mutationFn: (body: LoginRequestDto) => api.auth.login({ body }),
   });
 }
 
@@ -27,8 +31,7 @@ export function useLogin() {
 export function useUserProfile(salesforceUserId: number) {
   return useQuery({
     queryKey: ['user', 'profile', salesforceUserId],
-    queryFn: () =>
-      api.user.profile({ params: { salesforceUserId } }),
+    queryFn: () => api.user.profile({ params: { salesforceUserId } }),
   });
 }
 
@@ -39,16 +42,21 @@ export function useUserProfile(salesforceUserId: number) {
 export function useFutureCampaigns(salesforceUserId: number) {
   return useQuery({
     queryKey: ['campaigns', 'future', salesforceUserId],
-    queryFn: () =>
-      api.campaigns.future({ params: { salesforceUserId } }),
+    queryFn: () => api.campaigns.future({ params: { salesforceUserId } }),
+  });
+}
+
+export function useActiveCampaigns(salesforceUserId: number) {
+  return useQuery({
+    queryKey: ['campaigns', 'active', salesforceUserId],
+    queryFn: () => api.campaigns.active({ params: { salesforceUserId } }),
   });
 }
 
 export function usePastCampaigns(salesforceUserId: number) {
   return useQuery({
     queryKey: ['campaigns', 'past', salesforceUserId],
-    queryFn: () =>
-      api.campaigns.past({ params: { salesforceUserId } }),
+    queryFn: () => api.campaigns.past({ params: { salesforceUserId } }),
   });
 }
 
@@ -58,29 +66,21 @@ export function usePastCampaigns(salesforceUserId: number) {
 //   register({ campaignId: 1, salesforceUserId: 42, numOfParticipantsToRegister: 1 });
 export function useRegisterForCampaign() {
   return useMutation({
-    mutationFn: (body: {
-      campaignId: number;
-      salesforceUserId: number;
-      numOfParticipantsToRegister: number;
-      additionalInfo?: string;
-    }) => api.campaigns.register({ body }),
+    mutationFn: (body: RegisterForCampaignDto) =>
+      api.campaigns.register({ body }),
   });
 }
 
 export function useUnregisterFromCampaign() {
   return useMutation({
-    mutationFn: (body: {
-      campaignId: number;
-      salesforceUserId: number;
-      numOfParticipantsToUnregister: number;
-      additionalInfo?: string;
-    }) => api.campaigns.unregister({ body }),
+    mutationFn: (body: UnregisterFromCampaignDto) =>
+      api.campaigns.unregister({ body }),
   });
 }
 
 export function useRegistrationStatus(
   campaignId: number,
-  salesforceUserId: number
+  salesforceUserId: number,
 ) {
   return useQuery({
     queryKey: ['campaigns', 'registrationStatus', campaignId, salesforceUserId],

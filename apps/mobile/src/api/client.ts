@@ -15,4 +15,5 @@ export const api = initClient(userContract, {
   baseHeaders: {
     'Content-Type': 'application/json',
   },
+  validateResponse: true,
 });

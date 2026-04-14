@@ -14,6 +14,7 @@ describe('API client', () => {
   it('should expose campaign endpoints', () => {
     expect(api.campaigns).toBeDefined();
     expect(typeof api.campaigns.future).toBe('function');
+    expect(typeof api.campaigns.active).toBe('function');
     expect(typeof api.campaigns.past).toBe('function');
     expect(typeof api.campaigns.register).toBe('function');
     expect(typeof api.campaigns.unregister).toBe('function');
