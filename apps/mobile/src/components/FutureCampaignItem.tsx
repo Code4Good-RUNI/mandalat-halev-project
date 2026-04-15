@@ -6,8 +6,9 @@ import {
   useRegistrationStatus, 
   useUnregisterFromCampaign 
 } from '../api/hooks';
+import type { GetFutureCampaignDto } from '@mandalat-halev-project/api-interfaces';
 
-export function FutureCampaignItem({ campaign, userId, onShowModal, onPressDetails }: { campaign: any; userId: number; onShowModal: (msg: string) => void; onPressDetails: () => void }) {
+export function FutureCampaignItem({ campaign, userId, onShowModal, onPressDetails }: { campaign: GetFutureCampaignDto; userId: number; onShowModal: (msg: string) => void; onPressDetails: () => void }) {
   const queryClient = useQueryClient();
   const [isUnregistered, setIsUnregistered] = useState(false);
   
@@ -34,18 +35,19 @@ export function FutureCampaignItem({ campaign, userId, onShowModal, onPressDetai
       { campaignId, salesforceUserId: userId, numOfParticipantsToUnregister: 1 },
       {
         onSuccess: (data) => {
-          if (data.status === 200) {
+          if (data.status === 200 && data.body?.requestReceivedSuccessfully) {
             setIsUnregistered(true);
             onShowModal('הרישום בוטל בהצלחה!');
-            // refresh campaigns list
+            // Invalidate queries to sync the 'Activities' and 'My Activities' lists
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'future', userId] });
-            // refresh status
-            queryClient.invalidateQueries({ queryKey: ['campaigns', 'registrationStatus', campaignId, userId] });
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'active', userId] });
           } else {
-            onShowModal('משהו השתבש בביטול ההרשמה.');
+            // Handle API errors and extract backend message if available
+            const errorMessage = (data.body as any)?.message || 'משהו השתבש בביטול ההרשמה. אנא נסה שוב.';
+            onShowModal(errorMessage);
           }
         },
-        onError: () => onShowModal('שגיאת תקשורת. אנא נסה שוב.'),
+        onError: (error) => onShowModal('שגיאת תקשורת או מערכת. אנא בדוק את החיבור ונסה שוב.'),
       }
     );
   };

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, FlatList, SafeAreaView, TextInput, StyleSheet, ActivityIndicator, TouchableOpacity, Modal } from 'react-native';
 import { ActivityItem } from '../../components/ActivityItem';
 import { useActiveCampaigns, useRegisterForCampaign } from '../../api/hooks';
+import { useQueryClient } from '@tanstack/react-query';
 import { temporarySalesforceUserId } from '../login';
 import { CampaignDetailsModal } from '../../components/CampaignDetailsModal';
 import type { GetFutureCampaignDto } from '@mandalat-halev-project/api-interfaces';
@@ -14,6 +15,7 @@ interface ActiveCampaignItemProps {
 }
 
 function ActiveCampaignItem({ item, userId, onShowModal, onPressDetails }: ActiveCampaignItemProps) {
+  const queryClient = useQueryClient();
   const { mutate: register, isPending } = useRegisterForCampaign();
   const [isRegistered, setIsRegistered] = useState(false);
 
@@ -26,15 +28,22 @@ function ActiveCampaignItem({ item, userId, onShowModal, onPressDetails }: Activ
       },
       {
         onSuccess: (res) => {
-          if (res.status === 200 && res.body.requestReceivedSuccessfully) {
+          // Safe check using optional chaining to avoid undefined crashes
+          if (res.status === 200 && res.body?.requestReceivedSuccessfully) {
             setIsRegistered(true);
             onShowModal('בקשת ההרשמה נשלחה בהצלחה!');
+            // Invalidate queries to sync the 'Activities' and 'My Activities' lists
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'active', userId] });
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'future', userId] });
           } else {
-            onShowModal('אירעה שגיאה בהרשמה.');
+            // Handle API errors (e.g., 400, 500) and extract backend message if available
+            const errorMessage = (res.body as any)?.message || 'אירעה שגיאה בהרשמה. אנא נסה שוב.';
+            onShowModal(errorMessage);
           }
         },
-        onError: () => {
-          onShowModal('שגיאת תקשורת. אנא נסה שוב.');
+        onError: (error) => {
+          // Handle complete network failures safely
+          onShowModal('שגיאת תקשורת או מערכת. אנא בדוק את החיבור ונסה שוב.');
         },
       }
     );
