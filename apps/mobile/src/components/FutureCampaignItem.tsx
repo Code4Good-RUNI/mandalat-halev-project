@@ -7,7 +7,7 @@ import {
   useUnregisterFromCampaign 
 } from '../api/hooks';
 
-export function FutureCampaignItem({ campaign, userId, onShowModal }: { campaign: any; userId: number; onShowModal: (msg: string) => void }) {
+export function FutureCampaignItem({ campaign, userId, onShowModal, onPressDetails }: { campaign: any; userId: number; onShowModal: (msg: string) => void; onPressDetails: () => void }) {
   const queryClient = useQueryClient();
   const [isUnregistered, setIsUnregistered] = useState(false);
   
@@ -56,6 +56,7 @@ export function FutureCampaignItem({ campaign, userId, onShowModal }: { campaign
       time={`${campaign.startDate} | ${campaign.durationInHours} שעות`}
       location={`${campaign.locationAddress}, ${campaign.locationCity}`}
       status={statusText}
+      onPressDetails={onPressDetails}
     >
       <View style={styles.actionContainer}>
         {!isUnregistered && (

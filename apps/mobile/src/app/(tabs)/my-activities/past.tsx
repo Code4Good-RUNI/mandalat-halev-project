@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, FlatList, SafeAreaView, StyleSheet, ActivityIndicator } from 'react-native';
 import { ActivityItem } from '../../../components/ActivityItem';
 import { temporarySalesforceUserId } from '../../login';
 import { usePastCampaigns } from '../../../api/hooks';
+import { CampaignDetailsModal } from '../../../components/CampaignDetailsModal';
+import type { GetPastCampaignDto } from '@mandalat-halev-project/api-interfaces';
 
 export default function PreviousActivitiesScreen() {
   const userId = Number(temporarySalesforceUserId);
   const { data, isPending, isError } = usePastCampaigns(userId);
+  const [selectedCampaign, setSelectedCampaign] = useState<GetPastCampaignDto | null>(null);
 
   if (isPending) {
     return (
@@ -39,9 +42,16 @@ export default function PreviousActivitiesScreen() {
             time={`${item.startDate} | ${item.durationInHours} שעות`}
             location={`${item.locationAddress}, ${item.locationCity}`}
             status={item.hasUserParticipated ? 'נוכח' : 'לא נוכח'}
+            onPressDetails={() => setSelectedCampaign(item)}
           />
         )}
         contentContainerStyle={{ paddingBottom: 20, paddingHorizontal: 15 }}
+      />
+
+      <CampaignDetailsModal 
+        visible={!!selectedCampaign} 
+        campaign={selectedCampaign} 
+        onClose={() => setSelectedCampaign(null)} 
       />
     </SafeAreaView>
   );

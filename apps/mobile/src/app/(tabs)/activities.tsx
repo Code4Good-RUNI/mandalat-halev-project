@@ -3,23 +3,17 @@ import { View, Text, FlatList, SafeAreaView, TextInput, StyleSheet, ActivityIndi
 import { ActivityItem } from '../../components/ActivityItem';
 import { useActiveCampaigns, useRegisterForCampaign } from '../../api/hooks';
 import { temporarySalesforceUserId } from '../login';
-
-interface CampaignData {
-  id: number | string;
-  name: string;
-  startDate: string;
-  durationInHours: number;
-  locationAddress: string;
-  locationCity: string;
-}
+import { CampaignDetailsModal } from '../../components/CampaignDetailsModal';
+import type { GetFutureCampaignDto } from '@mandalat-halev-project/api-interfaces';
 
 interface ActiveCampaignItemProps {
-  item: CampaignData;
+  item: GetFutureCampaignDto;
   userId: number;
   onShowModal: (msg: string) => void;
+  onPressDetails: () => void;
 }
 
-function ActiveCampaignItem({ item, userId, onShowModal }: ActiveCampaignItemProps) {
+function ActiveCampaignItem({ item, userId, onShowModal, onPressDetails }: ActiveCampaignItemProps) {
   const { mutate: register, isPending } = useRegisterForCampaign();
   const [isRegistered, setIsRegistered] = useState(false);
 
@@ -52,6 +46,7 @@ function ActiveCampaignItem({ item, userId, onShowModal }: ActiveCampaignItemPro
       time={`${item.startDate} (${item.durationInHours} שעות)`}
       location={`${item.locationAddress}, ${item.locationCity}`}
       status={isRegistered ? 'נרשמת בהצלחה' : 'פתוח להרשמה'}
+      onPressDetails={onPressDetails}
     >
       <View style={styles.actionContainer}>
         <TouchableOpacity
@@ -73,6 +68,7 @@ export default function ActivitiesScreen() {
   const { data, isPending, isError } = useActiveCampaigns(userId);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+  const [selectedCampaign, setSelectedCampaign] = useState<GetFutureCampaignDto | null>(null);
 
   const showModal = (msg: string) => {
     setModalMessage(msg);
@@ -110,7 +106,12 @@ export default function ActivitiesScreen() {
         data={data.body}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
-          <ActiveCampaignItem item={item} userId={userId} onShowModal={showModal} />
+          <ActiveCampaignItem 
+            item={item} 
+            userId={userId} 
+            onShowModal={showModal} 
+            onPressDetails={() => setSelectedCampaign(item)}
+          />
         )}
         ListEmptyComponent={
           <Text style={styles.emptyText}>לא נמצאו פעילויות תואמות לחיפוש.</Text>
@@ -127,6 +128,12 @@ export default function ActivitiesScreen() {
           </View>
         </View>
       </Modal>
+
+      <CampaignDetailsModal 
+        visible={!!selectedCampaign} 
+        campaign={selectedCampaign} 
+        onClose={() => setSelectedCampaign(null)} 
+      />
     </SafeAreaView>
   );
 }

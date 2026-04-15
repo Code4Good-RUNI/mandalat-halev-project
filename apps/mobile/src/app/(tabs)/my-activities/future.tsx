@@ -3,12 +3,15 @@ import { FlatList, SafeAreaView, Text, StyleSheet, ActivityIndicator, Modal, Tou
 import { temporarySalesforceUserId } from '../../login';
 import { useFutureCampaigns } from '../../../api/hooks';
 import { FutureCampaignItem } from '../../../components/FutureCampaignItem';
+import { CampaignDetailsModal } from '../../../components/CampaignDetailsModal';
+import type { GetFutureCampaignDto } from '@mandalat-halev-project/api-interfaces';
 
 export default function FutureActivitiesScreen() {
   const userId = Number(temporarySalesforceUserId);
   const { data, isPending, isError } = useFutureCampaigns(userId);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+  const [selectedCampaign, setSelectedCampaign] = useState<GetFutureCampaignDto | null>(null);
 
   const showModal = (msg: string) => {
     setModalMessage(msg);
@@ -39,7 +42,12 @@ export default function FutureActivitiesScreen() {
         data={data.body}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <FutureCampaignItem campaign={item} userId={userId} onShowModal={showModal} />
+          <FutureCampaignItem 
+            campaign={item} 
+            userId={userId} 
+            onShowModal={showModal} 
+            onPressDetails={() => setSelectedCampaign(item)}
+          />
         )}
         contentContainerStyle={{ paddingBottom: 20, paddingHorizontal: 15 }}
       />
@@ -54,6 +62,12 @@ export default function FutureActivitiesScreen() {
           </View>
         </View>
       </Modal>
+
+      <CampaignDetailsModal 
+        visible={!!selectedCampaign} 
+        campaign={selectedCampaign} 
+        onClose={() => setSelectedCampaign(null)} 
+      />
     </SafeAreaView>
   );
 }

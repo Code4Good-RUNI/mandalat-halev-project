@@ -7,10 +7,11 @@ interface ActivityItemProps {
   time: string;
   location: string;
   status: string;
+  onPressDetails?: () => void;
   children?: React.ReactNode;
 }
 
-export const ActivityItem = ({ title, time, location, status, children }: ActivityItemProps) => (
+export const ActivityItem = ({ title, time, location, status, onPressDetails, children }: ActivityItemProps) => (
   <View style={styles.container}>
     <View style={styles.headerRow}>
       <Status label={status} />
@@ -18,7 +19,7 @@ export const ActivityItem = ({ title, time, location, status, children }: Activi
     <Text style={styles.title}>{title}</Text>
     <Text style={styles.details}>{time} | {location}</Text>
     <View style={styles.footerRow}>
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity style={styles.button} onPress={onPressDetails}>
         <Text style={styles.buttonText}>לפרטים נוספים</Text>
       </TouchableOpacity>
       {children && (
