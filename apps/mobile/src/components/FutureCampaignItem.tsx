@@ -7,10 +7,9 @@ import {
   useUnregisterFromCampaign 
 } from '../api/hooks';
 
-export function FutureCampaignItem({ campaign, userId }: { campaign: any, userId: number }) {
+export function FutureCampaignItem({ campaign, userId, onShowModal }: { campaign: any; userId: number; onShowModal: (msg: string) => void }) {
   const queryClient = useQueryClient();
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
+  const [isUnregistered, setIsUnregistered] = useState(false);
   
   // Ensure campaign.id is a number so TanStack Query keys match strictly
   const campaignId = Number(campaign.id);
@@ -26,28 +25,27 @@ export function FutureCampaignItem({ campaign, userId }: { campaign: any, userId
   }
 
   // Override the status immediately after a successful cancellation
-  if (successMsg !== '') {
+  if (isUnregistered) {
     statusText = 'בוטל';
   }
 
   const handleUnregister = () => {
-    setErrorMsg('');
-    setSuccessMsg('');
     unregister(
       { campaignId, salesforceUserId: userId, numOfParticipantsToUnregister: 1 },
       {
         onSuccess: (data) => {
           if (data.status === 200) {
-            setSuccessMsg('הרישום בוטל בהצלחה!');
+            setIsUnregistered(true);
+            onShowModal('הרישום בוטל בהצלחה!');
             // refresh campaigns list
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'future', userId] });
             // refresh status
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'registrationStatus', campaignId, userId] });
           } else {
-            setErrorMsg('משהו השתבש בביטול ההרשמה.');
+            onShowModal('משהו השתבש בביטול ההרשמה.');
           }
         },
-        onError: () => setErrorMsg('שגיאת תקשורת. אנא נסה שוב.'),
+        onError: () => onShowModal('שגיאת תקשורת. אנא נסה שוב.'),
       }
     );
   };
@@ -60,17 +58,14 @@ export function FutureCampaignItem({ campaign, userId }: { campaign: any, userId
       status={statusText}
     >
       <View style={styles.actionContainer}>
-        {errorMsg !== '' && <Text style={styles.errorText}>{errorMsg}</Text>}
-        {successMsg !== '' && <Text style={styles.successText}>{successMsg}</Text>}
-        
-        {successMsg === '' && (
+        {!isUnregistered && (
           <TouchableOpacity 
-            style={[styles.unregisterButton, isUnregistering && { opacity: 0.6 }]}
+            style={[styles.unregisterButton, isUnregistering && styles.disabledButton]}
             onPress={handleUnregister}
             disabled={isUnregistering}
           >
             <Text style={styles.unregisterButtonText}>
-              {isUnregistering ? 'מבטל רישום...' : 'ביטול רישום'}
+              {isUnregistering ? 'מבטל...' : 'ביטול רישום'}
             </Text>
           </TouchableOpacity>
         )}
@@ -87,7 +82,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
   },
+  disabledButton: { opacity: 0.6 },
   unregisterButtonText: { color: '#fff', fontWeight: 'bold' },
-  errorText: { color: 'red', textAlign: 'center', marginBottom: 5, fontSize: 12 },
-  successText: { color: 'green', textAlign: 'center', marginBottom: 5, fontSize: 14, fontWeight: 'bold' },
 });
