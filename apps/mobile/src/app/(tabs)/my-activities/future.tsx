@@ -1,5 +1,5 @@
-import React from 'react';
-import { FlatList, SafeAreaView, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { FlatList, SafeAreaView, Text, StyleSheet, ActivityIndicator, Modal, TouchableOpacity, View } from 'react-native';
 import { temporarySalesforceUserId } from '../../login';
 import { useFutureCampaigns } from '../../../api/hooks';
 import { FutureCampaignItem } from '../../../components/FutureCampaignItem';
@@ -7,6 +7,13 @@ import { FutureCampaignItem } from '../../../components/FutureCampaignItem';
 export default function FutureActivitiesScreen() {
   const userId = Number(temporarySalesforceUserId);
   const { data, isPending, isError } = useFutureCampaigns(userId);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
+
+  const showModal = (msg: string) => {
+    setModalMessage(msg);
+    setModalVisible(true);
+  };
 
   if (isPending) {
     return (
@@ -31,9 +38,22 @@ export default function FutureActivitiesScreen() {
       <FlatList
         data={data.body}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => <FutureCampaignItem campaign={item} userId={userId} />}
+        renderItem={({ item }) => (
+          <FutureCampaignItem campaign={item} userId={userId} onShowModal={showModal} />
+        )}
         contentContainerStyle={{ paddingBottom: 20, paddingHorizontal: 15 }}
       />
+
+      <Modal visible={modalVisible} transparent={true} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>{modalMessage}</Text>
+            <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>סגור</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -43,4 +63,9 @@ const styles = StyleSheet.create({
   center: { justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right', padding: 15 },
   errorText: { color: 'red', textAlign: 'center', marginBottom: 5, fontSize: 12 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { backgroundColor: '#fff', padding: 20, borderRadius: 10, width: '80%', alignItems: 'center' },
+  modalText: { fontSize: 16, marginBottom: 20, textAlign: 'center' },
+  closeButton: { backgroundColor: '#FF8C00', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
+  closeButtonText: { color: '#fff', fontWeight: 'bold' },
 });
