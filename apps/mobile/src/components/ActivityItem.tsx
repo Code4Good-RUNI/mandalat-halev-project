@@ -7,10 +7,11 @@ interface ActivityItemProps {
   time: string;
   location: string;
   status: string;
+  onPressDetails?: () => void;
   children?: React.ReactNode;
 }
 
-export const ActivityItem = ({ title, time, location, status, children }: ActivityItemProps) => (
+export const ActivityItem = ({ title, time, location, status, onPressDetails, children }: ActivityItemProps) => (
   <View style={styles.container}>
     <View style={styles.headerRow}>
       <Status label={status} />
@@ -18,18 +19,30 @@ export const ActivityItem = ({ title, time, location, status, children }: Activi
     <Text style={styles.title}>{title}</Text>
     <Text style={styles.details}>{time} | {location}</Text>
     <View style={styles.footerRow}>
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity style={styles.button} onPress={onPressDetails}>
         <Text style={styles.buttonText}>לפרטים נוספים</Text>
       </TouchableOpacity>
-      <View style={styles.actions}>
-        {children}
-      </View>
+      {children && (
+        <View style={styles.actions}>
+          {children}
+        </View>
+      )}
     </View>
   </View>
 );
 
 const styles = StyleSheet.create({
-  container: { padding: 15, backgroundColor: '#f9f9f9', borderRadius: 10, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 },
+  container: {
+    padding: 15,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 10,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
   headerRow: { alignItems: 'flex-end', marginBottom: 5 },
   title: { fontSize: 18, fontWeight: 'bold', textAlign: 'right', color: '#333' },
   details: { color: '#666', textAlign: 'right', marginTop: 5, fontSize: 14 },
