@@ -20,7 +20,7 @@ loadEnv({
     join(serverEnvDir, '.env.server'),
     join(serverEnvDir, '.env.server.local'),
   ],
-  envKeysFile: join(serverEnvDir, '.env.server.keys'),
+  envKeysFile: join(serverEnvDir, '.env.keys'),
   ignore: ['MISSING_ENV_FILE'],
   overload: true,
   quiet: true,

@@ -15,8 +15,8 @@ import { useLogin } from '../api/hooks';
 export let temporarySalesforceUserId: number | null = null;
 
 export default function LoginScreen() {
-  const [idNumber, setIdNumber] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [idNumber, setIdNumber] = useState('123456789');
+  const [phoneNumber, setPhoneNumber] = useState('0501234567');
   const [customError, setCustomError] = useState('');
   const { mutate: login, isPending, error } = useLogin();
 
