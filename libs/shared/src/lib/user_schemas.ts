@@ -3,13 +3,20 @@ import { z } from 'zod';
 /**
  * GLOBAL ERROR SCHEMA
  */
-// Structured error response for API validation failures
-export const ErrorResponseSchema = z.object({
-  statusCode: z.number(),
+export const ErrorDetailSchema = z.object({
+  field: z.string(),
   message: z.string(),
 });
 
+export const ErrorResponseSchema = z.object({
+  statusCode: z.number(),
+  code: z.string(),
+  message: z.string(),
+  details: z.array(ErrorDetailSchema).optional(),
+});
+
 export type ErrorResponseDto = z.infer<typeof ErrorResponseSchema>;
+export type ErrorDetailDto = z.infer<typeof ErrorDetailSchema>;
 
 /**
  * AUTHENTICATION SCHEMAS
