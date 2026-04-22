@@ -11,6 +11,7 @@ import { AppModule } from './app/app.module';
 import { SwaggerModule } from '@nestjs/swagger';
 import { generateOpenApi } from '@ts-rest/open-api';
 import { userContract } from '@mandalat-halev-project/api-interfaces';
+import { GlobalExceptionFilter } from './app/filters/http-exception.filter';
 
 // Encrypted values need @dotenvx/dotenvx (not plain dotenv). Paths are relative to
 // main's location (src/ or dist/) so apps/server/.env.server always resolves.
@@ -48,9 +49,14 @@ async function bootstrap() {
 
   SwaggerModule.setup('api/docs', app, document);
 
+  app.useGlobalFilters(new GlobalExceptionFilter());
+
   await app.listen(port);
   Logger.log(
     `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`,
+  );
+  Logger.log(
+    `📄 Swagger docs available at: http://localhost:${port}/api/docs`,
   );
 }
 
