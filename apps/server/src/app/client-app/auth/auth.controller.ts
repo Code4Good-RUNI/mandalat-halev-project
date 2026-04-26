@@ -19,7 +19,7 @@ export class AuthController {
       }
 
       const result = await this.authService.login({
-        salesforceUserId: 101, 
+        salesforceUserId: '101', 
       });
       return { status: 200, body: result };
       },
