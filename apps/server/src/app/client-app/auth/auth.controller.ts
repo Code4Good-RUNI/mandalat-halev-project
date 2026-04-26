@@ -4,9 +4,12 @@ import {
   userContract,
   type LoginResponseDto,
 } from '@mandalat-halev-project/api-interfaces';
+import { AuthService } from './auth.service';
 
 @Controller()
 export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
   @TsRestHandler(userContract.auth.login)
   async executeLogin() {
     return tsRestHandler(userContract.auth.login, async ({ body }) => {
@@ -15,11 +18,10 @@ export class AuthController {
         throw new UnauthorizedException('Invalid phone number or ID number');
       }
 
-      const successBody: LoginResponseDto = {
-        accessToken: 'mock-jwt-token-abcd-1234',
-        salesforceUserId: 101,
-      };
-      return { status: 200, body: successBody };
+      const result = await this.authService.login({
+        salesforceUserId: 101, 
+      });
+      return { status: 200, body: result };
       },
     );
   }
