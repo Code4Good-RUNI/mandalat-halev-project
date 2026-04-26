@@ -54,6 +54,19 @@ async function bootstrap() {
     servers: [{ url: '/api' }],
   })
 
+  document.components = {
+    ...document.components,
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      },
+    },
+  };
+
+  document.security = [{ bearerAuth: [] }];
+
   SwaggerModule.setup('api/docs', app, document);
 
   await app.listen(port);
