@@ -30,7 +30,7 @@ export const LoginRequestSchema = z.object({
 // Response from the Login endpoint
 export const LoginResponseSchema = z.object({
   accessToken: z.string(),
-  salesforceUserId: z.number(),
+  salesforceUserId: z.string(),
 });
 
 export type LoginRequestDto = z.infer<typeof LoginRequestSchema>;
@@ -41,7 +41,7 @@ export type LoginResponseDto = z.infer<typeof LoginResponseSchema>;
 
 // Schema for User Profile details
 export const UserProfileSchema = z.object({
-  salesforceUserId: z.number(),
+  salesforceUserId: z.string(),
   firstName: z.string(),
   lastName: z.string(),
   email: z.string().email(), // Built-in email validation
@@ -64,7 +64,7 @@ export type ApprovalStatus = z.infer<typeof ApprovalStatusSchema>;
 
 // Base schema for a Campaign
 export const CampaignSchema = z.object({
-  id: z.number(),
+  id: z.string(),
   name: z.string(),
   description: z.string(),
   imageUrl: z.string().url(), // Built-in URL validation
@@ -95,8 +95,7 @@ export const GetPastCampaignSchema = CampaignSchema.extend({
 export type GetPastCampaignDto = z.infer<typeof GetPastCampaignSchema>;
 
 export const RegisterForCampaignSchema = z.object({
-  campaignId: z.number(),
-  salesforceUserId: z.number(),
+  campaignId: z.string(),
   numOfParticipantsToRegister: z.number(),
   additionalInfo: z.string().optional(),
 });
@@ -104,8 +103,7 @@ export const RegisterForCampaignSchema = z.object({
 export type RegisterForCampaignDto = z.infer<typeof RegisterForCampaignSchema>;
 
 export const UnregisterFromCampaignSchema = z.object({
-  campaignId: z.number(),
-  salesforceUserId: z.number(),
+  campaignId: z.string(),
   numOfParticipantsToUnregister: z.number(),
   additionalInfo: z.string().optional(),
 });
@@ -115,16 +113,14 @@ export type UnregisterFromCampaignDto = z.infer<
 >;
 
 export const RegisterResponseSchema = z.object({
-  campaignId: z.number(),
-  salesforceUserId: z.number(),
+  campaignId: z.string(),
   requestReceivedSuccessfully: z.boolean(),
 });
 
 export type RegisterResponseDto = z.infer<typeof RegisterResponseSchema>;
 
 export const GetRegistrationStatusSchema = z.object({
-  campaignId: z.number(),
-  salesforceUserId: z.number(),
+  campaignId: z.string(),
   registrationStatus: ApprovalStatusSchema,
   additionalInfo: z.string().optional(),
 });

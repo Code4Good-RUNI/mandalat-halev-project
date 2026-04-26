@@ -1,4 +1,4 @@
-import { Controller, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Controller, NotFoundException, BadRequestException, UseGuards} from '@nestjs/common';
 import { tsRestHandler, TsRestHandler } from '@ts-rest/nest';
 import { 
   userContract, 
@@ -7,22 +7,25 @@ import {
   RegisterResponseDto, 
   GetRegistrationStatusDto 
 } from '@mandalat-halev-project/api-interfaces';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
 
 @Controller()
+@UseGuards(JwtAuthGuard)
 export class CampaignsController {
   
   // 1. Active campaigns (GET) 
   @TsRestHandler(userContract.campaigns.active)
-  async getActiveCampaigns() { 
-    return tsRestHandler(userContract.campaigns.active, async ({ params }) => {
-      
-      if (params.salesforceUserId === 999) {
+  async getActiveCampaigns(@CurrentUser('sub') userId: string) { 
+    return tsRestHandler(userContract.campaigns.active, async () => {
+
+      if (userId === '999') {
         throw new NotFoundException('User not found in Salesforce');
       }
 
       const responseBody: GetFutureCampaignDto[] = [
         {
-          id: 5,
+          id: '5',
           name: 'Park Restoration',
           description: 'Help us paint benches and plant new flowers at the central park.',
           imageUrl: 'https://example.com/images/park.jpg',
@@ -49,16 +52,16 @@ export class CampaignsController {
   
   // 2. Future campaigns (GET) - Multiple diverse examples
   @TsRestHandler(userContract.campaigns.future)
-  async getFutureCampaigns() {
-    return tsRestHandler(userContract.campaigns.future, async ({ params }) => {
-      
-      if (params.salesforceUserId === 999) {
+  async getFutureCampaigns(@CurrentUser('sub') userId: string ) {
+    return tsRestHandler(userContract.campaigns.future, async () => {
+
+      if (userId === '999') {
         throw new NotFoundException('User not found in Salesforce');
       }
 
       const responseBody: GetFutureCampaignDto[] = [
         {
-          id: 1,
+          id: '1',
           name: 'Passover Food Packing',
           description: 'Join us for our main holiday event packing food baskets for families in need.',
           imageUrl: 'https://example.com/images/packing.jpg',
@@ -75,7 +78,7 @@ export class CampaignsController {
           userApprovalStatus: 'approved'
         },
         {
-          id: 3,
+          id: '3',
           name: 'Beach Cleanup Morning',
           description: 'Eco-friendly initiative to clean the central coastline. Equipment provided.',
           imageUrl: 'https://example.com/images/beach.jpg',
@@ -92,7 +95,7 @@ export class CampaignsController {
           userApprovalStatus: 'approved'
         },
         {
-          id: 4,
+          id: '4',
           name: 'Tech Tutoring for Youth',
           description: 'Teaching basic coding and digital skills to teenagers in community centers.',
           imageUrl: 'https://example.com/images/tech.jpg',
@@ -119,12 +122,12 @@ export class CampaignsController {
 
   // 3. Past campaigns (GET) - Historical data
   @TsRestHandler(userContract.campaigns.past)
-  async getPastCampaigns() {
-    return tsRestHandler(userContract.campaigns.past, async ({ params }) => {
+  async getPastCampaigns(@CurrentUser('sub') userId: string) {
+    return tsRestHandler(userContract.campaigns.past, async () => {
 
       const responseBody: GetPastCampaignDto[] = [
         {
-          id: 101,
+          id: '101',
           name: 'Winter Blanket Drive',
           description: 'Collecting and distributing warm blankets for the homeless.',
           imageUrl: 'https://example.com/images/blankets.jpg',
@@ -139,7 +142,7 @@ export class CampaignsController {
           hasUserParticipated: true
         },
         {
-          id: 102,
+          id: '102',
           name: 'Community Garden Planting',
           description: 'Establishing a new urban garden in the neighborhood.',
           imageUrl: 'https://example.com/images/garden.jpg',
@@ -164,16 +167,15 @@ export class CampaignsController {
 
   // 4. Register for campaign (POST)
   @TsRestHandler(userContract.campaigns.register)
-  async registerForCampaign() {
+  async registerForCampaign(@CurrentUser('sub') userId: string) {
     return tsRestHandler(userContract.campaigns.register, async ({ body }) => {
 
-      if (body.campaignId === 999) {
+      if (body.campaignId === '999') {
         throw new BadRequestException('This campaign is full or no longer accepting registrations.');
       }
 
       const responseBody: RegisterResponseDto = {
         campaignId: body.campaignId,
-        salesforceUserId: body.salesforceUserId,
         requestReceivedSuccessfully: true
       };
 
@@ -186,12 +188,11 @@ export class CampaignsController {
 
   // 5. Unregister from campaign (POST)
   @TsRestHandler(userContract.campaigns.unregister)
-  async unregisterFromCampaign() {
+  async unregisterFromCampaign(@CurrentUser('sub') userId: string) {
     return tsRestHandler(userContract.campaigns.unregister, async ({ body }) => {
 
       const responseBody: RegisterResponseDto = {
         campaignId: body.campaignId,
-        salesforceUserId: body.salesforceUserId,
         requestReceivedSuccessfully: true
       };
 
@@ -204,18 +205,17 @@ export class CampaignsController {
 
   // 6. Check registration status (GET)
   @TsRestHandler(userContract.campaigns.registrationStatus)
-  async getRegistrationStatus() {
+  async getRegistrationStatus(@CurrentUser('sub') userId: string) {
     return tsRestHandler(userContract.campaigns.registrationStatus, async ({ query }) => {
 
-      if (query.campaignId === 999) {
+      if (query.campaignId === '999') {
          throw new NotFoundException('Campaign not found');
       }
 
-      const status = query.campaignId === 1 ? 'approved' : 'pending';
+      const status = query.campaignId === '1' ? 'approved' : 'pending';
       
       const responseBody: GetRegistrationStatusDto = {
         campaignId: query.campaignId,
-        salesforceUserId: query.salesforceUserId,
         registrationStatus: status,
         additionalInfo: status === 'approved' ? 'See you there!' : 'Awaiting admin review.'
       };

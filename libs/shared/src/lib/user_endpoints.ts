@@ -33,10 +33,7 @@ export const userContract = c.router({
   user: {
     profile: {
       method: 'GET',
-      path: '/user/profile/:salesforceUserId',
-      pathParams: z.object({
-        salesforceUserId: z.coerce.number(),
-      }),
+      path: '/user/profile/',
       responses: {
         200: UserProfileSchema,
         400: ErrorResponseSchema, // Validation failed
@@ -51,10 +48,7 @@ export const userContract = c.router({
   campaigns: {
     future: {
       method: 'GET',
-      path: '/campaigns/future/:salesforceUserId',
-      pathParams: z.object({
-        salesforceUserId: z.coerce.number(),
-      }),
+      path: '/campaigns/future',
       responses: {
         200: z.array(GetFutureCampaignSchema),
         400: ErrorResponseSchema,
@@ -66,10 +60,7 @@ export const userContract = c.router({
     },
     past: {
       method: 'GET',
-      path: '/campaigns/past/:salesforceUserId',
-      pathParams: z.object({
-        salesforceUserId: z.coerce.number(),
-      }),
+      path: '/campaigns/past',
       responses: {
         200: z.array(GetPastCampaignSchema),
         400: ErrorResponseSchema,
@@ -81,10 +72,7 @@ export const userContract = c.router({
     },
     active: {
       method: 'GET',
-      path: '/campaigns/active/:salesforceUserId',
-      pathParams: z.object({
-        salesforceUserId: z.coerce.number(),
-      }),
+      path: '/campaigns/active',
       responses: {
         200: z.array(GetFutureCampaignSchema),
         400: ErrorResponseSchema,
@@ -125,8 +113,7 @@ export const userContract = c.router({
       method: 'GET',
       path: '/campaigns/registration-status',
       query: z.object({
-        campaignId: z.coerce.number(),
-        salesforceUserId: z.coerce.number(),
+        campaignId: z.coerce.string(),
       }),
       responses: {
         200: GetRegistrationStatusSchema,
