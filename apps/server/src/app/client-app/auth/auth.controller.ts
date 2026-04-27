@@ -12,10 +12,7 @@ export class AuthController {
     return tsRestHandler(userContract.auth.login, async ({ body }) => {
 
       if (body.phoneNumber === '0500000000') {
-        throw new UnauthorizedException({
-          code: 'INVALID_CREDENTIALS',
-          message: 'Invalid phone number or ID number',
-        });
+        throw new UnauthorizedException('Invalid phone number or ID number');
       }
 
       const successBody: LoginResponseDto = {
