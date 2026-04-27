@@ -1,4 +1,4 @@
-import { Controller, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Controller, NotFoundException, ConflictException } from '@nestjs/common';
 import { tsRestHandler, TsRestHandler } from '@ts-rest/nest';
 import { 
   userContract, 
@@ -168,7 +168,7 @@ export class CampaignsController {
     return tsRestHandler(userContract.campaigns.register, async ({ body }) => {
 
       if (body.campaignId === 999) {
-        throw new BadRequestException('This campaign is full or no longer accepting registrations.');
+        throw new ConflictException('This campaign is full or no longer accepting registrations.');
       }
 
       const responseBody: RegisterResponseDto = {
