@@ -31,9 +31,17 @@ async function bootstrap() {
   const corsOrigin = process.env.CORS_ORIGIN?.split(',') || [];
   app.enableCors({
     origin: corsOrigin,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
   });
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
+
+  app.useGlobalPipes(new (await import('@nestjs/common')).ValidationPipe({ 
+    transform: true, 
+    whitelist: true 
+  }));
+  
   const port = process.env.PORT || 3000;
 
   // Swagger
@@ -45,6 +53,19 @@ async function bootstrap() {
     },
     servers: [{ url: '/api' }],
   })
+
+  document.components = {
+    ...document.components,
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      },
+    },
+  };
+
+  document.security = [{ bearerAuth: [] }];
 
   SwaggerModule.setup('api/docs', app, document);
 
