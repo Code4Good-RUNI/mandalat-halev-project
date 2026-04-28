@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useUserProfile } from '../../api/hooks';
 import { temporarySalesforceUserId } from '../login';
+import { QueryErrorState } from '../../components/QueryErrorState';
 
 export default function PersonalDataScreen() {
   // switch states
@@ -18,7 +19,7 @@ export default function PersonalDataScreen() {
   const [futureActivities, setFutureActivities] = useState(true);
   const [orgMessages, setOrgMessages] = useState(true);
 
-  const { data, isPending, isError } = useUserProfile(Number(temporarySalesforceUserId));
+  const { data, isPending, isError, refetch } = useUserProfile(Number(temporarySalesforceUserId));
   const profile = data?.status === 200 ? data.body : undefined;
 
   if (isPending) {
@@ -29,12 +30,8 @@ export default function PersonalDataScreen() {
     );
   }
 
-  if (isError) {
-    return (
-      <SafeAreaView>
-        <Text>שגיאה בטעינת הנתונים</Text>
-      </SafeAreaView>
-    );
+  if (isError || data?.status !== 200) {
+    return <QueryErrorState onRetry={refetch} />;
   }
 
   return (

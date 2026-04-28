@@ -5,6 +5,7 @@ import { useActiveCampaigns, useRegisterForCampaign } from '../../api/hooks';
 import { useQueryClient } from '@tanstack/react-query';
 import { temporarySalesforceUserId } from '../login';
 import { CampaignDetailsModal } from '../../components/CampaignDetailsModal';
+import { QueryErrorState } from '../../components/QueryErrorState';
 import type { GetFutureCampaignDto } from '@mandalat-halev-project/api-interfaces';
 
 interface ActiveCampaignItemProps {
@@ -74,7 +75,7 @@ function ActiveCampaignItem({ item, userId, onShowModal, onPressDetails }: Activ
 
 export default function ActivitiesScreen() {
   const userId = Number(temporarySalesforceUserId);
-  const { data, isPending, isError } = useActiveCampaigns(userId);
+  const { data, isPending, isError, refetch } = useActiveCampaigns(userId);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [selectedCampaign, setSelectedCampaign] = useState<GetFutureCampaignDto | null>(null);
@@ -93,11 +94,7 @@ export default function ActivitiesScreen() {
   }
 
   if (isError || data?.status !== 200) {
-    return (
-      <SafeAreaView style={[styles.safe, styles.center]}>
-        <Text style={styles.errorText}>שגיאה בטעינת הפעילויות. נסה שוב מאוחר יותר.</Text>
-      </SafeAreaView>
-    );
+    return <QueryErrorState onRetry={refetch} />;
   }
 
   return (
@@ -153,7 +150,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right', marginBottom: 10 },
   searchInput: { borderWidth: 1, borderColor: '#ccc', padding: 8, borderRadius: 5 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorText: { color: 'red', textAlign: 'center', marginTop: 20 },
   emptyText: { textAlign: 'center', marginTop: 30, color: '#666', fontSize: 16 },
   actionContainer: { alignItems: 'center', marginTop: 10 },
   registerButton: { backgroundColor: '#FF8C00', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8 },
