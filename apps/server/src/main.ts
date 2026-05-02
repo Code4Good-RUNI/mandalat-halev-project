@@ -20,7 +20,7 @@ loadEnv({
     join(serverEnvDir, '.env.server'),
     join(serverEnvDir, '.env.server.local'),
   ],
-  envKeysFile: join(serverEnvDir, '.env.keys'),
+  envKeysFile: join(serverEnvDir, '.env.server.keys'),
   ignore: ['MISSING_ENV_FILE'],
   overload: true,
   quiet: true,
@@ -37,11 +37,13 @@ async function bootstrap() {
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
 
-  app.useGlobalPipes(new (await import('@nestjs/common')).ValidationPipe({ 
-    transform: true, 
-    whitelist: true 
-  }));
-  
+  app.useGlobalPipes(
+    new (await import('@nestjs/common')).ValidationPipe({
+      transform: true,
+      whitelist: true,
+    }),
+  );
+
   const port = process.env.PORT || 3000;
 
   // Swagger

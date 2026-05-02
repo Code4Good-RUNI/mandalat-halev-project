@@ -7,7 +7,7 @@ dotenvx.config({
     path.join(mobileDir, '.env.mobile'),
     path.join(mobileDir, '.env.mobile.local'),
   ],
-  envKeysFile: path.join(mobileDir, '.env.keys'),
+  envKeysFile: path.join(mobileDir, '.env.mobile.keys'),
   ignore: ['MISSING_ENV_FILE'],
   overload: true,
   quiet: true,
