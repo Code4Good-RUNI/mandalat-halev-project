@@ -1,3 +1,0 @@
-export const TEMP_SALESFORCE_USER_ID = "0123456789";
-export const TEST_ID_NUMBER = '000000000';
-export const TEST_PHONE_NUMBER = '0500000001';

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { FlatList, SafeAreaView, Text, StyleSheet, ActivityIndicator, Modal, TouchableOpacity, View } from 'react-native';
-import { temporarySalesforceUserId } from '../../login';
 import { useFutureCampaigns } from '../../../api/hooks';
 import { FutureCampaignItem } from '../../../components/FutureCampaignItem';
 import { CampaignDetailsModal } from '../../../components/CampaignDetailsModal';
@@ -8,8 +7,7 @@ import { QueryErrorState } from '../../../components/QueryErrorState';
 import type { GetFutureCampaignDto } from '@mandalat-halev-project/api-interfaces';
 
 export default function FutureActivitiesScreen() {
-  const userId = Number(temporarySalesforceUserId);
-  const { data, isPending, isError, refetch } = useFutureCampaigns(userId);
+  const { data, isPending, isError, refetch } = useFutureCampaigns();
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [selectedCampaign, setSelectedCampaign] = useState<GetFutureCampaignDto | null>(null);
@@ -39,10 +37,9 @@ export default function FutureActivitiesScreen() {
         data={data.body}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <FutureCampaignItem 
-            campaign={item} 
-            userId={userId} 
-            onShowModal={showModal} 
+          <FutureCampaignItem
+            campaign={item}
+            onShowModal={showModal}
             onPressDetails={() => setSelectedCampaign(item)}
           />
         )}

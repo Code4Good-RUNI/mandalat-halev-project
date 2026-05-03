@@ -8,7 +8,9 @@ import {
   StyleSheet,
 } from 'react-native';
 import { router } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { useLogin } from '../api/hooks';
+import { setSession } from '../api/session';
 import { classifyApiError } from '../api/errorClassifier';
 import {
   getLoginBanner,
@@ -16,15 +18,13 @@ import {
   LoginFieldErrors,
 } from './_loginErrors';
 
-// Temporary constant to store user ID until full auth context is implemented
-export let temporarySalesforceUserId: number | null = null;
-
 export default function LoginScreen() {
-  const [idNumber, setIdNumber] = useState('123456789');
-  const [phoneNumber, setPhoneNumber] = useState('0501234567');
+  const [idNumber, setIdNumber] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
   const [banner, setBanner] = useState<string | null>(null);
   const { mutate: login, isPending } = useLogin();
+  const queryClient = useQueryClient();
 
   const handleIdChange = (text: string) => {
     setIdNumber(text);
@@ -44,28 +44,35 @@ export default function LoginScreen() {
     setBanner(null);
     setFieldErrors({});
 
-    login({ phoneNumber, idNumber }, {
-      onSuccess: (data) => {
-        if (data.status === 200) {
-          temporarySalesforceUserId = data.body.salesforceUserId;
-          router.replace('/(tabs)/activities');
-          return;
-        }
-        const apiError = classifyApiError({ data });
-        if (!apiError) return;
-        if (apiError.kind === 'validation') {
-          setFieldErrors(getLoginFieldErrors(apiError.issues));
-        } else {
+    login(
+      { phoneNumber, idNumber },
+      {
+        onSuccess: async (data) => {
+          if (data.status === 200) {
+            await setSession({
+              accessToken: data.body.accessToken,
+              salesforceUserId: data.body.salesforceUserId,
+            });
+            await queryClient.invalidateQueries();
+            router.replace('/(tabs)/activities');
+            return;
+          }
+          const apiError = classifyApiError({ data });
+          if (!apiError) return;
+          if (apiError.kind === 'validation') {
+            setFieldErrors(getLoginFieldErrors(apiError.issues));
+          } else {
+            setBanner(getLoginBanner(apiError));
+          }
+        },
+        onError: (err) => {
+          const apiError = classifyApiError({ error: err }) ?? {
+            kind: 'unknown' as const,
+          };
           setBanner(getLoginBanner(apiError));
-        }
+        },
       },
-      onError: (err) => {
-        const apiError = classifyApiError({ error: err }) ?? {
-          kind: 'unknown' as const,
-        };
-        setBanner(getLoginBanner(apiError));
-      },
-    });
+    );
   };
 
   return (
@@ -81,7 +88,6 @@ export default function LoginScreen() {
           <Text style={styles.label}>מספר תעודת זהות</Text>
           <TextInput
             style={styles.input}
-            placeholder="פורמט 9 ספרות, כולל ספרת ביקורת"
             value={idNumber}
             onChangeText={handleIdChange}
             keyboardType="numeric"

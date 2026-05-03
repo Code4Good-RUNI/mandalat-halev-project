@@ -17,6 +17,7 @@
     "expo": "*",
     "expo-linking": "*",
     "expo-router": "~6.0.23",
+    "expo-secure-store": "^55.0.13",
     "expo-splash-screen": "*",
     "expo-status-bar": "*",
     "expo-system-ui": "*",

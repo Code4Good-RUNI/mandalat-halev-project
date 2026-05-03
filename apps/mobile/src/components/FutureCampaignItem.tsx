@@ -2,18 +2,15 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { ActivityItem } from './ActivityItem';
-import { 
-  useRegistrationStatus, 
-  useUnregisterFromCampaign 
+import {
+  useRegistrationStatus,
+  useUnregisterFromCampaign
 } from '../api/hooks';
 import type { GetFutureCampaignDto } from '@mandalat-halev-project/api-interfaces';
 
-export function FutureCampaignItem({ campaign, userId, onShowModal, onPressDetails }: { campaign: GetFutureCampaignDto; userId: number; onShowModal: (msg: string) => void; onPressDetails: () => void }) {
+export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: { campaign: GetFutureCampaignDto; onShowModal: (msg: string) => void; onPressDetails: () => void }) {
   const queryClient = useQueryClient();
   const [isUnregistered, setIsUnregistered] = useState(false);
-  
-  // Ensure campaign.id is a number so TanStack Query keys match strictly
-  const campaignId = Number(campaign.id);
 
   // Extract isFetching to show a loading state during background refetches
   const {
@@ -21,7 +18,7 @@ export function FutureCampaignItem({ campaign, userId, onShowModal, onPressDetai
     isPending: statusPending,
     isFetching,
     isError: isStatusError,
-  } = useRegistrationStatus(campaignId, userId);
+  } = useRegistrationStatus(campaign.id);
   const { mutate: unregister, isPending: isUnregistering } = useUnregisterFromCampaign();
 
   let statusText: string;
@@ -42,15 +39,15 @@ export function FutureCampaignItem({ campaign, userId, onShowModal, onPressDetai
 
   const handleUnregister = () => {
     unregister(
-      { campaignId, salesforceUserId: userId, numOfParticipantsToUnregister: 1 },
+      { campaignId: campaign.id, numOfParticipantsToUnregister: 1 },
       {
         onSuccess: (data) => {
           if (data.status === 200 && data.body?.requestReceivedSuccessfully) {
             setIsUnregistered(true);
             onShowModal('הרישום בוטל בהצלחה!');
             // Invalidate queries to sync the 'Activities' and 'My Activities' lists
-            queryClient.invalidateQueries({ queryKey: ['campaigns', 'future', userId] });
-            queryClient.invalidateQueries({ queryKey: ['campaigns', 'active', userId] });
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'future'] });
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'active'] });
           } else {
             // Handle API errors and extract backend message if available
             const errorMessage = (data.body as any)?.message || 'משהו השתבש בביטול ההרשמה. אנא נסה שוב.';
@@ -72,7 +69,7 @@ export function FutureCampaignItem({ campaign, userId, onShowModal, onPressDetai
     >
       <View style={styles.actionContainer}>
         {!isUnregistered && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.unregisterButton, isUnregistering && styles.disabledButton]}
             onPress={handleUnregister}
             disabled={isUnregistering}
