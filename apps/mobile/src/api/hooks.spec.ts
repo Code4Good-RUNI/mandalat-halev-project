@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { api } from './client';
+import { api, apiPublic } from './client';
 import React from 'react';
 import {
   useLogin,
@@ -13,12 +13,13 @@ import {
   useRegistrationStatus,
 } from './hooks';
 
-// Mock the api client
 jest.mock('./client', () => ({
-  api: {
+  apiPublic: {
     auth: {
       login: jest.fn(),
     },
+  },
+  api: {
     user: {
       profile: jest.fn(),
     },
@@ -34,6 +35,7 @@ jest.mock('./client', () => ({
 }));
 
 const mockedApi = api as jest.MockedObject<typeof api>;
+const mockedApiPublic = apiPublic as jest.MockedObject<typeof apiPublic>;
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -57,12 +59,12 @@ function createWrapper() {
 // ---------------------------------------------------------------------------
 
 describe('useLogin', () => {
-  it('should call api.auth.login with the provided body', async () => {
+  it('should call apiPublic.auth.login with the provided body', async () => {
     const mockResponse = {
       status: 200,
-      body: { accessToken: 'token-123', salesforceUserId: 42 },
+      body: { accessToken: 'token-123', salesforceUserId: '42' },
     };
-    (mockedApi.auth.login as jest.Mock).mockResolvedValue(mockResponse);
+    (mockedApiPublic.auth.login as jest.Mock).mockResolvedValue(mockResponse);
 
     const { result } = renderHook(() => useLogin(), {
       wrapper: createWrapper(),
@@ -75,7 +77,7 @@ describe('useLogin', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockedApi.auth.login).toHaveBeenCalledWith({
+    expect(mockedApiPublic.auth.login).toHaveBeenCalledWith({
       body: { phoneNumber: '0501234567', idNumber: '123456789' },
     });
     expect(result.current.data).toEqual(mockResponse);
@@ -87,11 +89,11 @@ describe('useLogin', () => {
 // ---------------------------------------------------------------------------
 
 describe('useUserProfile', () => {
-  it('should call api.user.profile with the salesforceUserId', async () => {
+  it('should call api.user.profile (server identifies user from JWT)', async () => {
     const mockProfile = {
       status: 200,
       body: {
-        salesforceUserId: 42,
+        salesforceUserId: '42',
         firstName: 'Tal',
         lastName: 'Levi',
         email: 'tal@example.com',
@@ -104,15 +106,13 @@ describe('useUserProfile', () => {
     };
     (mockedApi.user.profile as jest.Mock).mockResolvedValue(mockProfile);
 
-    const { result } = renderHook(() => useUserProfile(42), {
+    const { result } = renderHook(() => useUserProfile(), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockedApi.user.profile).toHaveBeenCalledWith({
-      params: { salesforceUserId: 42 },
-    });
+    expect(mockedApi.user.profile).toHaveBeenCalledWith();
     expect(result.current.data).toEqual(mockProfile);
   });
 });
@@ -122,12 +122,12 @@ describe('useUserProfile', () => {
 // ---------------------------------------------------------------------------
 
 describe('useFutureCampaigns', () => {
-  it('should call api.campaigns.future with the salesforceUserId', async () => {
+  it('should call api.campaigns.future (server identifies user from JWT)', async () => {
     const mockCampaigns = {
       status: 200,
       body: [
         {
-          id: 1,
+          id: '1',
           name: 'Beach Cleanup',
           description: 'Clean the beach',
           imageUrl: 'https://example.com/image.jpg',
@@ -147,26 +147,24 @@ describe('useFutureCampaigns', () => {
     };
     (mockedApi.campaigns.future as jest.Mock).mockResolvedValue(mockCampaigns);
 
-    const { result } = renderHook(() => useFutureCampaigns(42), {
+    const { result } = renderHook(() => useFutureCampaigns(), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockedApi.campaigns.future).toHaveBeenCalledWith({
-      params: { salesforceUserId: 42 },
-    });
+    expect(mockedApi.campaigns.future).toHaveBeenCalledWith();
     expect(result.current.data).toEqual(mockCampaigns);
   });
 });
 
 describe('useActiveCampaigns', () => {
-  it('should call api.campaigns.active with the salesforceUserId', async () => {
+  it('should call api.campaigns.active (server identifies user from JWT)', async () => {
     const mockCampaigns = {
       status: 200,
       body: [
         {
-          id: 3,
+          id: '3',
           name: 'Food Drive',
           description: 'Collect food donations',
           imageUrl: 'https://example.com/food.jpg',
@@ -186,26 +184,24 @@ describe('useActiveCampaigns', () => {
     };
     (mockedApi.campaigns.active as jest.Mock).mockResolvedValue(mockCampaigns);
 
-    const { result } = renderHook(() => useActiveCampaigns(42), {
+    const { result } = renderHook(() => useActiveCampaigns(), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockedApi.campaigns.active).toHaveBeenCalledWith({
-      params: { salesforceUserId: 42 },
-    });
+    expect(mockedApi.campaigns.active).toHaveBeenCalledWith();
     expect(result.current.data).toEqual(mockCampaigns);
   });
 });
 
 describe('usePastCampaigns', () => {
-  it('should call api.campaigns.past with the salesforceUserId', async () => {
+  it('should call api.campaigns.past (server identifies user from JWT)', async () => {
     const mockCampaigns = {
       status: 200,
       body: [
         {
-          id: 2,
+          id: '2',
           name: 'Park Cleanup',
           description: 'Clean the park',
           imageUrl: 'https://example.com/park.jpg',
@@ -223,15 +219,13 @@ describe('usePastCampaigns', () => {
     };
     (mockedApi.campaigns.past as jest.Mock).mockResolvedValue(mockCampaigns);
 
-    const { result } = renderHook(() => usePastCampaigns(42), {
+    const { result } = renderHook(() => usePastCampaigns(), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockedApi.campaigns.past).toHaveBeenCalledWith({
-      params: { salesforceUserId: 42 },
-    });
+    expect(mockedApi.campaigns.past).toHaveBeenCalledWith();
     expect(result.current.data).toEqual(mockCampaigns);
   });
 });
@@ -241,8 +235,7 @@ describe('useRegisterForCampaign', () => {
     const mockResponse = {
       status: 200,
       body: {
-        campaignId: 1,
-        salesforceUserId: 42,
+        campaignId: '1',
         requestReceivedSuccessfully: true,
       },
     };
@@ -253,8 +246,7 @@ describe('useRegisterForCampaign', () => {
     });
 
     result.current.mutate({
-      campaignId: 1,
-      salesforceUserId: 42,
+      campaignId: '1',
       numOfParticipantsToRegister: 1,
     });
 
@@ -262,8 +254,7 @@ describe('useRegisterForCampaign', () => {
 
     expect(mockedApi.campaigns.register).toHaveBeenCalledWith({
       body: {
-        campaignId: 1,
-        salesforceUserId: 42,
+        campaignId: '1',
         numOfParticipantsToRegister: 1,
       },
     });
@@ -276,8 +267,7 @@ describe('useUnregisterFromCampaign', () => {
     const mockResponse = {
       status: 200,
       body: {
-        campaignId: 1,
-        salesforceUserId: 42,
+        campaignId: '1',
         requestReceivedSuccessfully: true,
       },
     };
@@ -290,8 +280,7 @@ describe('useUnregisterFromCampaign', () => {
     });
 
     result.current.mutate({
-      campaignId: 1,
-      salesforceUserId: 42,
+      campaignId: '1',
       numOfParticipantsToUnregister: 1,
     });
 
@@ -299,8 +288,7 @@ describe('useUnregisterFromCampaign', () => {
 
     expect(mockedApi.campaigns.unregister).toHaveBeenCalledWith({
       body: {
-        campaignId: 1,
-        salesforceUserId: 42,
+        campaignId: '1',
         numOfParticipantsToUnregister: 1,
       },
     });
@@ -309,12 +297,11 @@ describe('useUnregisterFromCampaign', () => {
 });
 
 describe('useRegistrationStatus', () => {
-  it('should call api.campaigns.registrationStatus with campaignId and salesforceUserId', async () => {
+  it('should call api.campaigns.registrationStatus with campaignId', async () => {
     const mockResponse = {
       status: 200,
       body: {
-        campaignId: 1,
-        salesforceUserId: 42,
+        campaignId: '1',
         registrationStatus: 'approved' as const,
         additionalInfo: 'Welcome!',
       },
@@ -323,14 +310,14 @@ describe('useRegistrationStatus', () => {
       mockResponse,
     );
 
-    const { result } = renderHook(() => useRegistrationStatus(1, 42), {
+    const { result } = renderHook(() => useRegistrationStatus('1'), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(mockedApi.campaigns.registrationStatus).toHaveBeenCalledWith({
-      query: { campaignId: 1, salesforceUserId: 42 },
+      query: { campaignId: '1' },
     });
     expect(result.current.data).toEqual(mockResponse);
   });

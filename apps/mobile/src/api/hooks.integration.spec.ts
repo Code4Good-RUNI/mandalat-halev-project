@@ -10,6 +10,7 @@ import {
   useUnregisterFromCampaign,
   useRegistrationStatus,
 } from './hooks';
+import { setSession, clearSession } from './session';
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -28,12 +29,34 @@ function createWrapper() {
   };
 }
 
+// Protected endpoints need a valid JWT in the session. Log in once and seed the
+// session before any protected describe blocks run.
+async function loginAndSeedSession() {
+  const { result } = renderHook(() => useLogin(), { wrapper: createWrapper() });
+  result.current.mutate({
+    phoneNumber: '0501234567',
+    idNumber: '123456789',
+  });
+  await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  if (result.current.data?.status !== 200) {
+    throw new Error('Login failed during integration test setup');
+  }
+  await setSession({
+    accessToken: result.current.data.body.accessToken,
+    salesforceUserId: result.current.data.body.salesforceUserId,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
 
 describe('useLogin (integration)', () => {
-  it('should login and receive a mock token from the server', async () => {
+  afterEach(async () => {
+    await clearSession();
+  });
+
+  it('should login and receive a token + salesforceUserId from the server', async () => {
     const { result } = renderHook(() => useLogin(), {
       wrapper: createWrapper(),
     });
@@ -46,10 +69,10 @@ describe('useLogin (integration)', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(result.current.data?.status).toBe(200);
-    expect(result.current.data?.body).toEqual({
-      accessToken: 'mock-jwt-token-abcd-1234',
-      salesforceUserId: 101,
-    });
+    if (result.current.data?.status !== 200) return;
+    expect(typeof result.current.data.body.accessToken).toBe('string');
+    expect(result.current.data.body.accessToken.length).toBeGreaterThan(0);
+    expect(typeof result.current.data.body.salesforceUserId).toBe('string');
   });
 });
 
@@ -58,8 +81,15 @@ describe('useLogin (integration)', () => {
 // ---------------------------------------------------------------------------
 
 describe('useUserProfile (integration)', () => {
+  beforeAll(async () => {
+    await loginAndSeedSession();
+  });
+  afterAll(async () => {
+    await clearSession();
+  });
+
   it('should fetch the mock user profile from the server', async () => {
-    const { result } = renderHook(() => useUserProfile(42), {
+    const { result } = renderHook(() => useUserProfile(), {
       wrapper: createWrapper(),
     });
 
@@ -80,8 +110,15 @@ describe('useUserProfile (integration)', () => {
 // ---------------------------------------------------------------------------
 
 describe('useFutureCampaigns (integration)', () => {
+  beforeAll(async () => {
+    await loginAndSeedSession();
+  });
+  afterAll(async () => {
+    await clearSession();
+  });
+
   it('should fetch future campaigns from the server', async () => {
-    const { result } = renderHook(() => useFutureCampaigns(42), {
+    const { result } = renderHook(() => useFutureCampaigns(), {
       wrapper: createWrapper(),
     });
 
@@ -98,8 +135,15 @@ describe('useFutureCampaigns (integration)', () => {
 });
 
 describe('usePastCampaigns (integration)', () => {
+  beforeAll(async () => {
+    await loginAndSeedSession();
+  });
+  afterAll(async () => {
+    await clearSession();
+  });
+
   it('should fetch past campaigns from the server', async () => {
-    const { result } = renderHook(() => usePastCampaigns(42), {
+    const { result } = renderHook(() => usePastCampaigns(), {
       wrapper: createWrapper(),
     });
 
@@ -115,14 +159,20 @@ describe('usePastCampaigns (integration)', () => {
 });
 
 describe('useRegisterForCampaign (integration)', () => {
+  beforeAll(async () => {
+    await loginAndSeedSession();
+  });
+  afterAll(async () => {
+    await clearSession();
+  });
+
   it('should register for a campaign and receive confirmation', async () => {
     const { result } = renderHook(() => useRegisterForCampaign(), {
       wrapper: createWrapper(),
     });
 
     result.current.mutate({
-      campaignId: 1,
-      salesforceUserId: 42,
+      campaignId: '1',
       numOfParticipantsToRegister: 1,
     });
 
@@ -130,22 +180,27 @@ describe('useRegisterForCampaign (integration)', () => {
 
     expect(result.current.data?.status).toBe(200);
     expect(result.current.data?.body).toEqual({
-      campaignId: 1,
-      salesforceUserId: 42,
+      campaignId: '1',
       requestReceivedSuccessfully: true,
     });
   });
 });
 
 describe('useUnregisterFromCampaign (integration)', () => {
+  beforeAll(async () => {
+    await loginAndSeedSession();
+  });
+  afterAll(async () => {
+    await clearSession();
+  });
+
   it('should unregister from a campaign and receive confirmation', async () => {
     const { result } = renderHook(() => useUnregisterFromCampaign(), {
       wrapper: createWrapper(),
     });
 
     result.current.mutate({
-      campaignId: 1,
-      salesforceUserId: 42,
+      campaignId: '1',
       numOfParticipantsToUnregister: 1,
     });
 
@@ -153,28 +208,30 @@ describe('useUnregisterFromCampaign (integration)', () => {
 
     expect(result.current.data?.status).toBe(200);
     expect(result.current.data?.body).toEqual({
-      campaignId: 1,
-      salesforceUserId: 42,
+      campaignId: '1',
       requestReceivedSuccessfully: true,
     });
   });
 });
 
 describe('useRegistrationStatus (integration)', () => {
-  it('should return approved status for campaignId 1', async () => {
-    const { result } = renderHook(() => useRegistrationStatus(1, 42), {
+  beforeAll(async () => {
+    await loginAndSeedSession();
+  });
+  afterAll(async () => {
+    await clearSession();
+  });
+
+  it('should return registration status for a campaign', async () => {
+    const { result } = renderHook(() => useRegistrationStatus('1'), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(result.current.data?.status).toBe(200);
-    // Query params arrive as strings on the server, so the controller's
-    // strict equality check (campaignId === 1) is false and it returns 'pending'.
-    // This is a known server-side issue — the values come back as strings too.
     expect(result.current.data?.body).toMatchObject({
       campaignId: '1',
-      salesforceUserId: '42',
       registrationStatus: 'pending',
       additionalInfo: 'Awaiting admin review.',
     });

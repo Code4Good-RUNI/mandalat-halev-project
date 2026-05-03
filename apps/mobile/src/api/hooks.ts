@@ -4,19 +4,19 @@ import {
   RegisterForCampaignDto,
   UnregisterFromCampaignDto,
 } from '@mandalat-halev-project/api-interfaces';
-import { api } from './client';
+import { api, apiPublic } from './client';
 
 // ---------------------------------------------------------------------------
 // Auth hooks
 // ---------------------------------------------------------------------------
 
-// useMutation because login is a POST that changes state (creates a session).
+// Login uses the public client so the request goes out without a Bearer header.
 // Usage in a screen:
 //   const { mutate: login, isPending, error } = useLogin();
 //   login({ phoneNumber: '0501234567', idNumber: '123456789' });
 export function useLogin() {
   return useMutation({
-    mutationFn: (body: LoginRequestDto) => api.auth.login({ body }),
+    mutationFn: (body: LoginRequestDto) => apiPublic.auth.login({ body }),
   });
 }
 
@@ -24,14 +24,13 @@ export function useLogin() {
 // User hooks
 // ---------------------------------------------------------------------------
 
-// useQuery because this is a GET that fetches data.
-// It caches the result and refetches automatically when needed.
-// Usage:
-//   const { data, isLoading, error } = useUserProfile(salesforceUserId);
-export function useUserProfile(salesforceUserId: number) {
+// The server identifies the user from the JWT (CurrentUser('sub')), so the
+// client doesn't pass salesforceUserId. The protected `api` client attaches
+// the Bearer header automatically.
+export function useUserProfile() {
   return useQuery({
-    queryKey: ['user', 'profile', salesforceUserId],
-    queryFn: () => api.user.profile({ params: { salesforceUserId } }),
+    queryKey: ['user', 'profile'],
+    queryFn: () => api.user.profile(),
   });
 }
 
@@ -39,31 +38,27 @@ export function useUserProfile(salesforceUserId: number) {
 // Campaign hooks
 // ---------------------------------------------------------------------------
 
-export function useFutureCampaigns(salesforceUserId: number) {
+export function useFutureCampaigns() {
   return useQuery({
-    queryKey: ['campaigns', 'future', salesforceUserId],
-    queryFn: () => api.campaigns.future({ params: { salesforceUserId } }),
+    queryKey: ['campaigns', 'future'],
+    queryFn: () => api.campaigns.future(),
   });
 }
 
-export function useActiveCampaigns(salesforceUserId: number) {
+export function useActiveCampaigns() {
   return useQuery({
-    queryKey: ['campaigns', 'active', salesforceUserId],
-    queryFn: () => api.campaigns.active({ params: { salesforceUserId } }),
+    queryKey: ['campaigns', 'active'],
+    queryFn: () => api.campaigns.active(),
   });
 }
 
-export function usePastCampaigns(salesforceUserId: number) {
+export function usePastCampaigns() {
   return useQuery({
-    queryKey: ['campaigns', 'past', salesforceUserId],
-    queryFn: () => api.campaigns.past({ params: { salesforceUserId } }),
+    queryKey: ['campaigns', 'past'],
+    queryFn: () => api.campaigns.past(),
   });
 }
 
-// useMutation because registering is a POST action.
-// Usage:
-//   const { mutate: register } = useRegisterForCampaign();
-//   register({ campaignId: 1, salesforceUserId: 42, numOfParticipantsToRegister: 1 });
 export function useRegisterForCampaign() {
   return useMutation({
     mutationFn: (body: RegisterForCampaignDto) =>
@@ -78,15 +73,12 @@ export function useUnregisterFromCampaign() {
   });
 }
 
-export function useRegistrationStatus(
-  campaignId: number,
-  salesforceUserId: number,
-) {
+export function useRegistrationStatus(campaignId: string) {
   return useQuery({
-    queryKey: ['campaigns', 'registrationStatus', campaignId, salesforceUserId],
+    queryKey: ['campaigns', 'registrationStatus', campaignId],
     queryFn: () =>
       api.campaigns.registrationStatus({
-        query: { campaignId, salesforceUserId },
+        query: { campaignId },
       }),
   });
 }

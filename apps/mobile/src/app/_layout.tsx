@@ -1,6 +1,7 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
+import { registerQueryClient } from '../api/session';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -13,6 +14,11 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Hand the QueryClient to the session module so clearSession() (triggered on
+// 401) can wipe cached responses for the previous user before navigating to
+// /login.
+registerQueryClient(queryClient);
 
 export default function RootLayout() {
   return (

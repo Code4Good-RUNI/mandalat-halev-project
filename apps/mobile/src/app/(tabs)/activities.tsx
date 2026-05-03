@@ -3,19 +3,17 @@ import { View, Text, FlatList, SafeAreaView, TextInput, StyleSheet, ActivityIndi
 import { ActivityItem } from '../../components/ActivityItem';
 import { useActiveCampaigns, useRegisterForCampaign } from '../../api/hooks';
 import { useQueryClient } from '@tanstack/react-query';
-import { temporarySalesforceUserId } from '../login';
 import { CampaignDetailsModal } from '../../components/CampaignDetailsModal';
 import { QueryErrorState } from '../../components/QueryErrorState';
 import type { GetFutureCampaignDto } from '@mandalat-halev-project/api-interfaces';
 
 interface ActiveCampaignItemProps {
   item: GetFutureCampaignDto;
-  userId: number;
   onShowModal: (msg: string) => void;
   onPressDetails: () => void;
 }
 
-function ActiveCampaignItem({ item, userId, onShowModal, onPressDetails }: ActiveCampaignItemProps) {
+function ActiveCampaignItem({ item, onShowModal, onPressDetails }: ActiveCampaignItemProps) {
   const queryClient = useQueryClient();
   const { mutate: register, isPending } = useRegisterForCampaign();
   const [isRegistered, setIsRegistered] = useState(false);
@@ -23,8 +21,7 @@ function ActiveCampaignItem({ item, userId, onShowModal, onPressDetails }: Activ
   const handleRegister = () => {
     register(
       {
-        campaignId: Number(item.id),
-        salesforceUserId: userId,
+        campaignId: item.id,
         numOfParticipantsToRegister: 1,
       },
       {
@@ -34,8 +31,8 @@ function ActiveCampaignItem({ item, userId, onShowModal, onPressDetails }: Activ
             setIsRegistered(true);
             onShowModal('בקשת ההרשמה נשלחה בהצלחה!');
             // Invalidate queries to sync the 'Activities' and 'My Activities' lists
-            queryClient.invalidateQueries({ queryKey: ['campaigns', 'active', userId] });
-            queryClient.invalidateQueries({ queryKey: ['campaigns', 'future', userId] });
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'active'] });
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'future'] });
           } else {
             // Handle API errors (e.g., 400, 500) and extract backend message if available
             const errorMessage = (res.body as any)?.message || 'אירעה שגיאה בהרשמה. אנא נסה שוב.';
@@ -74,8 +71,7 @@ function ActiveCampaignItem({ item, userId, onShowModal, onPressDetails }: Activ
 }
 
 export default function ActivitiesScreen() {
-  const userId = Number(temporarySalesforceUserId);
-  const { data, isPending, isError, refetch } = useActiveCampaigns(userId);
+  const { data, isPending, isError, refetch } = useActiveCampaigns();
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [selectedCampaign, setSelectedCampaign] = useState<GetFutureCampaignDto | null>(null);
@@ -112,10 +108,9 @@ export default function ActivitiesScreen() {
         data={data.body}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
-          <ActiveCampaignItem 
-            item={item} 
-            userId={userId} 
-            onShowModal={showModal} 
+          <ActiveCampaignItem
+            item={item}
+            onShowModal={showModal}
             onPressDetails={() => setSelectedCampaign(item)}
           />
         )}
