@@ -4,11 +4,12 @@ import { ActivityItem } from '../../../components/ActivityItem';
 import { temporarySalesforceUserId } from '../../login';
 import { usePastCampaigns } from '../../../api/hooks';
 import { CampaignDetailsModal } from '../../../components/CampaignDetailsModal';
+import { QueryErrorState } from '../../../components/QueryErrorState';
 import type { GetPastCampaignDto } from '@mandalat-halev-project/api-interfaces';
 
 export default function PreviousActivitiesScreen() {
   const userId = Number(temporarySalesforceUserId);
-  const { data, isPending, isError } = usePastCampaigns(userId);
+  const { data, isPending, isError, refetch } = usePastCampaigns(userId);
   const [selectedCampaign, setSelectedCampaign] = useState<GetPastCampaignDto | null>(null);
 
   if (isPending) {
@@ -19,12 +20,8 @@ export default function PreviousActivitiesScreen() {
     );
   }
 
-  if (isError || (data && data.status !== 200)) {
-    return (
-      <SafeAreaView style={[styles.safe, styles.center]}>
-        <Text style={styles.errorText}>משהו השתבש בטעינת הפעילויות. אנא נסה שוב.</Text>
-      </SafeAreaView>
-    );
+  if (isError || data?.status !== 200) {
+    return <QueryErrorState onRetry={refetch} />;
   }
 
   return (
@@ -62,5 +59,4 @@ const styles = StyleSheet.create({
   center: { justifyContent: 'center', alignItems: 'center' },
   header: { padding: 15 },
   title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right' },
-  errorText: { color: 'red', textAlign: 'center', marginBottom: 5, fontSize: 12 },
 });

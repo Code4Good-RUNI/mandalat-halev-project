@@ -37,22 +37,25 @@ async function bootstrap() {
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
 
-  app.useGlobalPipes(new (await import('@nestjs/common')).ValidationPipe({ 
-    transform: true, 
-    whitelist: true 
-  }));
-  
+  app.useGlobalPipes(
+    new (await import('@nestjs/common')).ValidationPipe({
+      transform: true,
+      whitelist: true,
+    }),
+  );
+
   const port = process.env.PORT || 3000;
 
   // Swagger
   const document = generateOpenApi(userContract, {
     info: {
       title: 'Mandalat Halev Project API',
-      description: 'API for the Mandalat Halev Project (Generated from ts-rest Contract)',
+      description:
+        'API for the Mandalat Halev Project (Generated from ts-rest Contract)',
       version: '1.0.0',
     },
     servers: [{ url: '/api' }],
-  })
+  });
 
   document.components = {
     ...document.components,
@@ -73,6 +76,7 @@ async function bootstrap() {
   Logger.log(
     `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`,
   );
+  Logger.log(`📄 Swagger docs available at: http://localhost:${port}/api/docs`);
 }
 
 bootstrap();

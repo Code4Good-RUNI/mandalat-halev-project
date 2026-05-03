@@ -11,6 +11,7 @@ import {
   RegisterResponseSchema,
   GetRegistrationStatusSchema,
   ErrorResponseSchema,
+  ValidationErrorResponseSchema,
 } from './user_schemas.js';
 
 const c = initContract();
@@ -23,7 +24,7 @@ export const userContract = c.router({
       body: LoginRequestSchema,
       responses: {
         200: LoginResponseSchema,
-        400: ErrorResponseSchema, // Validation failed
+        400: ValidationErrorResponseSchema, // Zod request validation failed
         401: ErrorResponseSchema, // Invalid credentials
         500: ErrorResponseSchema, // Internal server error
       },
@@ -36,7 +37,7 @@ export const userContract = c.router({
       path: '/user/profile/',
       responses: {
         200: UserProfileSchema,
-        400: ErrorResponseSchema, // Validation failed
+        400: ValidationErrorResponseSchema, // Zod request validation failed
         401: ErrorResponseSchema, // Unauthorized (Missing/invalid token)
         403: ErrorResponseSchema, // Forbidden (No permission)
         404: ErrorResponseSchema, // User not found in Salesforce
@@ -51,7 +52,7 @@ export const userContract = c.router({
       path: '/campaigns/future',
       responses: {
         200: z.array(GetFutureCampaignSchema),
-        400: ErrorResponseSchema,
+        400: ValidationErrorResponseSchema,
         401: ErrorResponseSchema,
         403: ErrorResponseSchema,
         500: ErrorResponseSchema,
@@ -63,7 +64,7 @@ export const userContract = c.router({
       path: '/campaigns/past',
       responses: {
         200: z.array(GetPastCampaignSchema),
-        400: ErrorResponseSchema,
+        400: ValidationErrorResponseSchema,
         401: ErrorResponseSchema,
         403: ErrorResponseSchema,
         500: ErrorResponseSchema,
@@ -75,7 +76,7 @@ export const userContract = c.router({
       path: '/campaigns/active',
       responses: {
         200: z.array(GetFutureCampaignSchema),
-        400: ErrorResponseSchema,
+        400: ValidationErrorResponseSchema,
         401: ErrorResponseSchema,
         403: ErrorResponseSchema,
         404: ErrorResponseSchema,
@@ -89,9 +90,10 @@ export const userContract = c.router({
       body: RegisterForCampaignSchema,
       responses: {
         200: RegisterResponseSchema,
-        400: ErrorResponseSchema,
+        400: ValidationErrorResponseSchema,
         401: ErrorResponseSchema,
         403: ErrorResponseSchema,
+        409: ErrorResponseSchema, // Business conflict (e.g. campaign full)
         500: ErrorResponseSchema,
       },
       summary: 'Register a user to a campaign',
@@ -102,7 +104,7 @@ export const userContract = c.router({
       body: UnregisterFromCampaignSchema,
       responses: {
         200: RegisterResponseSchema,
-        400: ErrorResponseSchema,
+        400: ValidationErrorResponseSchema,
         401: ErrorResponseSchema,
         403: ErrorResponseSchema,
         500: ErrorResponseSchema,
@@ -117,7 +119,7 @@ export const userContract = c.router({
       }),
       responses: {
         200: GetRegistrationStatusSchema,
-        400: ErrorResponseSchema,
+        400: ValidationErrorResponseSchema,
         401: ErrorResponseSchema,
         403: ErrorResponseSchema,
         404: ErrorResponseSchema,

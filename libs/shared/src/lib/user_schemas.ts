@@ -1,15 +1,44 @@
 import { z } from 'zod';
 
 /**
- * GLOBAL ERROR SCHEMA
+ * GLOBAL ERROR SCHEMAS
  */
-// Structured error response for API validation failures
+// Generic error response shape used by NestJS exceptions (401, 403, 404, 409, 500).
 export const ErrorResponseSchema = z.object({
   statusCode: z.number(),
   message: z.string(),
 });
 
 export type ErrorResponseDto = z.infer<typeof ErrorResponseSchema>;
+
+// Extra fields on a Zod issue (minimum, maximum, expected, received, type, ...)
+// vary per issue code, so we accept them as unknown rather than enumerating every variant.
+export const ZodIssueSchema = z
+  .object({
+    code: z.string(),
+    message: z.string(),
+    path: z.array(z.union([z.string(), z.number()])),
+  })
+  .catchall(z.unknown());
+
+export const ZodValidationResultSchema = z.object({
+  issues: z.array(ZodIssueSchema),
+  name: z.literal('ZodError'),
+});
+
+// Mirrors the body ts-rest returns for a RequestValidationError. Exactly one
+// of the four result fields is non-null per response (whichever location failed).
+export const ValidationErrorResponseSchema = z.object({
+  paramsResult: ZodValidationResultSchema.nullable(),
+  headersResult: ZodValidationResultSchema.nullable(),
+  queryResult: ZodValidationResultSchema.nullable(),
+  bodyResult: ZodValidationResultSchema.nullable(),
+});
+
+export type ZodIssueDto = z.infer<typeof ZodIssueSchema>;
+export type ValidationErrorResponseDto = z.infer<
+  typeof ValidationErrorResponseSchema
+>;
 
 /**
  * AUTHENTICATION SCHEMAS

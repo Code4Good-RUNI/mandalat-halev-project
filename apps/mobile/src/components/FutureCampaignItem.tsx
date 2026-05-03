@@ -16,13 +16,23 @@ export function FutureCampaignItem({ campaign, userId, onShowModal, onPressDetai
   const campaignId = Number(campaign.id);
 
   // Extract isFetching to show a loading state during background refetches
-  const { data: statusData, isPending: statusPending, isFetching } = useRegistrationStatus(campaignId, userId);
+  const {
+    data: statusData,
+    isPending: statusPending,
+    isFetching,
+    isError: isStatusError,
+  } = useRegistrationStatus(campaignId, userId);
   const { mutate: unregister, isPending: isUnregistering } = useUnregisterFromCampaign();
 
-  let statusText = (statusPending || isFetching) ? 'טוען...' : 'לא ידוע';
-  if (!statusPending && !isFetching && statusData?.status === 200) {
-    if (statusData.body.registrationStatus === 'approved') statusText = 'רשום';
-    else statusText = 'מחכה לאישור';
+  let statusText: string;
+  if (statusPending || isFetching) {
+    statusText = 'טוען...';
+  } else if (statusData?.status === 200) {
+    statusText = statusData.body.registrationStatus === 'approved' ? 'רשום' : 'מחכה לאישור';
+  } else if (isStatusError || (statusData && statusData.status !== 200)) {
+    statusText = 'שגיאה בטעינת הסטטוס';
+  } else {
+    statusText = 'לא ידוע';
   }
 
   // Override the status immediately after a successful cancellation

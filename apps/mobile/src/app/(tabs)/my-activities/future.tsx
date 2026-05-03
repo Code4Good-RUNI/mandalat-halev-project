@@ -4,11 +4,12 @@ import { temporarySalesforceUserId } from '../../login';
 import { useFutureCampaigns } from '../../../api/hooks';
 import { FutureCampaignItem } from '../../../components/FutureCampaignItem';
 import { CampaignDetailsModal } from '../../../components/CampaignDetailsModal';
+import { QueryErrorState } from '../../../components/QueryErrorState';
 import type { GetFutureCampaignDto } from '@mandalat-halev-project/api-interfaces';
 
 export default function FutureActivitiesScreen() {
   const userId = Number(temporarySalesforceUserId);
-  const { data, isPending, isError } = useFutureCampaigns(userId);
+  const { data, isPending, isError, refetch } = useFutureCampaigns(userId);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [selectedCampaign, setSelectedCampaign] = useState<GetFutureCampaignDto | null>(null);
@@ -26,12 +27,8 @@ export default function FutureActivitiesScreen() {
     );
   }
 
-  if (isError || (data && data.status !== 200)) {
-    return (
-      <SafeAreaView style={[styles.safe, styles.center]}>
-        <Text style={styles.errorText}>משהו השתבש בטעינת הפעילויות. אנא נסה שוב.</Text>
-      </SafeAreaView>
-    );
+  if (isError || data?.status !== 200) {
+    return <QueryErrorState onRetry={refetch} />;
   }
 
   return (
@@ -76,7 +73,6 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   center: { justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right', padding: 15 },
-  errorText: { color: 'red', textAlign: 'center', marginBottom: 5, fontSize: 12 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { backgroundColor: '#fff', padding: 20, borderRadius: 10, width: '80%', alignItems: 'center' },
   modalText: { fontSize: 16, marginBottom: 20, textAlign: 'center' },
