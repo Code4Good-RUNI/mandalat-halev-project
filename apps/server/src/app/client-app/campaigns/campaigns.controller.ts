@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { tsRestHandler, TsRestHandler } from '@ts-rest/nest';
 import {
+  ContactDto,
   userContract,
   GetFutureCampaignDto,
   GetPastCampaignDto,
@@ -18,6 +19,15 @@ import { CurrentUser } from '../auth/current-user.decorator';
 @Controller()
 @UseGuards(JwtAuthGuard)
 export class CampaignsController {
+  // Shared mock host for campaigns
+  private mockHost: ContactDto = {
+    salesforceUserId: 'sf-host-001',
+    firstName: 'Shuki',
+    lastName: 'Manager',
+    idNumber: '112233445',
+    birthDate: '1980-01-01',
+  };
+
   // 1. Active campaigns (GET)
   @TsRestHandler(userContract.campaigns.active)
   async getActiveCampaigns(@CurrentUser('sub') userId: string) {
@@ -44,6 +54,7 @@ export class CampaignsController {
           isRelevantToUser: true,
           isUserRegistered: false,
           userApprovalStatus: 'pending',
+          host: this.mockHost,
         },
       ];
 
@@ -80,6 +91,7 @@ export class CampaignsController {
           isRelevantToUser: true,
           isUserRegistered: true,
           userApprovalStatus: 'approved',
+          host: this.mockHost,        
         },
         {
           id: '3',
@@ -98,6 +110,7 @@ export class CampaignsController {
           isRelevantToUser: true,
           isUserRegistered: true,
           userApprovalStatus: 'approved',
+          host: this.mockHost,
         },
         {
           id: '4',
@@ -116,6 +129,7 @@ export class CampaignsController {
           isRelevantToUser: true,
           isUserRegistered: true,
           userApprovalStatus: 'rejected',
+          host: this.mockHost,
         },
       ];
 
@@ -146,6 +160,7 @@ export class CampaignsController {
           numOfParticipantsRegistered: 40,
           isActive: false,
           hasUserParticipated: true,
+          host: this.mockHost,
         },
         {
           id: '102',
@@ -161,6 +176,7 @@ export class CampaignsController {
           numOfParticipantsRegistered: 20,
           isActive: false,
           hasUserParticipated: false,
+          host: this.mockHost,
         },
       ];
 
@@ -181,6 +197,10 @@ export class CampaignsController {
         );
       }
 
+      // Calculate number of participants based on the new array length
+      const numberOfParticipants = body.contactIds.length;
+      console.log(`User ${userId} registering ${numberOfParticipants} participants for campaign ${body.campaignId}`);
+
       const responseBody: RegisterResponseDto = {
         campaignId: body.campaignId,
         requestReceivedSuccessfully: true,
@@ -199,6 +219,11 @@ export class CampaignsController {
     return tsRestHandler(
       userContract.campaigns.unregister,
       async ({ body }) => {
+
+        // Calculate number of participants to drop based on the new array length
+        const numberOfParticipantsToDrop = body.contactIds.length;
+        console.log(`User ${userId} unregistering ${numberOfParticipantsToDrop} participants from campaign ${body.campaignId}`);
+
         const responseBody: RegisterResponseDto = {
           campaignId: body.campaignId,
           requestReceivedSuccessfully: true,
