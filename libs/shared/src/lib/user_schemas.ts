@@ -80,8 +80,16 @@ export const UserProfileSchema = z.object({
   city: z.string(),
   birthDate: z.string(), // DD/MM/YYYY
 });
-
 export type UserProfileDto = z.infer<typeof UserProfileSchema>;
+
+export const ContactSchema = z.object({
+  salesforceUserId: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
+  idNumber: z.string(),
+  birthDate: z.string(), 
+});
+export type ContactDto = z.infer<typeof ContactSchema>;
 
 /**
  * CAMPAIGN SCHEMAS
@@ -105,6 +113,7 @@ export const CampaignSchema = z.object({
   numOfParticipants: z.number(),
   numOfParticipantsRegistered: z.number(),
   isActive: z.boolean(),
+  host: ContactSchema,
 });
 
 export type CampaignDto = z.infer<typeof CampaignSchema>;
@@ -125,7 +134,7 @@ export type GetPastCampaignDto = z.infer<typeof GetPastCampaignSchema>;
 
 export const RegisterForCampaignSchema = z.object({
   campaignId: z.string(),
-  numOfParticipantsToRegister: z.number(),
+  contactIds: z.array(z.string()),
   additionalInfo: z.string().optional(),
 });
 
@@ -133,7 +142,7 @@ export type RegisterForCampaignDto = z.infer<typeof RegisterForCampaignSchema>;
 
 export const UnregisterFromCampaignSchema = z.object({
   campaignId: z.string(),
-  numOfParticipantsToUnregister: z.number(),
+  contactIds: z.array(z.string()),
   additionalInfo: z.string().optional(),
 });
 

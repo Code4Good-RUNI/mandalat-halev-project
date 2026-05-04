@@ -1,6 +1,7 @@
 import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
 import {
+  ContactSchema,
   LoginRequestSchema,
   LoginResponseSchema,
   UserProfileSchema,
@@ -44,6 +45,18 @@ export const userContract = c.router({
         500: ErrorResponseSchema, // Internal server error
       },
       summary: 'Get user profile details',
+    },
+    contacts: {
+      method: 'GET',
+      path: '/user/contacts/',
+      responses: {
+        200: z.array(ContactSchema),
+        400: ValidationErrorResponseSchema,
+        401: ErrorResponseSchema, 
+        403: ErrorResponseSchema, 
+        500: ErrorResponseSchema, 
+      },
+      summary: 'Get user contacts',
     },
   },
   campaigns: {

@@ -1,6 +1,6 @@
 import { Controller, NotFoundException, UseGuards } from '@nestjs/common';
 import { tsRestHandler, TsRestHandler } from '@ts-rest/nest';
-import { userContract, UserProfileDto} from '@mandalat-halev-project/api-interfaces';
+import { userContract, UserProfileDto, ContactDto} from '@mandalat-halev-project/api-interfaces';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { CurrentUser } from '../auth/current-user.decorator';
 
@@ -31,6 +31,34 @@ export class UserController {
       return {
         status: 200,
         body: responseBody,
+      };
+    });
+  }
+
+  @TsRestHandler(userContract.user.contacts)
+  async getContacts(@CurrentUser('sub') userId: string) {
+    return tsRestHandler(userContract.user.contacts, async () => {
+      
+      const mockContacts: ContactDto[] = [
+        {
+          salesforceUserId: 'sf-001',
+          firstName: 'Ronen',
+          lastName: 'Cohen',
+          idNumber: '302145678',
+          birthDate: '1985-05-15',
+        },
+        {
+          salesforceUserId: 'sf-002',
+          firstName: 'Yael',
+          lastName: 'Levi',
+          idNumber: '318965431',
+          birthDate: '1992-11-20',
+        }
+      ];
+
+      return {
+        status: 200,
+        body: mockContacts,
       };
     });
   }
