@@ -1,5 +1,3 @@
-import { CampaignDto } from '@mandalat-halev-project/api-interfaces';
-
 export class SalesforceMapper {
 
   /**

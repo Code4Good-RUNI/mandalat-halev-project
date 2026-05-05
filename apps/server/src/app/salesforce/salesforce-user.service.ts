@@ -1,8 +1,9 @@
-import { Injectable, Logger, } from '@nestjs/common';
-import { LoginRequestDto, UserProfileDto} from '@mandalat-halev-project/api-interfaces';
+import { Injectable, Logger } from '@nestjs/common';
+import { LoginRequestDto, UserProfileDto } from '@mandalat-halev-project/api-interfaces';
 import { SalesforceCoreService } from './salesforce-core.service';
-import { SalesforceMapper } from './salesforce.mapper';
-import * as jsforce from 'jsforce';
+
+// Contact fields available in the External Customer App
+const CONTACT_FIELDS = ['Id', 'Name', 'Email', 'Phone', 'MobilePhone', 'RegisteredID__c'];
 
 @Injectable()
 export class SalesforceUserService {
@@ -10,21 +11,15 @@ export class SalesforceUserService {
 
   constructor(private readonly core: SalesforceCoreService) {}
 
-  /**
-   * Authenticate User using JSForce Query Builder
-   * @param credentials - LoginRequestDto (phoneNumber, idNumber)
-   * @returns User's ID or null if not exists
-   */
-  async validateLogin(credentials: LoginRequestDto): Promise<number | null> {
+  async validateLogin(credentials: LoginRequestDto): Promise<string | null> {
     const { phoneNumber, idNumber } = credentials;
 
-    // using jsforce find to check if user exists
     const contactObj = await this.core.sobject('Contact');
     const records = await contactObj
       .find({
         $or: [{ Phone: phoneNumber }, { MobilePhone: phoneNumber }],
         RegisteredID__c: idNumber,
-      })
+      }, ['Id'])
       .limit(1)
       .execute();
 
@@ -33,79 +28,41 @@ export class SalesforceUserService {
       this.logger.warn(`Login attempt failed for ID: ${idNumber}`);
       return null;
     }
-    return Number(records[0].External_ID__c);
+
+    return records[0].Id as string;
   }
 
-  /**
-   * Get user's full profile by Salesforce user ID
-   * @param salesforceUserId - Salesforce user ID received when logged in
-   * @returns UserProfileDto or null if not found
-   */
-  async getUserProfile(
-    salesforceUserId: number,
-  ): Promise<UserProfileDto | null> {
+  async getUserProfile(salesforceUserId: string): Promise<UserProfileDto | null> {
     try {
-      // try to get user's profile using jsforce find
       const contactObj = await this.core.sobject('Contact');
-
-      const fields = [
-        'External_ID__c',
-        'FirstName',
-        'LastName',
-        'Email',
-        'Phone',
-        'RegisteredID__c',
-        'MailingStreet',
-        'CityName__c',
-        'Birthdate',
-      ];
-
       const records = await contactObj
-        .find({ External_ID__c: salesforceUserId }, fields)
+        .find({ Id: salesforceUserId }, CONTACT_FIELDS)
         .limit(1)
         .execute();
 
       if (records.length === 0) {
-        this.logger.warn(
-          `Profile not found for Salesforce User ID: ${salesforceUserId}`,
-        );
+        this.logger.warn(`Profile not found for Salesforce User ID: ${salesforceUserId}`);
         return null;
       }
 
       const raw = records[0];
+      const fullName = (raw.Name as string) || '';
+      const spaceIndex = fullName.indexOf(' ');
 
-      // map to UserProfileDto
       return {
-        salesforceUserId: Number(raw.External_ID__c),
-        firstName: raw.FirstName || '',
-        lastName: raw.LastName || '',
-        email: raw.Email || '',
-        phoneNumber: raw.Phone || '',
-        idNumber: raw.RegisteredID__c || '',
-        address: raw.MailingStreet || '',
-        city: raw.CityName__c || '',
-        birthDate: SalesforceMapper.formatDateToIsraeli(raw.Birthdate), // convert if needed
+        salesforceUserId,
+        firstName: spaceIndex > -1 ? fullName.substring(0, spaceIndex) : fullName,
+        lastName: spaceIndex > -1 ? fullName.substring(spaceIndex + 1) : '',
+        email: (raw.Email as string) || '',
+        phoneNumber: (raw.Phone as string) || (raw.MobilePhone as string) || '',
+        idNumber: (raw.RegisteredID__c as string) || '',
+        address: '',
+        city: '',
+        birthDate: '',
       };
     } catch (error) {
-      this.logger.error(
-        `Error fetching profile for user ${salesforceUserId}`,
-        error,
-      );
+      this.logger.error(`Error fetching profile for user ${salesforceUserId}`, error);
       throw error;
     }
   }
-
-  /**
-   * Gets internal contact ID in salesforce server
-   */
-  async getInternalContactId(salesforceUserId: number): Promise<string | null> {
-    const contactSObject = (await this.core.sobject('Contact')) as jsforce.SObject<any, any>;
-    const records = await contactSObject
-      .find({ External_ID__c: salesforceUserId }, ['Id'])
-      .limit(1)
-      .execute();
-
-    return records[0]?.Id || null;
-  }
-
 }
