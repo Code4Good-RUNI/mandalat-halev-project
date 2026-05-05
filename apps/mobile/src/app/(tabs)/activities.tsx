@@ -22,7 +22,7 @@ function ActiveCampaignItem({ item, onShowModal, onPressDetails }: ActiveCampaig
     register(
       {
         campaignId: item.id,
-        numOfParticipantsToRegister: 1,
+        contactIds: [], // TODO: Update with selected contacts in step 3
       },
       {
         onSuccess: (res) => {
