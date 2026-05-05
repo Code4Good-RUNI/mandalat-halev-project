@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SalesforceCoreService } from './salesforce-core.service';
-import { SalesforceUserService } from './salesforce-user.service';
 import { SalesforceMapper } from './salesforce.mapper';
 import {
   GetFutureCampaignDto,
@@ -46,7 +45,6 @@ export class SalesforceCampaignService {
 
   constructor(
     private readonly core: SalesforceCoreService,
-    private readonly userService: SalesforceUserService,
   ) {}
 
   /**
