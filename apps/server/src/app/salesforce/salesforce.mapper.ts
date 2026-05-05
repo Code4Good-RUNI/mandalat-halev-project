@@ -1,3 +1,5 @@
+import { CampaignDto } from '@mandalat-halev-project/api-interfaces';
+
 export class SalesforceMapper {
 
   /**
@@ -14,18 +16,18 @@ export class SalesforceMapper {
    */
   static mapBaseCampaign(reg: any) {
     return {
-      id: reg.External_ID__c ? Number(reg.External_ID__c) : 0,
+      id: reg.Id || '',
       name: reg.Name || '',
-      description: reg.Description || '',
-      imageUrl: reg.Image_URL__c || '',
+      description: '',
+      imageUrl: '',
       startDate: this.formatDateToIsraeli(reg.StartDate),
       endDate: this.formatDateToIsraeli(reg.EndDate),
       durationInHours: this.calculateDuration(reg.StartDate, reg.EndDate),
-      locationAddress: reg.ActivityLocation__c || '', // השדה הנכון מה-Describe
+      locationAddress: reg.ActivityLocation__c || '',
       locationCity: '',
-      numOfParticipants: reg.Max_Participants__c || 0,
+      numOfParticipants: 0,
       numOfParticipantsRegistered: 0,
-      isActive: !!reg.IsActive,
+      isActive: true,
     };
   }
 

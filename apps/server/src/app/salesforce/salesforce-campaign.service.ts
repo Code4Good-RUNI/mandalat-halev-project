@@ -11,21 +11,19 @@ import {
   GetRegistrationStatusDto,
 } from '@mandalat-halev-project/api-interfaces';
 
-// Campaign's fields
+// Campaign fields available in the External Customer App
 const CF = {
   ID: 'Id',
-  EXTERNAL_ID: 'External_ID__c',
   NAME: 'Name',
-  DESCRIPTION: 'Description',
+  ADVISOR_NAME: 'AdvisorName__c',
+  TYPE: 'Chug_Type__c',
   START_DATE: 'StartDate',
   END_DATE: 'EndDate',
-  IS_ACTIVE: 'IsActive',
+  DAYS_AND_HOURS: 'Activities_Days_And_Hours__c',
   LOCATION: 'ActivityLocation__c',
-  MAX_PARTICIPANTS: 'Max_Participants__c',
-  IMAGE_URL: 'Image_URL__c',
 };
 
-// Campaign member's fieldsconst
+// Campaign Member fields
 const CMF = {
   ID: 'Id',
   STATUS: 'Status',
@@ -33,10 +31,10 @@ const CMF = {
   CAMPAIGN_ID: 'CampaignId',
 };
 
-// fields for get Past/Future Campaign
+// Fields to select in campaign queries
 const CAMPAIGN_QUERY_FIELDS = [
-  CF.EXTERNAL_ID, CF.NAME, CF.DESCRIPTION, CF.START_DATE,
-  CF.END_DATE, CF.IS_ACTIVE, CF.LOCATION, CF.MAX_PARTICIPANTS, CF.IMAGE_URL
+  CF.ID, CF.NAME, CF.ADVISOR_NAME, CF.TYPE,
+  CF.START_DATE, CF.END_DATE, CF.DAYS_AND_HOURS, CF.LOCATION,
 ].join(', ');
 
 // SOQL injection avoiding tag
@@ -57,37 +55,26 @@ export class SalesforceCampaignService {
    * @returns GetFutureCampaignDto or null if not found
    */
   async getFutureCampaigns(
-    salesforceUserId: number,
+    contactId: string,
   ): Promise<GetFutureCampaignDto[]> {
-    const contactId =
-      await this.userService.getInternalContactId(salesforceUserId);
-    if (!contactId) return [];
-
-    // SOQL query for relative date
     const query = soql`SELECT ${CAMPAIGN_QUERY_FIELDS},
         (SELECT ${CMF.STATUS} FROM CampaignMembers WHERE ${CMF.CONTACT_ID} = '${contactId}' LIMIT 1)
         FROM Campaign
         WHERE ${CF.END_DATE} >= TODAY
-          AND ${CF.IS_ACTIVE} = true
           AND ${CF.ID} IN (SELECT ${CMF.CAMPAIGN_ID} FROM CampaignMember WHERE ${CMF.CONTACT_ID} = '${contactId}')
         ORDER BY ${CF.START_DATE} ASC`;
 
     const records = await this.core.query<any>(query);
 
-    // map data to GetFutureCampaignDto array
     return records.map((campaign): GetFutureCampaignDto => {
       const membership = campaign.CampaignMembers?.records?.[0];
-
       return {
-        // fields of CampaignDto
         ...SalesforceMapper.mapBaseCampaign(campaign),
 
         // fields of GetFutureCampaignDto
         isRelevantToUser: true,
         isUserRegistered: !!membership,
-        userApprovalStatus: SalesforceMapper.mapStatusToApproval(
-          membership?.Status,
-        ),
+        userApprovalStatus: SalesforceMapper.mapStatusToApproval(membership?.Status),
       };
     });
   }
@@ -98,18 +85,12 @@ export class SalesforceCampaignService {
    * @returns GetFutureCampaignDto[]
    */
   async getActiveCampaigns(
-    salesforceUserId: number,
+    contactId: string,
   ): Promise<GetFutureCampaignDto[]> {
-    const contactId =
-      await this.userService.getInternalContactId(salesforceUserId);
-    if (!contactId) return [];
-
-    // SOQL query for relative date
-    const query = SalesforceCoreService.soql`
+    const query = soql`
         SELECT ${CAMPAIGN_QUERY_FIELDS}
         FROM Campaign
         WHERE ${CF.END_DATE} >= TODAY
-          AND ${CF.IS_ACTIVE} = true
           AND ${CF.ID} NOT IN (
             SELECT ${CMF.CAMPAIGN_ID}
             FROM CampaignMember
@@ -119,22 +100,12 @@ export class SalesforceCampaignService {
 
     const records = await this.core.query<any>(query);
 
-    // map data to GetFutureCampaignDto array
-    return records.map((campaign): GetFutureCampaignDto => {
-      const membership = campaign.CampaignMembers?.records?.[0];
-
-      return {
-        // fields of CampaignDto
-        ...SalesforceMapper.mapBaseCampaign(campaign),
-
-        // fields of GetFutureCampaignDto
-        isRelevantToUser: true,
-        isUserRegistered: !!membership,
-        userApprovalStatus: SalesforceMapper.mapStatusToApproval(
-          membership?.Status,
-        ),
-      };
-    });
+    return records.map((campaign): GetFutureCampaignDto => ({
+      ...SalesforceMapper.mapBaseCampaign(campaign),
+      isRelevantToUser: true,
+      isUserRegistered: false,
+      userApprovalStatus: 'pending',
+    }));
   }
 
   /**
@@ -143,13 +114,8 @@ export class SalesforceCampaignService {
    * @returns GetPastCampaignDto[]
    */
   async getPastCampaigns(
-    salesforceUserId: number,
+    contactId: string,
   ): Promise<GetPastCampaignDto[]> {
-    const contactId =
-      await this.userService.getInternalContactId(salesforceUserId);
-    if (!contactId) return [];
-
-    // SOQL query for relative date
     const query = soql`SELECT ${CAMPAIGN_QUERY_FIELDS}
       FROM Campaign
       WHERE ${CF.END_DATE} < TODAY
@@ -158,33 +124,13 @@ export class SalesforceCampaignService {
 
     const records = await this.core.query<any>(query);
 
-    // map data to GetPastCampaignDto array
-    return records.map((reg): GetPastCampaignDto => {
-      return {
-        // fields of CampaignDto
-        ...SalesforceMapper.mapBaseCampaign(reg),
-
-        // fields of GetPastCampaignDto
-        hasUserParticipated: true,
-      };
-    });
+    return records.map((reg): GetPastCampaignDto => ({
+      ...SalesforceMapper.mapBaseCampaign(reg),
+      hasUserParticipated: true,
+    }));
   }
 
-  /**
-   * Register user for a campaign
-   * @param dto - type of RegisterForCampaignDto
-   * @returns RegisterResponseDto
-   */
-  async register(dto: RegisterForCampaignDto): Promise<RegisterResponseDto> {
-    const contactId = await this.userService.getInternalContactId(
-      dto.salesforceUserId,
-    );
-    const campaignId = await this.getInternalCampaignId(dto.campaignId);
-
-    if (!contactId || !campaignId) {
-      throw new Error('User or Campaign not found');
-    }
-
+  async register(contactId: string, campaignId: string): Promise<RegisterResponseDto> {
     try {
       await this.core.create('CampaignMember', {
         [CMF.CONTACT_ID]: contactId,
@@ -192,48 +138,20 @@ export class SalesforceCampaignService {
         [CMF.STATUS]: 'Registered',
       });
 
-      return {
-        campaignId: dto.campaignId,
-        salesforceUserId: dto.salesforceUserId,
-        requestReceivedSuccessfully: true,
-      };
+      return { campaignId, requestReceivedSuccessfully: true };
     } catch (error) {
       this.logger.error('Registration failed', error);
-      return {
-        campaignId: dto.campaignId,
-        salesforceUserId: dto.salesforceUserId,
-        requestReceivedSuccessfully: false,
-      };
+      return { campaignId, requestReceivedSuccessfully: false };
     }
   }
 
-  /**
-   * Unregister user for a campaign
-   * @param dto - type of UnregisterFromCampaignDto
-   * @returns RegisterResponseDto
-   */
-  async unregister(
-    dto: UnregisterFromCampaignDto,
-  ): Promise<RegisterResponseDto> {
-    const contactId = await this.userService.getInternalContactId(
-      dto.salesforceUserId,
-    );
-    const campaignId = await this.getInternalCampaignId(dto.campaignId);
-
-    if (!contactId || !campaignId) {
-      throw new Error('User or Campaign not found');
-    }
-
-    // checks if user registered
+  async unregister(contactId: string, campaignId: string): Promise<RegisterResponseDto> {
     const memberObj = await this.core.sobject('CampaignMember');
     const records = await memberObj
-      .find({ [CMF.CONTACT_ID]: contactId, [CMF.CAMPAIGN_ID]: campaignId }, [
-        CMF.ID,
-      ])
+      .find({ [CMF.CONTACT_ID]: contactId, [CMF.CAMPAIGN_ID]: campaignId }, [CMF.ID])
       .limit(1)
       .execute();
 
-    // checks that user registered originally
     if (records.length === 0) {
       throw new Error('User is not registered to the campaign');
     }
@@ -245,47 +163,22 @@ export class SalesforceCampaignService {
 
     try {
       await this.core.destroy('CampaignMember', memberRecordId);
-
-      return {
-        campaignId: dto.campaignId,
-        salesforceUserId: dto.salesforceUserId,
-        requestReceivedSuccessfully: true,
-      };
+      return { campaignId, requestReceivedSuccessfully: true };
     } catch (error) {
-      return {
-        campaignId: dto.campaignId,
-        salesforceUserId: dto.salesforceUserId,
-        requestReceivedSuccessfully: false,
-      };
+      this.logger.error('Unregistration failed', error);
+      return { campaignId, requestReceivedSuccessfully: false };
     }
   }
 
-  /**
-   * Retrieves the current registration status of a user for a specific campaign
-   * @param campaignId - The external ID of the campaign
-   * @param salesforceUserId - The external ID of the user
-   * @returns A Promise resolving to a GetRegistrationStatusDto with the status details
-   */
   async getRegistrationStatus(
-    campaignId: number,
-    salesforceUserId: number,
+    contactId: string,
+    campaignId: string,
   ): Promise<GetRegistrationStatusDto> {
-    const contactId =
-      await this.userService.getInternalContactId(salesforceUserId);
-    const internalCampaignId = await this.getInternalCampaignId(campaignId);
-
-    if (!contactId || !internalCampaignId) {
-      throw new Error('User or Campaign not found');
-    }
-
     const memberObj = await this.core.sobject('CampaignMember');
     const records = await memberObj
       .find(
-        {
-          [CMF.CONTACT_ID]: contactId,
-          [CMF.CAMPAIGN_ID]: internalCampaignId,
-        },
-        [CMF.STATUS], // השדות שאנחנו רוצים לשלוף
+        { [CMF.CONTACT_ID]: contactId, [CMF.CAMPAIGN_ID]: campaignId },
+        [CMF.STATUS],
       )
       .limit(1)
       .execute();
@@ -293,27 +186,17 @@ export class SalesforceCampaignService {
     const registrationRecord = records[0];
 
     return {
-      campaignId: campaignId,
-      salesforceUserId: salesforceUserId,
+      campaignId,
       registrationStatus: registrationRecord
-        ? registrationRecord[CMF.STATUS]
-        : 'not_registered', // need to be determined how to get this
-      additionalInfo: '', // need to be decided what and if to add
+        ? SalesforceMapper.mapStatusToApproval(registrationRecord[CMF.STATUS])
+        : 'pending',
+      additionalInfo: '',
     };
   }
 
-  /**
-   * Gets internal campaign ID in salesforce server
-   */
-  private async getInternalCampaignId(
-    externalId: number,
-  ): Promise<string | null> {
-    const campaignObj = await this.core.sobject('Campaign');
-    const res = await campaignObj
-      .find({ [CF.EXTERNAL_ID]: externalId }, [CF.ID])
-      .limit(1)
-      .execute();
-
-    return res[0]?.Id || null;
+  async campaignExists(campaignId: string): Promise<boolean> {
+    const query = soql`SELECT ${CF.ID} FROM Campaign WHERE ${CF.ID} = '${campaignId}' LIMIT 1`;
+    const records = await this.core.query(query);
+    return records.length > 0;
   }
 }
