@@ -26,7 +26,7 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: { 
     statusText = 'טוען...';
   } else if (statusData?.status === 200) {
     statusText = statusData.body.registrationStatus === 'approved' ? 'רשום' : 'מחכה לאישור';
-  } else if (isStatusError || (statusData && statusData.status !== 200)) {
+  } else if (isStatusError || statusData) {
     statusText = 'שגיאה בטעינת הסטטוס';
   } else {
     statusText = 'לא ידוע';
