@@ -8,9 +8,10 @@ import {
 } from '../api/hooks';
 import type { GetFutureCampaignDto, ContactDto } from '@mandalat-halev-project/api-interfaces';
 
-export function FutureCampaignItem({ campaign, contacts, onShowModal, onPressDetails }: {
+export function FutureCampaignItem({ campaign, contacts, contactsLoading, onShowModal, onPressDetails }: {
   campaign: GetFutureCampaignDto;
   contacts: ContactDto[];
+  contactsLoading: boolean;
   onShowModal: (msg: string) => void;
   onPressDetails: () => void;
 }) {
@@ -99,9 +100,9 @@ export function FutureCampaignItem({ campaign, contacts, onShowModal, onPressDet
         <View style={styles.actionContainer}>
           {!isUnregistered && (
             <TouchableOpacity
-              style={[styles.unregisterButton, isUnregistering && styles.disabledButton]}
+              style={[styles.unregisterButton, (isUnregistering || contactsLoading) && styles.disabledButton]}
               onPress={handleUnregister}
-              disabled={isUnregistering}
+              disabled={isUnregistering || contactsLoading}
             >
               <Text style={styles.unregisterButtonText}>
                 {isUnregistering ? 'מבטל...' : 'ביטול רישום'}

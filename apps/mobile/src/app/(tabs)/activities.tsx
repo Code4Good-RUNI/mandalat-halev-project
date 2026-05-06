@@ -12,13 +12,14 @@ import type { GetFutureCampaignDto, ContactDto } from '@mandalat-halev-project/a
 interface ActiveCampaignItemProps {
   item: GetFutureCampaignDto;
   contacts: ContactDto[];
+  contactsLoading: boolean;
   onShowModal: (msg: string) => void;
   onPressDetails: () => void;
 }
 
 // Renders one active campaign card with a registration button.
 // Manages its own registration state and the contact-selection modal.
-function ActiveCampaignItem({ item, contacts, onShowModal, onPressDetails }: ActiveCampaignItemProps) {
+function ActiveCampaignItem({ item, contacts, contactsLoading, onShowModal, onPressDetails }: ActiveCampaignItemProps) {
   // useQueryClient lets us manually invalidate (refetch) cached queries after a mutation succeeds.
   const queryClient = useQueryClient();
 
@@ -96,9 +97,9 @@ function ActiveCampaignItem({ item, contacts, onShowModal, onPressDetails }: Act
         <View style={styles.actionContainer}>
           {/* Button is greyed out and non-interactive while loading or after a successful registration. */}
           <TouchableOpacity
-            style={[styles.registerButton, (isPending || isRegistered) && styles.disabledButton]}
+            style={[styles.registerButton, (isPending || isRegistered || contactsLoading) && styles.disabledButton]}
             onPress={handleRegister}
-            disabled={isPending || isRegistered}
+            disabled={isPending || isRegistered || contactsLoading}
           >
             <Text style={styles.registerButtonText}>
               {isPending ? 'נרשם...' : isRegistered ? 'נרשמת' : 'הרשמה לפעילות'}
@@ -161,7 +162,7 @@ export default function ActivitiesScreen() {
   // Fetch the user's contacts once here and pass them down to each campaign item.
   // Fetching here (not inside each item) means we only make one network request
   // regardless of how many campaigns are shown.
-  const { data: contactsData } = useUserContacts();
+  const { data: contactsData, isPending: contactsLoading } = useUserContacts();
   const contacts = contactsData?.status === 200 ? contactsData.body : [];
 
   // State for the post-registration notification popup.
@@ -207,6 +208,7 @@ export default function ActivitiesScreen() {
           <ActiveCampaignItem
             item={item}
             contacts={contacts}
+            contactsLoading={contactsLoading}
             onShowModal={showModal}
             onPressDetails={() => setSelectedCampaign(item)}
           />

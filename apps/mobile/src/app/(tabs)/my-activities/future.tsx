@@ -8,7 +8,7 @@ import type { GetFutureCampaignDto } from '@mandalat-halev-project/api-interface
 
 export default function FutureActivitiesScreen() {
   const { data, isPending, isError, refetch } = useFutureCampaigns();
-  const { data: contactsData } = useUserContacts();
+  const { data: contactsData, isPending: contactsLoading } = useUserContacts();
   const contacts = contactsData?.status === 200 ? contactsData.body : [];
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
@@ -42,6 +42,7 @@ export default function FutureActivitiesScreen() {
           <FutureCampaignItem
             campaign={item}
             contacts={contacts}
+            contactsLoading={contactsLoading}
             onShowModal={showModal}
             onPressDetails={() => setSelectedCampaign(item)}
           />
