@@ -87,6 +87,7 @@ function ActiveCampaignItem({ item, contacts, onShowModal, onPressDetails }: Act
     <>
       <ActivityItem
         title={item.name}
+        host={`${item.host.firstName} ${item.host.lastName}`}
         time={`${item.startDate} (${item.durationInHours} שעות)`}
         location={`${item.locationAddress}, ${item.locationCity}`}
         status={isRegistered ? 'נרשמת בהצלחה' : 'פתוח להרשמה'}

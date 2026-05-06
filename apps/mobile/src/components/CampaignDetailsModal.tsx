@@ -17,7 +17,8 @@ export function CampaignDetailsModal({ visible, campaign, onClose }: CampaignDet
         <View style={styles.content}>
           <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.title}>{campaign.name}</Text>
-            
+            <Text style={styles.host}>{campaign.host.firstName} {campaign.host.lastName}</Text>
+
             <Text style={styles.detailText}>תאריך: {campaign.startDate} {campaign.endDate && campaign.endDate !== campaign.startDate ? `- ${campaign.endDate}` : ''}</Text>
             <Text style={styles.detailText}>משך זמן: {campaign.durationInHours} שעות</Text>
             <Text style={styles.detailText}>מיקום: {campaign.locationAddress}, {campaign.locationCity}</Text>
@@ -42,7 +43,8 @@ export function CampaignDetailsModal({ visible, campaign, onClose }: CampaignDet
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   content: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 25, maxHeight: '80%' },
-  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right', marginBottom: 15, color: '#333' },
+  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right', marginBottom: 4, color: '#333' },
+  host: { fontSize: 14, textAlign: 'right', color: '#888', marginBottom: 15 },
   detailText: { fontSize: 16, textAlign: 'right', marginBottom: 8, color: '#555' },
   descriptionContainer: { marginTop: 20, borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 15 },
   descriptionTitle: { fontSize: 18, fontWeight: 'bold', textAlign: 'right', marginBottom: 5, color: '#333' },

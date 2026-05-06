@@ -34,6 +34,7 @@ export default function PreviousActivitiesScreen() {
         renderItem={({ item }) => (
           <ActivityItem
             title={item.name}
+            host={`${item.host.firstName} ${item.host.lastName}`}
             time={`${item.startDate} | ${item.durationInHours} שעות`}
             location={`${item.locationAddress}, ${item.locationCity}`}
             status={item.hasUserParticipated ? 'נוכח' : 'לא נוכח'}

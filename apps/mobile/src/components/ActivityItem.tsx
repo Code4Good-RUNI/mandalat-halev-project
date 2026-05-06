@@ -4,6 +4,7 @@ import { Status } from './Status';
 
 interface ActivityItemProps {
   title: string;
+  host?: string;
   time: string;
   location: string;
   status: string;
@@ -11,12 +12,13 @@ interface ActivityItemProps {
   children?: React.ReactNode;
 }
 
-export const ActivityItem = ({ title, time, location, status, onPressDetails, children }: ActivityItemProps) => (
+export const ActivityItem = ({ title, host, time, location, status, onPressDetails, children }: ActivityItemProps) => (
   <View style={styles.container}>
     <View style={styles.headerRow}>
       <Status label={status} />
     </View>
     <Text style={styles.title}>{title}</Text>
+    {host && <Text style={styles.host}>{host}</Text>}
     <Text style={styles.details}>{time} | {location}</Text>
     <View style={styles.footerRow}>
       <TouchableOpacity style={styles.button} onPress={onPressDetails}>
@@ -45,6 +47,7 @@ const styles = StyleSheet.create({
   },
   headerRow: { alignItems: 'flex-end', marginBottom: 5 },
   title: { fontSize: 18, fontWeight: 'bold', textAlign: 'right', color: '#333' },
+  host: { fontSize: 13, textAlign: 'right', color: '#888', marginTop: 2 },
   details: { color: '#666', textAlign: 'right', marginTop: 5, fontSize: 14 },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 15 },
   button: { paddingVertical: 8 },

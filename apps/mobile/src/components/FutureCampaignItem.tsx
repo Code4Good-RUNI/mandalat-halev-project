@@ -62,6 +62,7 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: { 
   return (
     <ActivityItem
       title={campaign.name}
+      host={`${campaign.host.firstName} ${campaign.host.lastName}`}
       time={`${campaign.startDate} | ${campaign.durationInHours} שעות`}
       location={`${campaign.locationAddress}, ${campaign.locationCity}`}
       status={statusText}
