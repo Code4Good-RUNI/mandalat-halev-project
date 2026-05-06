@@ -34,6 +34,13 @@ export function useUserProfile() {
   });
 }
 
+export function useUserContacts() {
+  return useQuery({
+    queryKey: ['user', 'contacts'],
+    queryFn: () => api.user.contacts(),
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Campaign hooks
 // ---------------------------------------------------------------------------
