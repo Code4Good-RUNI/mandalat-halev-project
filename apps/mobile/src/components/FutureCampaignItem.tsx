@@ -39,7 +39,7 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: { 
 
   const handleUnregister = () => {
     unregister(
-      { campaignId: campaign.id, numOfParticipantsToUnregister: 1 },
+      { campaignId: campaign.id, contactIds: [] },
       {
         onSuccess: (data) => {
           if (data.status === 200 && data.body?.requestReceivedSuccessfully) {
