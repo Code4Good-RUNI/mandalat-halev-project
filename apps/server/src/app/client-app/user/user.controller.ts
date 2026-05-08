@@ -1,11 +1,11 @@
 import { Controller, NotFoundException, UseGuards } from '@nestjs/common';
 import { tsRestHandler, TsRestHandler } from '@ts-rest/nest';
 import { userContract, UserProfileDto, ContactDto} from '@mandalat-halev-project/api-interfaces';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { FirebaseAuthGuard } from '../auth/firebase-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
 @Controller()
-@UseGuards(JwtAuthGuard)
+@UseGuards(FirebaseAuthGuard)
 export class UserController {
 
   @TsRestHandler(userContract.user.profile)

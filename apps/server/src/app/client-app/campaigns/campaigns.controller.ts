@@ -13,11 +13,11 @@ import {
   RegisterResponseDto,
   GetRegistrationStatusDto,
 } from '@mandalat-halev-project/api-interfaces';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { FirebaseAuthGuard } from '../auth/firebase-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
 @Controller()
-@UseGuards(JwtAuthGuard)
+@UseGuards(FirebaseAuthGuard)
 export class CampaignsController {
   // Shared mock host for campaigns
   private mockHost: ContactDto = {

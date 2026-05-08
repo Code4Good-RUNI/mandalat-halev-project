@@ -1,16 +1,20 @@
-import { Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import * as admin from 'firebase-admin';
 
 @Injectable()
 export class AuthService {
-  constructor(private jwtService: JwtService) {}
+  async createSession(firebaseToken: string) {
+    try {
+      const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+      const { uid } = decodedToken;
 
-  async login(user: { salesforceUserId: string }) {
-    const payload = { sub: user.salesforceUserId };
+      const salesforceUserId = 'MOCK_SF_USER_123';
 
-    return {
-      accessToken: await this.jwtService.signAsync(payload),
-      salesforceUserId: user.salesforceUserId,
-    };
+      await admin.auth().setCustomUserClaims(uid, { salesforceUserId });
+
+      return { ok: true as const };
+    } catch {
+      throw new UnauthorizedException('Invalid Firebase token');
+    }
   }
 }

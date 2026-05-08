@@ -44,7 +44,7 @@ export type ValidationErrorResponseDto = z.infer<
  * AUTHENTICATION SCHEMAS
  */
 
-// Request body for the Login endpoint
+// Request body for the Login & Session endpoints
 export const LoginRequestSchema = z.object({
   phoneNumber: z
     .string()
@@ -56,14 +56,14 @@ export const LoginRequestSchema = z.object({
     .length(9, { message: 'ID number must be 9 digits long' }),
 });
 
-// Response from the Login endpoint
+// Response from the Login and Session endpoints is now minimal
 export const LoginResponseSchema = z.object({
-  accessToken: z.string(),
-  salesforceUserId: z.string(),
+  ok: z.literal(true),
 });
 
 export type LoginRequestDto = z.infer<typeof LoginRequestSchema>;
 export type LoginResponseDto = z.infer<typeof LoginResponseSchema>;
+
 /**
  * USER INFO SCHEMAS
  */
