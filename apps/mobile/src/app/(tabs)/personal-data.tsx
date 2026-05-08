@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import { useUserProfile } from '../../api/hooks';
+import { useUserProfile, useUserContacts } from '../../api/hooks';
 import { QueryErrorState } from '../../components/QueryErrorState';
 
 export default function PersonalDataScreen() {
@@ -20,6 +20,9 @@ export default function PersonalDataScreen() {
 
   const { data, isPending, isError, refetch } = useUserProfile();
   const profile = data?.status === 200 ? data.body : undefined;
+
+  const { data: contactsData } = useUserContacts();
+  const contacts = contactsData?.status === 200 ? contactsData.body : [];
 
   if (isPending) {
     return (
@@ -80,14 +83,16 @@ export default function PersonalDataScreen() {
         {/* Family Members */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>בני משפחה</Text>
-          <View style={styles.card}>
-            <Text style={styles.cardName}>John Doe</Text>
-            <Text style={styles.cardDetail}>Husband</Text>
-          </View>
-          <View style={styles.card}>
-            <Text style={styles.cardName}>Alice Doe</Text>
-            <Text style={styles.cardDetail}>Daughter</Text>
-          </View>
+          {contacts.length === 0 ? (
+            <Text style={styles.cardDetail}>אין בני משפחה רשומים</Text>
+          ) : (
+            contacts.map((contact) => (
+              <View key={contact.salesforceUserId} style={styles.card}>
+                <Text style={styles.cardName}>{contact.firstName} {contact.lastName}</Text>
+                <Text style={styles.cardDetail}>ת.ז. {contact.idNumber}</Text>
+              </View>
+            ))
+          )}
         </View>
 
         {/* Notification Settings */}
