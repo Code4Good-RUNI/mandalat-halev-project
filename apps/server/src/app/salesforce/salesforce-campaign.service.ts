@@ -11,15 +11,19 @@ import {
 } from '@mandalat-halev-project/api-interfaces';
 
 // Campaign fields available in the External Customer App
+// Campaign fields
 const CF = {
   ID: 'Id',
   NAME: 'Name',
-  ADVISOR_NAME: 'AdvisorName__c',
-  TYPE: 'Chug_Type__c',
+  DESCRIPTION: 'Description',
+  IS_ACTIVE: 'IsActive',
+  STATUS: 'Status',
   START_DATE: 'StartDate',
   END_DATE: 'EndDate',
+  TYPE: 'Chug_Type__c',
   DAYS_AND_HOURS: 'Activities_Days_And_Hours__c',
   LOCATION: 'ActivityLocation__c',
+  MAX_PARTICIPANTS: 'max_participants__c',
 };
 
 // Campaign Member fields
@@ -32,8 +36,9 @@ const CMF = {
 
 // Fields to select in campaign queries
 const CAMPAIGN_QUERY_FIELDS = [
-  CF.ID, CF.NAME, CF.ADVISOR_NAME, CF.TYPE,
-  CF.START_DATE, CF.END_DATE, CF.DAYS_AND_HOURS, CF.LOCATION,
+  CF.ID, CF.NAME, CF.DESCRIPTION, CF.IS_ACTIVE,
+  CF.START_DATE, CF.END_DATE, CF.TYPE,
+  CF.DAYS_AND_HOURS, CF.LOCATION, CF.MAX_PARTICIPANTS,
 ].join(', ');
 
 // SOQL injection avoiding tag
@@ -43,24 +48,23 @@ const soql = SalesforceCoreService.soql;
 export class SalesforceCampaignService {
   private readonly logger = new Logger(SalesforceCoreService.name);
 
-  constructor(
-    private readonly core: SalesforceCoreService,
-  ) {}
+  constructor(private readonly core: SalesforceCoreService) {}
 
+  // is not done!!!!! need to be checked
   /**
    * Get user's future campaigns
    * @param salesforceUserId - Salesforce user ID received when logged in
    * @returns GetFutureCampaignDto or null if not found
    */
-  async getFutureCampaigns(
-    contactId: string,
-  ): Promise<GetFutureCampaignDto[]> {
-    const query = soql`SELECT ${CAMPAIGN_QUERY_FIELDS},
+  async getFutureCampaigns(contactId: string): Promise<GetFutureCampaignDto[]> {
+    const query = soql`
+      SELECT ${CAMPAIGN_QUERY_FIELDS},
         (SELECT ${CMF.STATUS} FROM CampaignMembers WHERE ${CMF.CONTACT_ID} = '${contactId}' LIMIT 1)
-        FROM Campaign
-        WHERE ${CF.END_DATE} >= TODAY
-          AND ${CF.ID} IN (SELECT ${CMF.CAMPAIGN_ID} FROM CampaignMember WHERE ${CMF.CONTACT_ID} = '${contactId}')
-        ORDER BY ${CF.START_DATE} ASC`;
+      FROM Campaign
+      WHERE ${CF.END_DATE} >= TODAY
+        AND ${CF.IS_ACTIVE} = true
+        AND ${CF.ID} IN (SELECT ${CMF.CAMPAIGN_ID} FROM CampaignMember WHERE ${CMF.CONTACT_ID} = '${contactId}')
+      ORDER BY ${CF.START_DATE} ASC`;
 
     const records = await this.core.query<any>(query);
 
@@ -71,20 +75,21 @@ export class SalesforceCampaignService {
 
         // fields of GetFutureCampaignDto
         isRelevantToUser: true,
-        isUserRegistered: !!membership,
-        userApprovalStatus: SalesforceMapper.mapStatusToApproval(membership?.Status),
+        isUserRegistered: true,
+        userApprovalStatus: SalesforceMapper.mapStatusToApproval(
+          membership?.Status,
+        ),
       };
     });
   }
 
+  // is not done!!!!! need to be checked
   /**
    * Get campaigns available for registration (Future and user NOT registered)
    * @param salesforceUserId - Salesforce user ID
    * @returns GetFutureCampaignDto[]
    */
-  async getActiveCampaigns(
-    contactId: string,
-  ): Promise<GetFutureCampaignDto[]> {
+  async getActiveCampaigns(contactId: string): Promise<GetFutureCampaignDto[]> {
     const query = soql`
         SELECT ${CAMPAIGN_QUERY_FIELDS}
         FROM Campaign
@@ -98,22 +103,23 @@ export class SalesforceCampaignService {
 
     const records = await this.core.query<any>(query);
 
-    return records.map((campaign): GetFutureCampaignDto => ({
-      ...SalesforceMapper.mapBaseCampaign(campaign),
-      isRelevantToUser: true,
-      isUserRegistered: false,
-      userApprovalStatus: 'pending',
-    }));
+    return records.map(
+      (campaign): GetFutureCampaignDto => ({
+        ...SalesforceMapper.mapBaseCampaign(campaign),
+        isRelevantToUser: true,
+        isUserRegistered: false,
+        userApprovalStatus: 'pending',
+      }),
+    );
   }
+  // is not done!!!!! need to be checked
 
   /**
    * Get user's past campaigns
    * @param salesforceUserId - Salesforce user ID received when logged in
    * @returns GetPastCampaignDto[]
    */
-  async getPastCampaigns(
-    contactId: string,
-  ): Promise<GetPastCampaignDto[]> {
+  async getPastCampaigns(contactId: string): Promise<GetPastCampaignDto[]> {
     const query = soql`SELECT ${CAMPAIGN_QUERY_FIELDS}
       FROM Campaign
       WHERE ${CF.END_DATE} < TODAY
@@ -122,13 +128,19 @@ export class SalesforceCampaignService {
 
     const records = await this.core.query<any>(query);
 
-    return records.map((reg): GetPastCampaignDto => ({
-      ...SalesforceMapper.mapBaseCampaign(reg),
-      hasUserParticipated: true,
-    }));
+    return records.map(
+      (reg): GetPastCampaignDto => ({
+        ...SalesforceMapper.mapBaseCampaign(reg),
+        hasUserParticipated: true,
+      }),
+    );
   }
+  // is not done!!!!! need to be checked
 
-  async register(contactId: string, campaignId: string): Promise<RegisterResponseDto> {
+  async register(
+    contactId: string,
+    campaignId: string,
+  ): Promise<RegisterResponseDto> {
     try {
       await this.core.create('CampaignMember', {
         [CMF.CONTACT_ID]: contactId,
@@ -142,11 +154,17 @@ export class SalesforceCampaignService {
       return { campaignId, requestReceivedSuccessfully: false };
     }
   }
+  // is not done!!!!! need to be checked
 
-  async unregister(contactId: string, campaignId: string): Promise<RegisterResponseDto> {
+  async unregister(
+    contactId: string,
+    campaignId: string,
+  ): Promise<RegisterResponseDto> {
     const memberObj = await this.core.sobject('CampaignMember');
     const records = await memberObj
-      .find({ [CMF.CONTACT_ID]: contactId, [CMF.CAMPAIGN_ID]: campaignId }, [CMF.ID])
+      .find({ [CMF.CONTACT_ID]: contactId, [CMF.CAMPAIGN_ID]: campaignId }, [
+        CMF.ID,
+      ])
       .limit(1)
       .execute();
 
@@ -174,10 +192,9 @@ export class SalesforceCampaignService {
   ): Promise<GetRegistrationStatusDto> {
     const memberObj = await this.core.sobject('CampaignMember');
     const records = await memberObj
-      .find(
-        { [CMF.CONTACT_ID]: contactId, [CMF.CAMPAIGN_ID]: campaignId },
-        [CMF.STATUS],
-      )
+      .find({ [CMF.CONTACT_ID]: contactId, [CMF.CAMPAIGN_ID]: campaignId }, [
+        CMF.STATUS,
+      ])
       .limit(1)
       .execute();
 

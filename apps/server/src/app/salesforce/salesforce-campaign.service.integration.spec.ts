@@ -8,7 +8,7 @@ import { SalesforceUserService } from './salesforce-user.service';
 
 loadEnv({
   path: 'apps/server/.env.server',
-  envKeysFile: 'apps/server/.env.keys',
+  envKeysFile: 'apps/server/.env.server.local',
   ignore: ['MISSING_ENV_FILE'],
   overload: true,
   quiet: true,

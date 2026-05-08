@@ -6,7 +6,7 @@ import { SalesforceCoreService } from './salesforce-core.service';
 // Decrypt .env.server using the keys file (paths relative to cwd, which is repo root)
 loadEnv({
   path: 'apps/server/.env.server',
-  envKeysFile: 'apps/server/.env.keys',
+  envKeysFile: 'apps/server/.env.server.local',
   ignore: ['MISSING_ENV_FILE'],
   overload: true,
   quiet: true,
