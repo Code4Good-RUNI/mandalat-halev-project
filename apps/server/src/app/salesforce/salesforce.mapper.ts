@@ -16,16 +16,16 @@ export class SalesforceMapper {
     return {
       id: reg.Id || '',
       name: reg.Name || '',
-      description: '',
+      description: reg.Description || '',
       imageUrl: '',
       startDate: this.formatDateToIsraeli(reg.StartDate),
       endDate: this.formatDateToIsraeli(reg.EndDate),
       durationInHours: this.calculateDuration(reg.StartDate, reg.EndDate),
       locationAddress: reg.ActivityLocation__c || '',
-      locationCity: '',
-      numOfParticipants: 0,
+      locationCity: reg.ActivityLocation__c || '',
+      numOfParticipants: reg.max_participants__c || 0,
       numOfParticipantsRegistered: 0,
-      isActive: true,
+      isActive: !!reg.IsActive,
     };
   }
 
