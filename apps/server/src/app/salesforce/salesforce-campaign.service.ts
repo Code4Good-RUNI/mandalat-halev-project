@@ -24,6 +24,9 @@ const CF = {
   DAYS_AND_HOURS: 'Activities_Days_And_Hours__c',
   LOCATION: 'ActivityLocation__c',
   MAX_PARTICIPANTS: 'max_participants__c',
+  NUM_OF_CONTACTS: 'NumberOfContacts',
+  HOST_ID: 'AdvisorName__c',
+  HOST_NAME: 'AdvisorName__r.Name',
 };
 
 // Campaign Member fields
@@ -39,6 +42,7 @@ const CAMPAIGN_QUERY_FIELDS = [
   CF.ID, CF.NAME, CF.DESCRIPTION, CF.IS_ACTIVE,
   CF.START_DATE, CF.END_DATE, CF.TYPE,
   CF.DAYS_AND_HOURS, CF.LOCATION, CF.MAX_PARTICIPANTS,
+  CF.NUM_OF_CONTACTS, CF.HOST_ID, CF.HOST_NAME,
 ].join(', ');
 
 // SOQL injection avoiding tag
@@ -49,6 +53,22 @@ export class SalesforceCampaignService {
   private readonly logger = new Logger(SalesforceCoreService.name);
 
   constructor(private readonly core: SalesforceCoreService) {}
+
+  // TODO: remove after testing
+  async onModuleInit() {
+    try {
+      this.logger.log(`\n=== Campaign 7010X000000f02tQAA ===`);
+      const campaigns = await this.core.query<any>(
+        `SELECT ${CAMPAIGN_QUERY_FIELDS} FROM Campaign WHERE Id = '7010X000000f02tQAA'`
+      );
+      if (campaigns.length > 0) {
+        const mapped = SalesforceMapper.mapBaseCampaign(campaigns[0]);
+        this.logger.log(`  Result: ${JSON.stringify(mapped, null, 2)}`);
+      }
+    } catch (err) {
+      this.logger.error(`DEBUG failed: ${err instanceof Error ? err.message : err}`);
+    }
+  }
 
   // is not done!!!!! need to be checked
   /**

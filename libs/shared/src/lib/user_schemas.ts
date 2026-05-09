@@ -88,6 +88,7 @@ export const UserProfileSchema = z.object({
   city: z.string(),
   birthDate: z.string(), // DD/MM/YYYY
 });
+
 export type UserProfileDto = z.infer<typeof UserProfileSchema>;
 
 export const ContactSchema = z.object({
@@ -121,7 +122,7 @@ export const CampaignSchema = z.object({
   numOfParticipants: z.number(),
   numOfParticipantsRegistered: z.number(),
   isActive: z.boolean(),
-  host: ContactSchema,
+  host: z.string(),
 });
 
 export type CampaignDto = z.infer<typeof CampaignSchema>;
@@ -142,7 +143,7 @@ export type GetPastCampaignDto = z.infer<typeof GetPastCampaignSchema>;
 
 export const RegisterForCampaignSchema = z.object({
   campaignId: z.string(),
-  contactIds: z.array(z.string()),
+  numOfParticipantsToRegister: z.number(),
   additionalInfo: z.string().optional(),
 });
 
@@ -150,7 +151,7 @@ export type RegisterForCampaignDto = z.infer<typeof RegisterForCampaignSchema>;
 
 export const UnregisterFromCampaignSchema = z.object({
   campaignId: z.string(),
-  contactIds: z.array(z.string()),
+  numOfParticipantsToUnregister: z.number(),
   additionalInfo: z.string().optional(),
 });
 

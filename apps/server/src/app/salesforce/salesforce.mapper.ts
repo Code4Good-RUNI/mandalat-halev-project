@@ -24,8 +24,9 @@ export class SalesforceMapper {
       locationAddress: reg.ActivityLocation__c || '',
       locationCity: reg.ActivityLocation__c || '',
       numOfParticipants: reg.max_participants__c || 0,
-      numOfParticipantsRegistered: 0,
+      numOfParticipantsRegistered: reg.NumberOfContacts || 0,
       isActive: !!reg.IsActive,
+      host: reg.AdvisorName__r?.Name || '',
     };
   }
 
