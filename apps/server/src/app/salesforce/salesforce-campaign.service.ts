@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { SalesforceCoreService } from './salesforce-core.service';
 import { SalesforceMapper } from './salesforce.mapper';
 import {
@@ -55,6 +55,7 @@ export class SalesforceCampaignService {
   constructor(private readonly core: SalesforceCoreService) {}
 
   // TODO: remove after testing
+  /**
   async onModuleInit() {
     try {
       this.logger.log(`\n=== Campaign 7010X000000f02tQAA ===`);
@@ -68,7 +69,7 @@ export class SalesforceCampaignService {
     } catch (err) {
       this.logger.error(`DEBUG failed: ${err instanceof Error ? err.message : err}`);
     }
-  }
+  } **/
 
   // is not done!!!!! need to be checked
   /**
@@ -161,20 +162,29 @@ export class SalesforceCampaignService {
     contactIds: string[],
     campaignId: string,
   ): Promise<RegisterResponseDto> {
-    try {
-      for (const contactId of contactIds) {
-        await this.core.create('CampaignMember', {
-          [CMF.CONTACT_ID]: contactId,
-          [CMF.CAMPAIGN_ID]: campaignId,
-          [CMF.STATUS]: 'Registered',
-        });
-      }
+    for (const contactId of contactIds) {
+      const result = await this.core.create('CampaignMember', {
+        [CMF.CONTACT_ID]: contactId,
+        [CMF.CAMPAIGN_ID]: campaignId,
+        [CMF.STATUS]: 'Registered',
+      });
 
-      return { campaignId, requestReceivedSuccessfully: true };
-    } catch (error) {
-      this.logger.error('Registration failed', error);
-      return { campaignId, requestReceivedSuccessfully: false };
+      if (!result.success) {
+        const errorCode = result.errors?.[0]?.statusCode || '';
+        const errorMsg = result.errors?.[0]?.message || 'Unknown error';
+        this.logger.error(`Registration failed for contact ${contactId}: ${errorCode} - ${errorMsg}`);
+
+        if (errorCode === 'DUPLICATE_VALUE') {
+          throw new BadRequestException('Contact is already registered to this campaign');
+        }
+        if (errorCode === 'FIELD_INTEGRITY_EXCEPTION') {
+          throw new BadRequestException('Invalid contact or campaign ID');
+        }
+        throw new InternalServerErrorException(`Salesforce error: ${errorMsg}`);
+      }
     }
+
+    return { campaignId, requestReceivedSuccessfully: true };
   }
   // is not done!!!!! need to be checked
 
@@ -182,33 +192,28 @@ export class SalesforceCampaignService {
     contactIds: string[],
     campaignId: string,
   ): Promise<RegisterResponseDto> {
-    try {
-      for (const contactId of contactIds) {
-        const memberObj = await this.core.sobject('CampaignMember');
-        const records = await memberObj
-          .find({ [CMF.CONTACT_ID]: contactId, [CMF.CAMPAIGN_ID]: campaignId }, [
-            CMF.ID,
-          ])
-          .limit(1)
-          .execute();
+    for (const contactId of contactIds) {
+      const memberObj = await this.core.sobject('CampaignMember');
+      const records = await memberObj
+        .find({ [CMF.CONTACT_ID]: contactId, [CMF.CAMPAIGN_ID]: campaignId }, [
+          CMF.ID,
+        ])
+        .limit(1)
+        .execute();
 
-        if (records.length === 0) {
-          throw new Error(`Contact ${contactId} is not registered to the campaign`);
-        }
-
-        const memberRecordId = records[0].Id;
-        if (!memberRecordId) {
-          throw new Error('Campaign Member ID is missing in Salesforce');
-        }
-
-        await this.core.destroy('CampaignMember', memberRecordId);
+      if (records.length === 0) {
+        throw new NotFoundException(`Contact ${contactId} is not registered to this campaign`);
       }
 
-      return { campaignId, requestReceivedSuccessfully: true };
-    } catch (error) {
-      this.logger.error('Unregistration failed', error);
-      return { campaignId, requestReceivedSuccessfully: false };
+      const memberRecordId = records[0].Id;
+      if (!memberRecordId) {
+        throw new InternalServerErrorException('Campaign Member ID is missing in Salesforce');
+      }
+
+      await this.core.destroy('CampaignMember', memberRecordId);
     }
+
+    return { campaignId, requestReceivedSuccessfully: true };
   }
 
   async getRegistrationStatus(

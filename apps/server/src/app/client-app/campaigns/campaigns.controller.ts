@@ -50,9 +50,6 @@ export class CampaignsController {
         body.contactIds,
         body.campaignId,
       );
-      if (!result.requestReceivedSuccessfully) {
-        throw new BadRequestException('Registration failed');
-      }
 
       return { status: 200, body: result };
     });
@@ -68,9 +65,6 @@ export class CampaignsController {
           body.contactIds,
           body.campaignId,
         );
-        if (!result.requestReceivedSuccessfully) {
-          throw new BadRequestException('Unregistration failed');
-        }
 
         return { status: 200, body: result };
       },

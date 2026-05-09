@@ -89,18 +89,52 @@ export class SalesforceCoreService {
     return false;
   }
 
-  private async withReauth<T>(operation: () => Promise<T>): Promise<T> {
-    try {
-      return await operation();
-    } catch (err) {
-      if (this.isSessionExpiredError(err)) {
-        this.logger.warn('Session expired, re-authenticating...');
-        this.conn = new jsforce.Connection({ version: '60.0' });
-        await this.authenticate();
-        return await operation();
-      }
-      throw err;
+  private isNetworkError(err: unknown): boolean {
+    if (err instanceof Error) {
+      const msg = err.message.toUpperCase();
+      return (
+        msg.includes('ECONNRESET') ||
+        msg.includes('ECONNREFUSED') ||
+        msg.includes('ETIMEDOUT') ||
+        msg.includes('SOCKET HANG UP') ||
+        msg.includes('FETCH FAILED') ||
+        msg.includes('EAI_AGAIN')
+      );
     }
+    return false;
+  }
+
+  private async withRetry<T>(operation: () => Promise<T>, retries = 2): Promise<T> {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        return await operation();
+      } catch (err) {
+        if (attempt < retries && this.isNetworkError(err)) {
+          const delay = Math.pow(2, attempt) * 500;
+          this.logger.warn(`Network error, retrying in ${delay}ms (attempt ${attempt + 1}/${retries})...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw new Error('Retry loop exited unexpectedly');
+  }
+
+  private async withReauth<T>(operation: () => Promise<T>): Promise<T> {
+    return this.withRetry(async () => {
+      try {
+        return await operation();
+      } catch (err) {
+        if (this.isSessionExpiredError(err)) {
+          this.logger.warn('Session expired, re-authenticating...');
+          this.conn = new jsforce.Connection({ version: '60.0' });
+          await this.authenticate();
+          return await operation();
+        }
+        throw err;
+      }
+    });
   }
 
   /**
