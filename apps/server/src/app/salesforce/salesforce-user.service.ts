@@ -9,34 +9,9 @@ const CONTACT_FIELDS = ['Id', 'Name', 'Email', 'Phone', 'MobilePhone', 'Register
 export class SalesforceUserService {
   private readonly logger = new Logger(SalesforceUserService.name);
 
-  // TODO: remove after testing
-  /**
-  private static readonly TEST_REGISTERED_ID_1 = '335965471';
-  private static readonly TEST_REGISTERED_ID_2 = '032256166';*/
   constructor(private readonly core: SalesforceCoreService) {}
-/**
-  async onModuleInit() {
-    try {
-      const tests = [
-        { phone: SalesforceUserService.TEST_PHONE_1, id: SalesforceUserService.TEST_REGISTERED_ID_1 },
-        { phone: SalesforceUserService.TEST_PHONE_2, id: SalesforceUserService.TEST_REGISTERED_ID_2 },
-      ];
 
-      this.logger.log(`\n=== All Contacts (Id, RegisteredID, Name) ===`);
-      const allContacts = await this.core.queryAll<any>(
-        `SELECT Id, Name, RegisteredID__c FROM Contact ORDER BY Name ASC`
-      );
-      this.logger.log(`Found ${allContacts.length} contacts`);
-      allContacts.forEach((c: any, i: number) => {
-        this.logger.log(`  ${i + 1}. Id=${c.Id} | RegisteredID=${c.RegisteredID__c} | Name=${c.Name}`);
-      });
-    } catch (err) {
-      this.logger.error(
-        `DEBUG failed: ${err instanceof Error ? err.message : err}`,
-      );
-    }
-  }
-**/
+
   async validateLogin(credentials: LoginRequestDto): Promise<string | null> {
     const { phoneNumber, idNumber } = credentials;
 
