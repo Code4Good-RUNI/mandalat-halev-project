@@ -47,7 +47,7 @@ export class CampaignsController {
       }
 
       const result = await this.campaignService.register(
-        userId,
+        body.contactIds,
         body.campaignId,
       );
       if (!result.requestReceivedSuccessfully) {
@@ -65,7 +65,7 @@ export class CampaignsController {
       userContract.campaigns.unregister,
       async ({ body }) => {
         const result = await this.campaignService.unregister(
-          userId,
+          body.contactIds,
           body.campaignId,
         );
         if (!result.requestReceivedSuccessfully) {

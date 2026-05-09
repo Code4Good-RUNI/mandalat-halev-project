@@ -158,15 +158,17 @@ export class SalesforceCampaignService {
   // is not done!!!!! need to be checked
 
   async register(
-    contactId: string,
+    contactIds: string[],
     campaignId: string,
   ): Promise<RegisterResponseDto> {
     try {
-      await this.core.create('CampaignMember', {
-        [CMF.CONTACT_ID]: contactId,
-        [CMF.CAMPAIGN_ID]: campaignId,
-        [CMF.STATUS]: 'Registered',
-      });
+      for (const contactId of contactIds) {
+        await this.core.create('CampaignMember', {
+          [CMF.CONTACT_ID]: contactId,
+          [CMF.CAMPAIGN_ID]: campaignId,
+          [CMF.STATUS]: 'Registered',
+        });
+      }
 
       return { campaignId, requestReceivedSuccessfully: true };
     } catch (error) {
@@ -177,28 +179,31 @@ export class SalesforceCampaignService {
   // is not done!!!!! need to be checked
 
   async unregister(
-    contactId: string,
+    contactIds: string[],
     campaignId: string,
   ): Promise<RegisterResponseDto> {
-    const memberObj = await this.core.sobject('CampaignMember');
-    const records = await memberObj
-      .find({ [CMF.CONTACT_ID]: contactId, [CMF.CAMPAIGN_ID]: campaignId }, [
-        CMF.ID,
-      ])
-      .limit(1)
-      .execute();
-
-    if (records.length === 0) {
-      throw new Error('User is not registered to the campaign');
-    }
-
-    const memberRecordId = records[0].Id;
-    if (!memberRecordId) {
-      throw new Error('Campaign Member ID is missing in Salesforce');
-    }
-
     try {
-      await this.core.destroy('CampaignMember', memberRecordId);
+      for (const contactId of contactIds) {
+        const memberObj = await this.core.sobject('CampaignMember');
+        const records = await memberObj
+          .find({ [CMF.CONTACT_ID]: contactId, [CMF.CAMPAIGN_ID]: campaignId }, [
+            CMF.ID,
+          ])
+          .limit(1)
+          .execute();
+
+        if (records.length === 0) {
+          throw new Error(`Contact ${contactId} is not registered to the campaign`);
+        }
+
+        const memberRecordId = records[0].Id;
+        if (!memberRecordId) {
+          throw new Error('Campaign Member ID is missing in Salesforce');
+        }
+
+        await this.core.destroy('CampaignMember', memberRecordId);
+      }
+
       return { campaignId, requestReceivedSuccessfully: true };
     } catch (error) {
       this.logger.error('Unregistration failed', error);

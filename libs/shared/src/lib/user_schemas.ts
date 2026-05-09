@@ -143,7 +143,7 @@ export type GetPastCampaignDto = z.infer<typeof GetPastCampaignSchema>;
 
 export const RegisterForCampaignSchema = z.object({
   campaignId: z.string(),
-  numOfParticipantsToRegister: z.number(),
+  contactIds: z.array(z.string()),
   additionalInfo: z.string().optional(),
 });
 
@@ -151,7 +151,7 @@ export type RegisterForCampaignDto = z.infer<typeof RegisterForCampaignSchema>;
 
 export const UnregisterFromCampaignSchema = z.object({
   campaignId: z.string(),
-  numOfParticipantsToUnregister: z.number(),
+  contactIds: z.array(z.string()),
   additionalInfo: z.string().optional(),
 });
 
