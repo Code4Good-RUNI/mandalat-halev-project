@@ -1,31 +1,30 @@
-import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config'; 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { JwtAuthGuard } from './jwt-auth.guard';
+import { FirebaseAuthGuard } from './firebase-auth.guard';
+import { initializeFirebaseAdmin } from './firebase-admin.init';
+
 
 @Module({
   imports: [
     ConfigModule,
-    JwtModule.registerAsync({
-      global: true,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '1h' },
-      }),
-    }),
   ],
   controllers: [AuthController],
   providers: [
-    AuthService, 
-    JwtAuthGuard 
+    AuthService,
+    FirebaseAuthGuard, 
   ],
   exports: [
-    AuthService, 
-    JwtAuthGuard 
-  ],
+    AuthService,
+    FirebaseAuthGuard,
+  ],    
 })
-export class AuthModule {}
+export class AuthModule implements OnModuleInit {
+  constructor(private configService: ConfigService) {}
+
+  onModuleInit() {
+    initializeFirebaseAdmin(this.configService);
+    console.log('Firebase Admin initialized successfully');
+  }
+}

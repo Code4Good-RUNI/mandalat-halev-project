@@ -29,7 +29,19 @@ export const userContract = c.router({
         401: ErrorResponseSchema, // Invalid credentials
         500: ErrorResponseSchema, // Internal server error
       },
-      summary: 'Login to the application',
+      summary: 'Login to the application(Salesforce validation only)',
+    },
+    session: {
+      method: 'POST',
+      path: '/auth/session',
+      body: LoginRequestSchema,
+      responses: {
+        200: LoginResponseSchema,
+        400: ValidationErrorResponseSchema,
+        401: ErrorResponseSchema, 
+        500: ErrorResponseSchema, 
+      },
+      summary: 'Finalize Firebase login and embed custom claims',
     },
   },
   user: {
