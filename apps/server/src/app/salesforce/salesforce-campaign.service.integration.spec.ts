@@ -7,8 +7,8 @@ import { SalesforceCampaignService } from './salesforce-campaign.service';
 import { SalesforceUserService } from './salesforce-user.service';
 
 loadEnv({
-  path: 'apps/server/.env.server',
-  envKeysFile: 'apps/server/.env.server.local',
+  path: '.env.server',
+  envKeysFile: '.env.server.keys',
   ignore: ['MISSING_ENV_FILE'],
   overload: true,
   quiet: true,
