@@ -10,12 +10,11 @@ export class SalesforceUserService {
   private readonly logger = new Logger(SalesforceUserService.name);
 
   // TODO: remove after testing
+  /**
   private static readonly TEST_REGISTERED_ID_1 = '335965471';
-  private static readonly TEST_PHONE_1 = '052-4464758';
-  private static readonly TEST_REGISTERED_ID_2 = '032256166';
-  private static readonly TEST_PHONE_2 = '052-9289393';
+  private static readonly TEST_REGISTERED_ID_2 = '032256166';*/
   constructor(private readonly core: SalesforceCoreService) {}
-
+/**
   async onModuleInit() {
     try {
       const tests = [
@@ -23,24 +22,21 @@ export class SalesforceUserService {
         { phone: SalesforceUserService.TEST_PHONE_2, id: SalesforceUserService.TEST_REGISTERED_ID_2 },
       ];
 
-      for (const { phone, id } of tests) {
-        this.logger.log(`\n=== validateLogin(phone=${phone}, id=${id}) ===`);
-        const contactId = await this.validateLogin({ phoneNumber: phone, idNumber: id });
-        this.logger.log(`  Result: ${contactId}`);
-
-        if (contactId) {
-          this.logger.log(`\n=== getUserProfile(${contactId}) ===`);
-          const profile = await this.getUserProfile(contactId);
-          this.logger.log(`  Result: ${JSON.stringify(profile, null, 2)}`);
-        }
-      }
+      this.logger.log(`\n=== All Contacts (Id, RegisteredID, Name) ===`);
+      const allContacts = await this.core.queryAll<any>(
+        `SELECT Id, Name, RegisteredID__c FROM Contact ORDER BY Name ASC`
+      );
+      this.logger.log(`Found ${allContacts.length} contacts`);
+      allContacts.forEach((c: any, i: number) => {
+        this.logger.log(`  ${i + 1}. Id=${c.Id} | RegisteredID=${c.RegisteredID__c} | Name=${c.Name}`);
+      });
     } catch (err) {
       this.logger.error(
         `DEBUG failed: ${err instanceof Error ? err.message : err}`,
       );
     }
   }
-
+**/
   async validateLogin(credentials: LoginRequestDto): Promise<string | null> {
     const { phoneNumber, idNumber } = credentials;
 
