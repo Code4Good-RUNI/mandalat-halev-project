@@ -126,6 +126,23 @@ export class SalesforceCoreService {
     });
   }
 
+  async queryAll<T extends jsforce.Record>(soql: string): Promise<T[]> {
+    return this.withReauth(async () => {
+      await this.ensureConnected();
+      const records: T[] = [];
+      const result = await this.conn.query<T>(soql);
+      records.push(...result.records);
+      let queryResult = result;
+      while (!queryResult.done) {
+        queryResult = await (queryResult as any).nextRecordsUrl
+          ? await this.conn.queryMore<T>((queryResult as any).nextRecordsUrl)
+          : { done: true, records: [], totalSize: 0 } as any;
+        records.push(...queryResult.records);
+      }
+      return records;
+    });
+  }
+
   /**
    * Creates a new record in Salesforce for the specified SObject
    * @param sobjectName - The name of the SObject
