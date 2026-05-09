@@ -12,11 +12,12 @@ export class SalesforceCoreService {
   }
 
   async onModuleInit() {
-    this.logger.log('Attempting to connect to Salesforce via Client Credentials flow...');
+    this.logger.log(
+      'Attempting to connect to Salesforce via Client Credentials flow...',
+    );
     try {
       await this.ensureConnected();
       this.logger.log('Connected to Salesforce successfully.');
-      await this.debugQuery();
     } catch (error) {
       this.logger.error('Could not connect to Salesforce.');
       if (error instanceof Error) {
@@ -27,41 +28,6 @@ export class SalesforceCoreService {
     }
   }
 
-  // TODO: remove after testing
-  private async debugQuery() {
-    const contactId = '003b000001MKWDVAA5';
-    try {
-      this.logger.log(`\n=== ALL user's campaigns (CampaignMember) for ${contactId} ===`);
-      const allMemberships = await this.query<any>(
-        `SELECT CampaignId, Campaign.Name, Campaign.StartDate, Campaign.EndDate, Campaign.IsActive, Status FROM CampaignMember WHERE ContactId = '${contactId}' ORDER BY Campaign.EndDate DESC`
-      );
-      this.logger.log(`Found ${allMemberships.length} total campaign memberships`);
-      allMemberships.forEach((m: any, i: number) => {
-        this.logger.log(`  ${i + 1}. Campaign="${m.Campaign?.Name}" | Start=${m.Campaign?.StartDate} | End=${m.Campaign?.EndDate} | Active=${m.Campaign?.IsActive} | MemberStatus=${m.Status}`);
-      });
-
-      this.logger.log(`\n=== getFutureCampaigns for ${contactId} ===`);
-      const future = await this.query<any>(
-        `SELECT Id, Name, Description, IsActive, StartDate, EndDate, Chug_Type__c, Activities_Days_And_Hours__c, ActivityLocation__c, max_participants__c, (SELECT Status FROM CampaignMembers WHERE ContactId = '${contactId}' LIMIT 1) FROM Campaign WHERE EndDate >= TODAY AND IsActive = true AND Id IN (SELECT CampaignId FROM CampaignMember WHERE ContactId = '${contactId}') ORDER BY StartDate ASC`
-      );
-      this.logger.log(`Found ${future.length} future campaigns`);
-      future.forEach((c: any, i: number) => {
-        const membership = c.CampaignMembers?.records?.[0];
-        this.logger.log(`  ${i + 1}. Name="${c.Name}" | Start=${c.StartDate} | End=${c.EndDate} | Status=${membership?.Status || 'none'}`);
-      });
-
-      this.logger.log(`\n=== getPastCampaigns for ${contactId} ===`);
-      const past = await this.query<any>(
-        `SELECT Id, Name, Description, IsActive, StartDate, EndDate, Chug_Type__c, Activities_Days_And_Hours__c, ActivityLocation__c, max_participants__c FROM Campaign WHERE EndDate < TODAY AND Id IN (SELECT CampaignId FROM CampaignMember WHERE ContactId = '${contactId}') ORDER BY EndDate DESC`
-      );
-      this.logger.log(`Found ${past.length} past campaigns`);
-      past.forEach((c: any, i: number) => {
-        this.logger.log(`  ${i + 1}. Name="${c.Name}" | Start=${c.StartDate} | End=${c.EndDate} | Active=${c.IsActive}`);
-      });
-    } catch (err) {
-      this.logger.error(`DEBUG query failed: ${err instanceof Error ? err.message : err}`);
-    }
-  }
 
   private async authenticate(): Promise<void> {
     const host = this.configService.get<string>('SF_HOST');
@@ -69,7 +35,9 @@ export class SalesforceCoreService {
     const clientSecret = this.configService.get<string>('SF_CLIENT_SECRET');
 
     if (!host || !clientId || !clientSecret) {
-      throw new Error('SF_HOST, SF_CLIENT_ID, or SF_CLIENT_SECRET missing in .env.server');
+      throw new Error(
+        'SF_HOST, SF_CLIENT_ID, or SF_CLIENT_SECRET missing in .env.server',
+      );
     }
 
     const tokenUrl = `${host}/services/oauth2/token`;
@@ -87,7 +55,9 @@ export class SalesforceCoreService {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      throw new Error(`Client Credentials auth failed (${response.status}): ${errorBody}`);
+      throw new Error(
+        `Client Credentials auth failed (${response.status}): ${errorBody}`,
+      );
     }
 
     const tokenData = (await response.json()) as {
@@ -112,7 +82,9 @@ export class SalesforceCoreService {
   private isSessionExpiredError(err: unknown): boolean {
     if (err instanceof Error) {
       const msg = err.message.toUpperCase();
-      return msg.includes('INVALID_SESSION_ID') || msg.includes('SESSION EXPIRED');
+      return (
+        msg.includes('INVALID_SESSION_ID') || msg.includes('SESSION EXPIRED')
+      );
     }
     return false;
   }
