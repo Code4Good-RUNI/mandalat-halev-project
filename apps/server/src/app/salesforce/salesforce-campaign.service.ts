@@ -214,7 +214,7 @@ export class SalesforceCampaignService {
       requestReceivedSuccessfully: true
     };
   }
-}
+
 
   async getRegistrationStatus(
     contactId: string,
@@ -245,3 +245,4 @@ export class SalesforceCampaignService {
     return records.length > 0;
   }
 }
+
