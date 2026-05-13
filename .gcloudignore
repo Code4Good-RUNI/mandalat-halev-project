@@ -1,0 +1,72 @@
+# Same as .gitignore for source uploads, except `.env.server.keys` is NOT listed
+# so local `gcloud run deploy --source .` can include dotenvx keys for decryption.
+# See https://cloud.google.com/sdk/gcloud/reference/topic/gcloudignore
+
+# env files - secret keys (keep ignoring generic keys; allow .env.server.keys for server deploy)
+.env.keys
+.env.mobile.keys
+apps/mobile/.env.mobile
+apps/mobile/.env.mobile.local
+apps/server/.env.server.local
+
+# compiled output
+dist
+tmp
+out-tsc
+
+# dependencies
+node_modules
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/
+
+# misc
+/.sass-cache
+/connect.lock
+/coverage
+/libpeerconnection.log
+npm-debug.log
+yarn-error.log
+testem.log
+/typings
+
+# System Files
+.DS_Store
+Thumbs.db
+
+.nx/cache
+.nx/workspace-data
+
+# Expo
+.expo/
+.yarn/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+cache/
+
+test-output
+
+# Claude Code
+CLAUDE.md
+
+.nx/polygraph
+.claude/worktrees
+.claude/settings.local.json
+.agents/
+.cursor/
+AGENTS.md

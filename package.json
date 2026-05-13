@@ -2,7 +2,18 @@
   "name": "@mandalat-halev-project/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "server:build": "npm exec nx build server",
+    "server:start": "node apps/server/dist/main.js",
+    "gcp:enable-apis": "gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com",
+    "gcp:deploy": "gcloud run deploy mandalat-halev-api --source . --region europe-west1 --allow-unauthenticated",
+    "mobile:start": "npm exec nx run mobile:start",
+    "mobile:start:local": "EXPO_APP_TARGET=local npm exec nx run mobile:start",
+    "mobile:start:ios": "npm exec nx run mobile:start -- --ios",
+    "mobile:start:ios:local": "EXPO_APP_TARGET=local npm exec nx run mobile:start -- --ios",
+    "mobile:start:android": "npm exec nx run mobile:start -- --android",
+    "mobile:start:android:local": "EXPO_APP_TARGET=local npm exec nx run mobile:start -- --android"
+  },
   "private": true,
   "dependencies": {
     "@dotenvx/dotenvx": "^1.55.1",

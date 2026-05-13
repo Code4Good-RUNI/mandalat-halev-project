@@ -2,11 +2,16 @@ const path = require('path');
 const dotenvx = require('@dotenvx/dotenvx');
 
 const mobileDir = __dirname;
+// Load order (later wins with overload): shared .env.mobile → optional localhost preset → gitignored .env.mobile.local
+// Use `EXPO_APP_TARGET=local npm run mobile:start:local` (see root package.json) to point at a dev machine API.
+// iOS simulator: `npm run mobile:start:ios` (or `mobile:start:ios:local`). Physical phone: `npm run mobile:start` then scan the QR code in Expo Go (same Wi‑Fi as your computer, or use Dev Tools → tunnel).
+const envPaths = [path.join(mobileDir, '.env.mobile')];
+if (process.env.EXPO_APP_TARGET === 'local') {
+  envPaths.push(path.join(mobileDir, '.env.mobile.local'));
+}
+
 dotenvx.config({
-  path: [
-    path.join(mobileDir, '.env.mobile'),
-    path.join(mobileDir, '.env.mobile.local'),
-  ],
+  path: envPaths,
   envKeysFile: path.join(mobileDir, '.env.mobile.keys'),
   ignore: ['MISSING_ENV_FILE'],
   overload: true,
