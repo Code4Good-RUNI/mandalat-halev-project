@@ -36,7 +36,7 @@ export class AuthController {
 
       const token = authHeader.split(' ')[1];
 
-      await this.authService.createSession(token);
+      await this.authService.createSession(token, body.idNumber);
 
       return { status: 200, body: { ok: true } };
     });
