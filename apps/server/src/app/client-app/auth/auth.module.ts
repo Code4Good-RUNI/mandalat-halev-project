@@ -4,11 +4,13 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { FirebaseAuthGuard } from './firebase-auth.guard';
 import { initializeFirebaseAdmin } from './firebase-admin.init';
+import { SalesforceModule } from '../../salesforce/salesforce.module';
 
 
 @Module({
   imports: [
     ConfigModule,
+    SalesforceModule
   ],
   controllers: [AuthController],
   providers: [
