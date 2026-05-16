@@ -1,5 +1,4 @@
 export class SalesforceMapper {
-
   /**
    * Convert date to Israeli format if needed
    */
@@ -48,5 +47,28 @@ export class SalesforceMapper {
     const endDate = new Date(end);
     const diffInMs = endDate.getTime() - startDate.getTime();
     return Math.max(0, Math.floor(diffInMs / (1000 * 60 * 60)));
+  }
+
+  /**
+   * Convert phone number to be 05X-XXXXXXX
+   */
+  static formatPhoneNumber(phone: string): string {
+    if (!phone) return '';
+
+    let cleaned = phone.replace(/\D/g, '');
+
+    if (cleaned.startsWith('972')) {
+      cleaned = '0' + cleaned.slice(3);
+    }
+
+    if (cleaned.length === 10 && cleaned.startsWith('0')) {
+      return `${cleaned.slice(0, 3)}-${cleaned.slice(3)}`;
+    }
+
+    if (cleaned.length === 9 && cleaned.startsWith('0')) {
+      return `${cleaned.slice(0, 2)}-${cleaned.slice(2)}`;
+    }
+
+    return cleaned;
   }
 }

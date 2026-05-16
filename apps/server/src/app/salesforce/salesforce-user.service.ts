@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { LoginRequestDto, UserProfileDto } from '@mandalat-halev-project/api-interfaces';
 import { SalesforceCoreService } from './salesforce-core.service';
+import { SalesforceMapper } from './salesforce.mapper';
 
 // Contact fields available in the External Customer App
 const CONTACT_FIELDS = ['Id', 'Name', 'Email', 'Phone', 'MobilePhone', 'RegisteredID__c', 'StreetName__c', 'CityName__c', 'Birthdate'];
@@ -19,7 +20,10 @@ export class SalesforceUserService {
     const records = await contactObj
       .find(
         {
-          $or: [{ Phone: phoneNumber }, { MobilePhone: phoneNumber }],
+          $or: [
+            { Phone: SalesforceMapper.formatPhoneNumber(phoneNumber) },
+            { MobilePhone: SalesforceMapper.formatPhoneNumber(phoneNumber) },
+          ],
           RegisteredID__c: idNumber,
         },
         ['Id'],
@@ -57,6 +61,8 @@ export class SalesforceUserService {
       const raw = records[0];
       const fullName = (raw.Name as string) || '';
       const spaceIndex = fullName.indexOf(' ');
+      const rawPhone =
+        (raw.Phone as string) || (raw.MobilePhone as string) || '';
 
       return {
         salesforceUserId,
@@ -64,7 +70,7 @@ export class SalesforceUserService {
           spaceIndex > -1 ? fullName.substring(0, spaceIndex) : fullName,
         lastName: spaceIndex > -1 ? fullName.substring(spaceIndex + 1) : '',
         email: (raw.Email as string) || '',
-        phoneNumber: (raw.Phone as string) || (raw.MobilePhone as string) || '',
+        phoneNumber: SalesforceMapper.formatPhoneNumber(rawPhone),
         idNumber: (raw.RegisteredID__c as string) || '',
         address: (raw.StreetName__c as string) || '',
         city: (raw.CityName__c as string) || '',
