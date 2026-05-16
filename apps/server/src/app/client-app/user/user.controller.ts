@@ -3,7 +3,7 @@ import { tsRestHandler, TsRestHandler } from '@ts-rest/nest';
 import { userContract, ContactDto } from '@mandalat-halev-project/api-interfaces';
 import { FirebaseAuthGuard } from '../auth/firebase-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { SalesforceUserService } from '../../salesforce/salesforce-user.service';
+import { SalesforceUserService } from '../../salesforce/user/salesforce-user.service';
 
 @Controller()
 @UseGuards(FirebaseAuthGuard)

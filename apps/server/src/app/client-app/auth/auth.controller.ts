@@ -2,7 +2,7 @@ import { Controller, UnauthorizedException, Headers } from '@nestjs/common';
 import { tsRestHandler, TsRestHandler } from '@ts-rest/nest';
 import { userContract } from '@mandalat-halev-project/api-interfaces';
 import { AuthService } from './auth.service';
-import { SalesforceUserService } from '../../salesforce/salesforce-user.service';
+import { SalesforceUserService } from '../../salesforce/user/salesforce-user.service';
 
 @Controller()
 export class AuthController {

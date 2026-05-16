@@ -1,7 +1,7 @@
 import { config as loadEnv } from '@dotenvx/dotenvx';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
-import { SalesforceCoreService } from './salesforce-core.service';
+import { SalesforceCoreService } from '../core/salesforce-core.service';
 import { SalesforceUserService } from './salesforce-user.service';
 
 loadEnv({

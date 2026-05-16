@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { LoginRequestDto, UserProfileDto } from '@mandalat-halev-project/api-interfaces';
-import { SalesforceCoreService } from './salesforce-core.service';
-import { SalesforceMapper } from './salesforce.mapper';
+import { SalesforceCoreService } from '../core/salesforce-core.service';
+import { SalesforceMapper } from '../salesforce.mapper';
 
 // Contact fields available in the External Customer App
 const CONTACT_FIELDS = ['Id', 'Name', 'Email', 'Phone', 'MobilePhone', 'RegisteredID__c', 'StreetName__c', 'CityName__c', 'Birthdate'];

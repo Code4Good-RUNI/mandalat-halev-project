@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SalesforceCampaignService } from './salesforce-campaign.service';
-import { SalesforceCoreService } from './salesforce-core.service';
+import { SalesforceCoreService } from '../core/salesforce-core.service';
 
 const mockCoreService = {
   query: jest.fn(),
