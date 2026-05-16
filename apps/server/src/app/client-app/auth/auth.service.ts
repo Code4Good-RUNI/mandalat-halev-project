@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import * as admin from 'firebase-admin';
-import { SalesforceUserService } from '../../salesforce/salesforce-user.service';
+import { SalesforceUserService } from '../../salesforce/user/salesforce-user.service';
 
 @Injectable()
 export class AuthService {

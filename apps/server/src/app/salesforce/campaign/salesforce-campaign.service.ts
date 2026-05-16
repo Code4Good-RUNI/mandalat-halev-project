@@ -1,6 +1,6 @@
 import { Injectable, Logger, BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { SalesforceCoreService } from './salesforce-core.service';
-import { SalesforceMapper } from './salesforce.mapper';
+import { SalesforceCoreService } from '../core/salesforce-core.service';
+import { SalesforceMapper } from '../salesforce.mapper';
 import {
   GetFutureCampaignDto,
   GetPastCampaignDto,
