@@ -36,6 +36,7 @@ export class SalesforceUserService {
     return records[0].Id as string;
   }
 
+
   async getUserProfile(
     salesforceUserId: string,
   ): Promise<UserProfileDto | null> {
