@@ -25,7 +25,7 @@ export default function Index() {
           <TouchableOpacity
             key={href}
             style={styles.button}
-            onPress={() => router.replace(href as any)}
+            onPress={() => router.push(href as any)}
           >
             <Text style={styles.buttonText}>{label}</Text>
           </TouchableOpacity>
