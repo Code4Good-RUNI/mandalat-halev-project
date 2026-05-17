@@ -58,68 +58,32 @@ export class SalesforceCampaignService {
   // ----------------------------------For testing------------------------------------------------
 
   async onModuleInit() {
-    //this.logger.log(
-    //  '🚀 [Campaign Sandbox] Starting Campaign Registration Field Discovery...',
-    //);
-    //await this.debugDiscoverCampaignRegistrationField();
+    this.logger.log(
+      '🚀 [Campaign Sandbox] Starting Campaign Registration Field Discovery...',
+    );
+    await this.debugDiscoverCampaignRegistrationField();
   }
 
-
+  /**
+   * פונקציית ניסויים: מאתרת ומדפיסה את מבנה הנתונים של קמפיין עם רשומים
+   */
   private async debugDiscoverCampaignRegistrationField(): Promise<void> {
     try {
-      const campaignObj = await this.core.sobject('Campaign');
+      const campaignId = '7010X000000ey5vQAA';
+      const memberObj = await this.core.sobject('CampaignMember');
 
-      // 1. משיכת כל השדות שקיימים על קמפיין, ללא פילטר מילים
-      const metadata = await campaignObj.describe();
-      const allFields = metadata.fields.map((f) => f.name);
+      // נשלוף את ה-ContactId ואת ה-Status של כולם בקמפיין הזה
+      const registrations = await memberObj
+        .find({ CampaignId: campaignId }, ['ContactId', 'Status'])
+        .execute();
 
-      this.logger.log(
-        `🕵️‍♂️ [Campaign Scan] Scanning all ${allFields.length} fields across all campaigns...`,
-      );
-
-      // 2. שליפת כל הקמפיינים עם כל השדות
-      const records = await campaignObj.find({}, allFields).execute();
-
-      const findings: any[] = [];
-
-      // 3. לולאה מוצלבת: רצים על כל קמפיין ועל כל שדה שלו
-      records.forEach((campaign: any) => {
-        allFields.forEach((fieldName) => {
-          const value = campaign[fieldName];
-
-          // אם השדה מכיל טקסט, והטקסט הזה מכיל את הקידומת '003' (Contact ID)
-          if (value && typeof value === 'string' && value.includes('003')) {
-            findings.push({
-              'Campaign ID': campaign.Id,
-              'Campaign Name': campaign.Name,
-              'Field Name': fieldName,
-              'Value Snippet': value.substring(0, 60), // מציג רק את תחילת הטקסט לראות את המבנה
-            });
-          }
-        });
-      });
-
-      this.logger.debug(
-        `======================================================================`,
-      );
-      this.logger.debug(
-        `🔍 SCAN RESULTS: FIELDS ON CAMPAIGN CONTAINING CONTACT IDs`,
-      );
-      this.logger.debug(
-        `======================================================================`,
-      );
-      if (findings.length === 0) {
-        this.logger.warn(
-          '❌ No fields on the Campaign object contain serialized Contact IDs (003...).',
-        );
-      } else {
-        console.table(findings);
-      }
-      this.logger.debug(
-        `======================================================================`,
-      );
+      this.logger.debug(`==================================================`);
+      this.logger.debug(`📋 DETAILED CAMPAIGN MEMBER STATUSES`);
+      this.logger.debug(`==================================================`);
+      console.dir(registrations, { maxArrayLength: null });
+      this.logger.debug(`==================================================`);
     } catch (error) {
-      this.logger.error('❌ [Campaign Scan] Engine crashed', error);
+      this.logger.error('❌ [Campaign Sandbox] Failed', error);
     }
   }
 

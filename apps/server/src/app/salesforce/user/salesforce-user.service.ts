@@ -12,10 +12,11 @@ export class SalesforceUserService {
 
   constructor(private readonly core: SalesforceCoreService) {}
 
+  // ---------------------------------------------------------------------------------------------
   // ----------------------------------For testing------------------------------------------------
 
   async onModuleInit() {
-    //this.logger.log('🚀 [Sandbox] Fetching all Salesforce Contact fields...');
+    this.logger.log('🚀 [Sandbox] Fetching all Salesforce Contact fields...');
     //await this.debugPrintAllContactFields();
     //await this.findFamilyIdentifierAdvancedSandbox();
   }
