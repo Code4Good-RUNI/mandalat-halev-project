@@ -65,8 +65,7 @@ function ActiveCampaignItem({ item, contacts, contactsLoading, onShowModal, onPr
     if (contacts.length <= 1) {
       submitRegistration(contacts.map((c) => c.salesforceUserId));
     } else {
-      // Pre-select all contacts so the user can just confirm without extra taps.
-      setSelectedIds(contacts.map((c) => c.salesforceUserId));
+      setSelectedIds([]);
       setSelectionVisible(true);
     }
   };
@@ -114,7 +113,6 @@ function ActiveCampaignItem({ item, contacts, contactsLoading, onShowModal, onPr
           <View style={styles.selectionModal}>
             <Text style={styles.selectionTitle}>בחר משתתפים</Text>
 
-            {/* One row per contact. Tapping toggles their checkbox. */}
             {contacts.map((contact) => {
               const selected = selectedIds.includes(contact.salesforceUserId);
               return (
@@ -123,11 +121,12 @@ function ActiveCampaignItem({ item, contacts, contactsLoading, onShowModal, onPr
                   style={styles.contactRow}
                   onPress={() => toggleContact(contact.salesforceUserId)}
                 >
-                  {/* Visual checkbox: orange fill when selected, grey border when not. */}
-                  <View style={[styles.checkbox, selected && styles.checkboxSelected]} />
                   <Text style={styles.contactName}>
                     {contact.firstName} {contact.lastName}
                   </Text>
+                  <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
+                    {selected && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -293,7 +292,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF8C00',
     borderColor: '#FF8C00',
   },
-  contactName: { fontSize: 16, textAlign: 'right', flex: 1, paddingRight: 12 },
+  contactName: { fontSize: 16, textAlign: 'right', flex: 1, paddingLeft: 12 },
+  checkmark: { color: '#fff', fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
   selectionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',

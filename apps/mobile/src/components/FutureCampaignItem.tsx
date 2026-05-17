@@ -71,7 +71,7 @@ export function FutureCampaignItem({ campaign, contacts, contactsLoading, onShow
     if (contacts.length <= 1) {
       performUnregister(contacts.map((c) => c.salesforceUserId));
     } else {
-      setSelectedIds(contacts.map((c) => c.salesforceUserId));
+      setSelectedIds([]);
       setSelectionVisible(true);
     }
   };
@@ -126,10 +126,12 @@ export function FutureCampaignItem({ campaign, contacts, contactsLoading, onShow
                   style={styles.contactRow}
                   onPress={() => toggleContact(contact.salesforceUserId)}
                 >
-                  <View style={[styles.checkbox, selected && styles.checkboxSelected]} />
                   <Text style={styles.contactName}>
                     {contact.firstName} {contact.lastName}
                   </Text>
+                  <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
+                    {selected && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -202,7 +204,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#ff4444',
     borderColor: '#ff4444',
   },
-  contactName: { fontSize: 16, textAlign: 'right', flex: 1, paddingRight: 12 },
+  contactName: { fontSize: 16, textAlign: 'right', flex: 1, paddingLeft: 12 },
+  checkmark: { color: '#fff', fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
   selectionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
