@@ -1,6 +1,7 @@
 import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { registerQueryClient } from '../api/session';
 
 const queryClient = new QueryClient({
@@ -28,6 +29,27 @@ export default function RootLayout() {
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
+      {__DEV__ && (
+        <View style={styles.devButton}>
+          <TouchableOpacity onPress={() => router.replace('/')}>
+            <Text style={styles.devButtonText}>DEV</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </QueryClientProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  devButton: {
+    position: 'absolute',
+    bottom: 40,
+    left: 16,
+    backgroundColor: '#333',
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    opacity: 0.75,
+  },
+  devButtonText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+});
