@@ -54,6 +54,76 @@ export class SalesforceCampaignService {
 
   constructor(private readonly core: SalesforceCoreService) {}
 
+  // ---------------------------------------------------------------------------------------------
+  // ----------------------------------For testing------------------------------------------------
+
+  async onModuleInit() {
+    //this.logger.log(
+    //  '🚀 [Campaign Sandbox] Starting Campaign Registration Field Discovery...',
+    //);
+    //await this.debugDiscoverCampaignRegistrationField();
+  }
+
+
+  private async debugDiscoverCampaignRegistrationField(): Promise<void> {
+    try {
+      const campaignObj = await this.core.sobject('Campaign');
+
+      // 1. משיכת כל השדות שקיימים על קמפיין, ללא פילטר מילים
+      const metadata = await campaignObj.describe();
+      const allFields = metadata.fields.map((f) => f.name);
+
+      this.logger.log(
+        `🕵️‍♂️ [Campaign Scan] Scanning all ${allFields.length} fields across all campaigns...`,
+      );
+
+      // 2. שליפת כל הקמפיינים עם כל השדות
+      const records = await campaignObj.find({}, allFields).execute();
+
+      const findings: any[] = [];
+
+      // 3. לולאה מוצלבת: רצים על כל קמפיין ועל כל שדה שלו
+      records.forEach((campaign: any) => {
+        allFields.forEach((fieldName) => {
+          const value = campaign[fieldName];
+
+          // אם השדה מכיל טקסט, והטקסט הזה מכיל את הקידומת '003' (Contact ID)
+          if (value && typeof value === 'string' && value.includes('003')) {
+            findings.push({
+              'Campaign ID': campaign.Id,
+              'Campaign Name': campaign.Name,
+              'Field Name': fieldName,
+              'Value Snippet': value.substring(0, 60), // מציג רק את תחילת הטקסט לראות את המבנה
+            });
+          }
+        });
+      });
+
+      this.logger.debug(
+        `======================================================================`,
+      );
+      this.logger.debug(
+        `🔍 SCAN RESULTS: FIELDS ON CAMPAIGN CONTAINING CONTACT IDs`,
+      );
+      this.logger.debug(
+        `======================================================================`,
+      );
+      if (findings.length === 0) {
+        this.logger.warn(
+          '❌ No fields on the Campaign object contain serialized Contact IDs (003...).',
+        );
+      } else {
+        console.table(findings);
+      }
+      this.logger.debug(
+        `======================================================================`,
+      );
+    } catch (error) {
+      this.logger.error('❌ [Campaign Scan] Engine crashed', error);
+    }
+  }
+
+  //------------------------------------------------------------------------------------------------------------------
 
   // is not done!!!!! need to be checked
   /**
@@ -141,7 +211,6 @@ export class SalesforceCampaignService {
     );
   }
 
-
   // is not done!!!!! need to be checked
 
   /**
@@ -151,25 +220,33 @@ export class SalesforceCampaignService {
     const { contactIds, campaignId } = dto;
 
     for (const contactId of contactIds) {
-      this.logger.log(`Registering contact ${contactId} to campaign ${campaignId}`);
+      this.logger.log(
+        `Registering contact ${contactId} to campaign ${campaignId}`,
+      );
 
       const result = await this.core.create('CampaignMember', {
-        'ContactId': contactId,
-        'CampaignId': campaignId,
-        'Status': 'Registered',
+        ContactId: contactId,
+        CampaignId: campaignId,
+        Status: 'Registered',
       });
 
       if (!result.success) {
         const errorCode = result.errors?.[0]?.statusCode || '';
         const errorMsg = result.errors?.[0]?.message || 'Unknown error';
 
-        this.logger.error(`Registration failed for contact ${contactId}: ${errorCode} - ${errorMsg}`);
+        this.logger.error(
+          `Registration failed for contact ${contactId}: ${errorCode} - ${errorMsg}`,
+        );
 
         if (errorCode === 'DUPLICATE_VALUE') {
-          throw new BadRequestException(`Contact ${contactId} is already registered to this campaign`);
+          throw new BadRequestException(
+            `Contact ${contactId} is already registered to this campaign`,
+          );
         }
         if (errorCode === 'FIELD_INTEGRITY_EXCEPTION') {
-          throw new BadRequestException(`Invalid contact or campaign ID for contact ${contactId}`);
+          throw new BadRequestException(
+            `Invalid contact or campaign ID for contact ${contactId}`,
+          );
         }
         throw new InternalServerErrorException(`Salesforce error: ${errorMsg}`);
       }
@@ -177,44 +254,53 @@ export class SalesforceCampaignService {
 
     return {
       campaignId,
-      requestReceivedSuccessfully: true
+      requestReceivedSuccessfully: true,
     };
   }
 
   /**
    * Unregisters multiple contacts from a campaign.
    */
-  async unregister(dto: UnregisterFromCampaignDto): Promise<RegisterResponseDto> {
+  async unregister(
+    dto: UnregisterFromCampaignDto,
+  ): Promise<RegisterResponseDto> {
     const { contactIds, campaignId } = dto;
 
     for (const contactId of contactIds) {
       const memberObj = await this.core.sobject('CampaignMember');
 
       const records = await memberObj
-        .find({ 'ContactId': contactId, 'CampaignId': campaignId }, ['Id'])
+        .find({ ContactId: contactId, CampaignId: campaignId }, ['Id'])
         .limit(1)
         .execute();
 
       if (records.length === 0) {
-        this.logger.warn(`Contact ${contactId} not found in campaign ${campaignId}`);
-        throw new NotFoundException(`Contact ${contactId} is not registered to this campaign`);
+        this.logger.warn(
+          `Contact ${contactId} not found in campaign ${campaignId}`,
+        );
+        throw new NotFoundException(
+          `Contact ${contactId} is not registered to this campaign`,
+        );
       }
 
       const memberRecordId = records[0].Id;
       if (!memberRecordId) {
-        throw new InternalServerErrorException('Campaign Member ID is missing in Salesforce');
+        throw new InternalServerErrorException(
+          'Campaign Member ID is missing in Salesforce',
+        );
       }
 
       await this.core.destroy('CampaignMember', memberRecordId);
-      this.logger.log(`Successfully unregistered contact ${contactId} from campaign ${campaignId}`);
+      this.logger.log(
+        `Successfully unregistered contact ${contactId} from campaign ${campaignId}`,
+      );
     }
 
     return {
       campaignId,
-      requestReceivedSuccessfully: true
+      requestReceivedSuccessfully: true,
     };
   }
-
 
   async getRegistrationStatus(
     contactId: string,
