@@ -54,6 +54,40 @@ export class SalesforceCampaignService {
 
   constructor(private readonly core: SalesforceCoreService) {}
 
+  // ---------------------------------------------------------------------------------------------
+  // ----------------------------------For testing------------------------------------------------
+
+  async onModuleInit() {
+    this.logger.log(
+      '🚀 [Campaign Sandbox] Starting Campaign Registration Field Discovery...',
+    );
+    await this.debugDiscoverCampaignRegistrationField();
+  }
+
+  /**
+   * פונקציית ניסויים: מאתרת ומדפיסה את מבנה הנתונים של קמפיין עם רשומים
+   */
+  private async debugDiscoverCampaignRegistrationField(): Promise<void> {
+    try {
+      const campaignId = '7010X000000ey5vQAA';
+      const memberObj = await this.core.sobject('CampaignMember');
+
+      // נשלוף את ה-ContactId ואת ה-Status של כולם בקמפיין הזה
+      const registrations = await memberObj
+        .find({ CampaignId: campaignId }, ['ContactId', 'Status'])
+        .execute();
+
+      this.logger.debug(`==================================================`);
+      this.logger.debug(`📋 DETAILED CAMPAIGN MEMBER STATUSES`);
+      this.logger.debug(`==================================================`);
+      console.dir(registrations, { maxArrayLength: null });
+      this.logger.debug(`==================================================`);
+    } catch (error) {
+      this.logger.error('❌ [Campaign Sandbox] Failed', error);
+    }
+  }
+
+  //------------------------------------------------------------------------------------------------------------------
 
   // is not done!!!!! need to be checked
   /**
@@ -141,7 +175,6 @@ export class SalesforceCampaignService {
     );
   }
 
-
   // is not done!!!!! need to be checked
 
   /**
@@ -151,25 +184,33 @@ export class SalesforceCampaignService {
     const { contactIds, campaignId } = dto;
 
     for (const contactId of contactIds) {
-      this.logger.log(`Registering contact ${contactId} to campaign ${campaignId}`);
+      this.logger.log(
+        `Registering contact ${contactId} to campaign ${campaignId}`,
+      );
 
       const result = await this.core.create('CampaignMember', {
-        'ContactId': contactId,
-        'CampaignId': campaignId,
-        'Status': 'Registered',
+        ContactId: contactId,
+        CampaignId: campaignId,
+        Status: 'Registered',
       });
 
       if (!result.success) {
         const errorCode = result.errors?.[0]?.statusCode || '';
         const errorMsg = result.errors?.[0]?.message || 'Unknown error';
 
-        this.logger.error(`Registration failed for contact ${contactId}: ${errorCode} - ${errorMsg}`);
+        this.logger.error(
+          `Registration failed for contact ${contactId}: ${errorCode} - ${errorMsg}`,
+        );
 
         if (errorCode === 'DUPLICATE_VALUE') {
-          throw new BadRequestException(`Contact ${contactId} is already registered to this campaign`);
+          throw new BadRequestException(
+            `Contact ${contactId} is already registered to this campaign`,
+          );
         }
         if (errorCode === 'FIELD_INTEGRITY_EXCEPTION') {
-          throw new BadRequestException(`Invalid contact or campaign ID for contact ${contactId}`);
+          throw new BadRequestException(
+            `Invalid contact or campaign ID for contact ${contactId}`,
+          );
         }
         throw new InternalServerErrorException(`Salesforce error: ${errorMsg}`);
       }
@@ -177,44 +218,53 @@ export class SalesforceCampaignService {
 
     return {
       campaignId,
-      requestReceivedSuccessfully: true
+      requestReceivedSuccessfully: true,
     };
   }
 
   /**
    * Unregisters multiple contacts from a campaign.
    */
-  async unregister(dto: UnregisterFromCampaignDto): Promise<RegisterResponseDto> {
+  async unregister(
+    dto: UnregisterFromCampaignDto,
+  ): Promise<RegisterResponseDto> {
     const { contactIds, campaignId } = dto;
 
     for (const contactId of contactIds) {
       const memberObj = await this.core.sobject('CampaignMember');
 
       const records = await memberObj
-        .find({ 'ContactId': contactId, 'CampaignId': campaignId }, ['Id'])
+        .find({ ContactId: contactId, CampaignId: campaignId }, ['Id'])
         .limit(1)
         .execute();
 
       if (records.length === 0) {
-        this.logger.warn(`Contact ${contactId} not found in campaign ${campaignId}`);
-        throw new NotFoundException(`Contact ${contactId} is not registered to this campaign`);
+        this.logger.warn(
+          `Contact ${contactId} not found in campaign ${campaignId}`,
+        );
+        throw new NotFoundException(
+          `Contact ${contactId} is not registered to this campaign`,
+        );
       }
 
       const memberRecordId = records[0].Id;
       if (!memberRecordId) {
-        throw new InternalServerErrorException('Campaign Member ID is missing in Salesforce');
+        throw new InternalServerErrorException(
+          'Campaign Member ID is missing in Salesforce',
+        );
       }
 
       await this.core.destroy('CampaignMember', memberRecordId);
-      this.logger.log(`Successfully unregistered contact ${contactId} from campaign ${campaignId}`);
+      this.logger.log(
+        `Successfully unregistered contact ${contactId} from campaign ${campaignId}`,
+      );
     }
 
     return {
       campaignId,
-      requestReceivedSuccessfully: true
+      requestReceivedSuccessfully: true,
     };
   }
-
 
   async getRegistrationStatus(
     contactId: string,
