@@ -18,7 +18,7 @@ const serverEnvDir = join(__dirname, '..');
 loadEnv({
   path: [
     join(serverEnvDir, '.env.server'),
-    join(serverEnvDir, '.env.server.local'),
+    join(serverEnvDir, '.env.server.keys'),
   ],
   envKeysFile: join(serverEnvDir, '.env.server.keys'),
   ignore: ['MISSING_ENV_FILE'],

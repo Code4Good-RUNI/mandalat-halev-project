@@ -1,15 +1,26 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import * as admin from 'firebase-admin';
+import { SalesforceUserService } from '../../salesforce/user/salesforce-user.service';
 
 @Injectable()
 export class AuthService {
-  async createSession(firebaseToken: string) {
+  constructor(private readonly salesforceUserService: SalesforceUserService) {}
+
+  async createSession(firebaseToken: string, idNumber: string) {
     try {
       const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
       const { uid } = decodedToken;
 
-      const salesforceUserId = 'MOCK_SF_USER_123';
+      const phoneNumber = decodedToken.phone_number || '';
 
+      const salesforceUserId = await this.salesforceUserService.validateLogin({
+        phoneNumber,
+        idNumber,
+      });
+
+      if (!salesforceUserId) {
+        throw new UnauthorizedException('User not found in Salesforce');
+      }
       await admin.auth().setCustomUserClaims(uid, { salesforceUserId });
 
       return { ok: true as const };
