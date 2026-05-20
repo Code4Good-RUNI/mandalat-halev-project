@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,32 +8,109 @@ import {
   StyleSheet,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
+import {
+  signInWithPhoneNumber,
+  type ApplicationVerifier,
+  type ConfirmationResult,
+} from 'firebase/auth';
+import { FirebaseError } from 'firebase/app';
+import { auth, firebaseConfig } from '../firebase/config';
 
-// TODO(feat/firebase-sms-login): when this screen mounts, trigger the Firebase
-// phone-auth SMS via signInWithPhoneNumber(phoneNumber) (with the recaptcha
-// verifier) and keep the resulting confirmationResult for handleVerify below.
-// idNumber is carried here so the eligibility check can be tied to the code.
+// Israeli mobile numbers arrive as 10 local digits (e.g. 0501234567); Firebase
+// Phone Auth needs E.164 format (+972501234567).
+function toE164(phone: string): string {
+  return '+972' + phone.replace(/^0/, '');
+}
+
+function verifyErrorMessage(err: unknown): string {
+  if (
+    err instanceof FirebaseError &&
+    (err.code === 'auth/invalid-verification-code' ||
+      err.code === 'auth/code-expired')
+  ) {
+    return 'הקוד שגוי או שפג תוקפו. נסה שוב.';
+  }
+  return 'אירעה שגיאה באימות הקוד. נסה שוב.';
+}
 
 export default function VerifySmsScreen() {
   const { phoneNumber } = useLocalSearchParams<{
     phoneNumber: string;
     idNumber: string;
   }>();
-  const [code, setCode] = useState('');
 
-  const handleVerify = () => {
-    // TODO(feat/firebase-sms-login): confirm `code` against the Firebase
-    // confirmationResult, then call /auth/session with the Firebase token,
-    // setSession(...), and router.replace('/(tabs)/activities').
+  const recaptchaVerifier = useRef<FirebaseRecaptchaVerifierModal>(null);
+  const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(
+    null,
+  );
+  const [code, setCode] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verified, setVerified] = useState(false);
+
+  const sendSms = useCallback(async () => {
+    if (!phoneNumber || !recaptchaVerifier.current) return;
+    setError(null);
+    setSending(true);
+    try {
+      const result = await signInWithPhoneNumber(
+        auth,
+        toE164(phoneNumber),
+        recaptchaVerifier.current as ApplicationVerifier,
+      );
+      setConfirmation(result);
+      console.log('[verify-sms] SMS sent');
+    } catch {
+      setError('שליחת קוד האימות נכשלה. נסה שוב.');
+    } finally {
+      setSending(false);
+    }
+  }, [phoneNumber]);
+
+  // Send the verification SMS once when the screen opens.
+  useEffect(() => {
+    void sendSms();
+  }, [sendSms]);
+
+  const handleVerify = async () => {
+    if (!confirmation) return;
+    setError(null);
+    setVerifying(true);
+    try {
+      const cred = await confirmation.confirm(code);
+      console.log('[verify-sms] code confirmed');
+      const idToken = await cred.user.getIdToken();
+      console.log('[verify-sms] Firebase ID token:', idToken);
+      setVerified(true);
+      // TODO(Step C): send idToken to POST /auth/session, then setSession(...)
+      // and router.replace('/(tabs)/activities').
+    } catch (err) {
+      setError(verifyErrorMessage(err));
+    } finally {
+      setVerifying(false);
+    }
   };
+
+  const verifyDisabled =
+    code.length !== 6 || verifying || !confirmation || verified;
 
   return (
     <SafeAreaView style={styles.container}>
+      <FirebaseRecaptchaVerifierModal
+        ref={recaptchaVerifier}
+        firebaseConfig={firebaseConfig}
+        attemptInvisibleVerification
+      />
       <View>
         <Text style={styles.title}>אימות מספר טלפון</Text>
-        <Text style={styles.subText}>
-          הזן את הקוד שנשלח ל-{phoneNumber}
-        </Text>
+        <Text style={styles.subText}>הזן את הקוד שנשלח ל-{phoneNumber}</Text>
+
+        {error && <Text style={styles.errorText}>{error}</Text>}
+        {verified && (
+          <Text style={styles.successText}>המספר אומת בהצלחה ✓</Text>
+        )}
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>קוד אימות</Text>
@@ -43,19 +120,28 @@ export default function VerifySmsScreen() {
             onChangeText={setCode}
             keyboardType="numeric"
             maxLength={6}
+            editable={!verified}
           />
         </View>
+
+        <TouchableOpacity onPress={sendSms} disabled={sending || verified}>
+          <Text style={styles.linkText}>
+            {sending ? 'שולח קוד...' : 'שליחת קוד מחדש'}
+          </Text>
+        </TouchableOpacity>
 
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.linkText}>חזרה</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.verifyButton, code.length !== 6 && { opacity: 0.6 }]}
-          disabled={code.length !== 6}
+          style={[styles.verifyButton, verifyDisabled && { opacity: 0.6 }]}
+          disabled={verifyDisabled}
           onPress={handleVerify}
         >
-          <Text style={styles.verifyButtonText}>אמת</Text>
+          <Text style={styles.verifyButtonText}>
+            {verifying ? 'מאמת...' : 'אמת'}
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -104,5 +190,17 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center' as const,
+    marginHorizontal: 15,
+    marginBottom: 10,
+  },
+  successText: {
+    color: 'green',
+    textAlign: 'center' as const,
+    marginHorizontal: 15,
+    marginBottom: 10,
   },
 });
