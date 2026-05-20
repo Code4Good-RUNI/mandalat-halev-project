@@ -16,6 +16,7 @@ import {
 } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
 import { auth, firebaseConfig } from '../firebase/config';
+import { useCreateSession } from '../api/hooks';
 
 // Israeli mobile numbers arrive as 10 local digits (e.g. 0501234567); Firebase
 // Phone Auth needs E.164 format (+972501234567).
@@ -35,7 +36,7 @@ function verifyErrorMessage(err: unknown): string {
 }
 
 export default function VerifySmsScreen() {
-  const { phoneNumber } = useLocalSearchParams<{
+  const { phoneNumber, idNumber } = useLocalSearchParams<{
     phoneNumber: string;
     idNumber: string;
   }>();
@@ -48,7 +49,7 @@ export default function VerifySmsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  const [verified, setVerified] = useState(false);
+  const { mutateAsync: createSession } = useCreateSession();
 
   const sendSms = useCallback(async () => {
     if (!phoneNumber) return;
@@ -96,9 +97,35 @@ export default function VerifySmsScreen() {
       console.log('[verify-sms] code confirmed');
       const idToken = await cred.user.getIdToken();
       console.log('[verify-sms] Firebase ID token:', idToken);
-      setVerified(true);
-      // TODO(Step C): send idToken to POST /auth/session, then setSession(...)
-      // and router.replace('/(tabs)/activities').
+
+      // Finalize the session: the server verifies the token and sets the
+      // salesforceUserId custom claim; it returns { ok: true } (no token).
+      const res = await createSession({
+        body: { phoneNumber, idNumber },
+        idToken,
+      });
+      if (res.status !== 200) {
+        console.log(
+          '[verify-sms] /auth/session failed:',
+          res.status,
+          res.body,
+        );
+        setError('סיום ההתחברות נכשל. נסה שוב.');
+        return;
+      }
+
+      // Force-refresh so the new ID token carries the salesforceUserId claim
+      // the server just set. getIdTokenResult(true) refreshes AND returns the
+      // decoded claims, so we can confirm the claim actually landed. (Caching
+      // this token is the next step.)
+      const refreshed = await cred.user.getIdTokenResult(true);
+      console.log('[verify-sms] token changed:', refreshed.token !== idToken);
+      console.log(
+        '[verify-sms] salesforceUserId claim:',
+        refreshed.claims.salesforceUserId,
+      );
+
+      router.replace('/(tabs)/activities');
     } catch (err) {
       setError(verifyErrorMessage(err));
     } finally {
@@ -106,8 +133,7 @@ export default function VerifySmsScreen() {
     }
   };
 
-  const verifyDisabled =
-    code.length !== 6 || verifying || !confirmation || verified;
+  const verifyDisabled = code.length !== 6 || verifying || !confirmation;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -123,9 +149,6 @@ export default function VerifySmsScreen() {
         <Text style={styles.subText}>הזן את הקוד שנשלח ל-{phoneNumber}</Text>
 
         {error && <Text style={styles.errorText}>{error}</Text>}
-        {verified && (
-          <Text style={styles.successText}>המספר אומת בהצלחה ✓</Text>
-        )}
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>קוד אימות</Text>
@@ -135,11 +158,10 @@ export default function VerifySmsScreen() {
             onChangeText={setCode}
             keyboardType="numeric"
             maxLength={6}
-            editable={!verified}
           />
         </View>
 
-        <TouchableOpacity onPress={sendSms} disabled={sending || verified}>
+        <TouchableOpacity onPress={sendSms} disabled={sending}>
           <Text style={styles.linkText}>
             {sending ? 'שולח קוד...' : 'שליחת קוד מחדש'}
           </Text>
@@ -208,12 +230,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: 'red',
-    textAlign: 'center' as const,
-    marginHorizontal: 15,
-    marginBottom: 10,
-  },
-  successText: {
-    color: 'green',
     textAlign: 'center' as const,
     marginHorizontal: 15,
     marginBottom: 10,

@@ -64,6 +64,14 @@ export const LoginResponseSchema = z.object({
 export type LoginRequestDto = z.infer<typeof LoginRequestSchema>;
 export type LoginResponseDto = z.infer<typeof LoginResponseSchema>;
 
+// Input for the create-session hook: the /auth/session request body
+// (LoginRequestSchema) plus the Firebase ID token, which is sent as a Bearer
+// header rather than in the body.
+export type CreateSessionDto = {
+  body: LoginRequestDto;
+  idToken: string;
+};
+
 /**
  * USER INFO SCHEMAS
  */
@@ -87,7 +95,7 @@ export const ContactSchema = z.object({
   firstName: z.string(),
   lastName: z.string(),
   idNumber: z.string(),
-  birthDate: z.string(), 
+  birthDate: z.string(),
 });
 export type ContactDto = z.infer<typeof ContactSchema>;
 
