@@ -76,7 +76,6 @@ export default function VerifySmsScreen() {
         verifier,
       );
       setConfirmation(result);
-      console.log('[verify-sms] SMS sent');
     } catch {
       setError('שליחת קוד האימות נכשלה. נסה שוב.');
     } finally {
@@ -95,9 +94,7 @@ export default function VerifySmsScreen() {
     setVerifying(true);
     try {
       const cred = await confirmation.confirm(code);
-      console.log('[verify-sms] code confirmed');
       const idToken = await cred.user.getIdToken();
-      console.log('[verify-sms] Firebase ID token:', idToken);
 
       // Finalize the session: the server verifies the token and sets the
       // salesforceUserId custom claim; it returns { ok: true } (no token).
@@ -106,29 +103,15 @@ export default function VerifySmsScreen() {
         idToken,
       });
       if (res.status !== 200) {
-        console.log(
-          '[verify-sms] /auth/session failed:',
-          res.status,
-          res.body,
-        );
         setError('סיום ההתחברות נכשל. נסה שוב.');
         return;
       }
 
       // Force-refresh so the new ID token carries the salesforceUserId claim
-      // the server just set. getIdTokenResult(true) refreshes AND returns the
-      // decoded claims, so we can confirm the claim actually landed. (Caching
-      // this token is the next step.)
-      const refreshed = await cred.user.getIdTokenResult(true);
-      console.log('[verify-sms] token changed:', refreshed.token !== idToken);
-      console.log(
-        '[verify-sms] salesforceUserId claim:',
-        refreshed.claims.salesforceUserId,
-      );
-
-      // Store the refreshed Firebase ID token as the app session — protected
-      // API calls attach it as the Bearer token.
-      await setSession(refreshed.token);
+      // the server just set, then store it as the app session — protected API
+      // calls attach it as the Bearer token.
+      const refreshedToken = await cred.user.getIdToken(true);
+      await setSession(refreshedToken);
 
       router.replace('/(tabs)/activities');
     } catch (err) {
