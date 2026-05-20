@@ -166,3 +166,33 @@ export const GetRegistrationStatusSchema = z.object({
 export type GetRegistrationStatusDto = z.infer<
   typeof GetRegistrationStatusSchema
 >;
+
+/**
+ * NOTIFICATIONS SCHEMAS
+ */
+
+// Os type enum
+export const DeviceOsSchema = z.enum(['ios', 'android']);
+export type DeviceOs = z.infer<typeof DeviceOsSchema>;
+
+// Request body for registering a token
+export const RegisterDeviceTokenSchema = z.object({
+  deviceOs: DeviceOsSchema,
+  nativeToken: z.string(),
+  expoToken: z.string().nullable().optional(),
+});
+export type RegisterDeviceTokenDto = z.infer<typeof RegisterDeviceTokenSchema>;
+
+// Request body for sending a test notification (dev only)
+export const TestNotificationSchema = z.object({
+  title: z.string(),
+  body: z.string(),
+  data: z.record(z.string()).optional(), // payload values must be strings per FCM requirements
+});
+export type TestNotificationDto = z.infer<typeof TestNotificationSchema>;
+
+// Generic success response for notifications
+export const NotificationSuccessResponseSchema = z.object({
+  ok: z.literal(true),
+});
+export type NotificationSuccessResponseDto = z.infer<typeof NotificationSuccessResponseSchema>;

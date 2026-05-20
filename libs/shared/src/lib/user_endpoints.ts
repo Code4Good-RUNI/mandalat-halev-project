@@ -13,6 +13,9 @@ import {
   GetRegistrationStatusSchema,
   ErrorResponseSchema,
   ValidationErrorResponseSchema,
+  RegisterDeviceTokenSchema,
+  TestNotificationSchema,
+  NotificationSuccessResponseSchema,
 } from './user_schemas.js';
 
 const c = initContract();
@@ -151,6 +154,32 @@ export const userContract = c.router({
         500: ErrorResponseSchema,
       },
       summary: 'Get registration status for a specific user and campaign',
+    },
+  },
+  notifications: {
+    register: {
+      method: 'POST',
+      path: '/notifications/register',
+      body: RegisterDeviceTokenSchema,
+      responses: {
+        200: NotificationSuccessResponseSchema,
+        400: ValidationErrorResponseSchema,
+        401: ErrorResponseSchema, // Unauthorized (Missing/invalid token)
+        500: ErrorResponseSchema,
+      },
+      summary: 'Register a device push token for the user',
+    },
+    test: {
+      method: 'POST',
+      path: '/notifications/test',
+      body: TestNotificationSchema,
+      responses: {
+        200: NotificationSuccessResponseSchema,
+        400: ValidationErrorResponseSchema,
+        401: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+      summary: 'Send a test notification to all devices of the user (dev only)',
     },
   },
 });
