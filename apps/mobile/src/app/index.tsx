@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Redirect } from 'expo-router';
-import { getAccessToken, hydrateSession } from '../api/session';
+import { getStoredToken, hydrateSession } from '../api/session';
 
 export default function Index() {
   const [hydrated, setHydrated] = useState(false);
@@ -12,6 +12,6 @@ export default function Index() {
   if (!hydrated) return null;
 
   return (
-    <Redirect href={getAccessToken() ? '/(tabs)/activities' : '/login'} />
+    <Redirect href={getStoredToken() ? '/(tabs)/activities' : '/login'} />
   );
 }

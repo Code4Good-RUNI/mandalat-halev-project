@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   LoginRequestDto,
+  CreateSessionDto,
   RegisterForCampaignDto,
   UnregisterFromCampaignDto,
 } from '@mandalat-halev-project/api-interfaces';
@@ -17,6 +18,20 @@ import { api, apiPublic } from './client';
 export function useLogin() {
   return useMutation({
     mutationFn: (body: LoginRequestDto) => apiPublic.auth.login({ body }),
+  });
+}
+
+// Finalizes the Firebase login: POSTs the Firebase ID token (as a Bearer
+// header) plus the phone/id body to /auth/session. Uses the public client so
+// it is not coupled to the protected client's 401-expiry handling. The server
+// sets a Salesforce custom claim and returns { ok: true }.
+export function useCreateSession() {
+  return useMutation({
+    mutationFn: ({ body, idToken }: CreateSessionDto) =>
+      apiPublic.auth.session({
+        body,
+        extraHeaders: { Authorization: `Bearer ${idToken}` },
+      }),
   });
 }
 
