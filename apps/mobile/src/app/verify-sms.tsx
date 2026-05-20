@@ -51,14 +51,27 @@ export default function VerifySmsScreen() {
   const [verified, setVerified] = useState(false);
 
   const sendSms = useCallback(async () => {
-    if (!phoneNumber || !recaptchaVerifier.current) return;
+    if (!phoneNumber) return;
+    // expo-firebase-recaptcha's WebView verifier hangs on this project's
+    // Enterprise→v2 reCAPTCHA fallback. In dev, bypass it with a stub verifier;
+    // paired with appVerificationDisabledForTesting + a registered Firebase
+    // test number, signInWithPhoneNumber resolves with no WebView. Prod uses
+    // the modal.
+    const verifier = __DEV__
+      ? ({
+          type: 'recaptcha',
+          verify: () => Promise.resolve('test'),
+          _reset: () => undefined, // SDK calls _reset() in a finally block
+        } as unknown as ApplicationVerifier)
+      : (recaptchaVerifier.current as ApplicationVerifier | null);
+    if (!verifier) return;
     setError(null);
     setSending(true);
     try {
       const result = await signInWithPhoneNumber(
         auth,
         toE164(phoneNumber),
-        recaptchaVerifier.current as ApplicationVerifier,
+        verifier,
       );
       setConfirmation(result);
       console.log('[verify-sms] SMS sent');
@@ -98,11 +111,13 @@ export default function VerifySmsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaVerifier}
-        firebaseConfig={firebaseConfig}
-        attemptInvisibleVerification
-      />
+      {!__DEV__ && (
+        <FirebaseRecaptchaVerifierModal
+          ref={recaptchaVerifier}
+          firebaseConfig={firebaseConfig}
+          attemptInvisibleVerification
+        />
+      )}
       <View>
         <Text style={styles.title}>אימות מספר טלפון</Text>
         <Text style={styles.subText}>הזן את הקוד שנשלח ל-{phoneNumber}</Text>

@@ -19,3 +19,9 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 // That is fine for the SMS verification flow, which only needs a one-shot ID
 // token; AsyncStorage-backed persistence can be added later if sessions need it.
 export const auth = getAuth(app);
+
+// Dev only: lets Firebase test phone numbers skip real reCAPTCHA. __DEV__ is
+// false in production builds, so live users are unaffected.
+if (__DEV__) {
+  auth.settings.appVerificationDisabledForTesting = true;
+}
