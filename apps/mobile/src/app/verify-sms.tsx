@@ -17,6 +17,7 @@ import {
 import { FirebaseError } from 'firebase/app';
 import { auth, firebaseConfig } from '../firebase/config';
 import { useCreateSession } from '../api/hooks';
+import { setSession } from '../api/session';
 
 // Israeli mobile numbers arrive as 10 local digits (e.g. 0501234567); Firebase
 // Phone Auth needs E.164 format (+972501234567).
@@ -124,6 +125,10 @@ export default function VerifySmsScreen() {
         '[verify-sms] salesforceUserId claim:',
         refreshed.claims.salesforceUserId,
       );
+
+      // Store the refreshed Firebase ID token as the app session — protected
+      // API calls attach it as the Bearer token.
+      await setSession(refreshed.token);
 
       router.replace('/(tabs)/activities');
     } catch (err) {
