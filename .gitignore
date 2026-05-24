@@ -65,8 +65,7 @@ CLAUDE.md
 
 
 .nx/polygraph
-.claude/worktrees
-.claude/settings.local.json
+.claude/
 .agents/
 .cursor/
 AGENTS.md
