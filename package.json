@@ -3,6 +3,8 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "build": "npm run server:build",
+    "start": "node apps/server/dist/main.js",
     "server:build": "npm exec nx build server",
     "server:start": "node apps/server/dist/main.js",
     "gcp:enable-apis": "gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com",
