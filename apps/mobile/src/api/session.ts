@@ -1,100 +1,48 @@
-import { useSyncExternalStore } from 'react';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
 import type { QueryClient } from '@tanstack/react-query';
+import { auth } from '../firebase/config';
 
-const TOKEN_KEY = 'mandalat.accessToken';
-const USER_ID_KEY = 'mandalat.salesforceUserId';
+const TOKEN_KEY = 'mandalat.idToken';
 
-// expo-secure-store only ships native modules for iOS/Android. On web (Expo
-// dev) we fall back to localStorage so the app still works — production web
-// security is out of scope until we actually target the web platform.
-const storage =
-  Platform.OS === 'web'
-    ? {
-        getItemAsync: async (key: string) =>
-          typeof window !== 'undefined'
-            ? window.localStorage.getItem(key)
-            : null,
-        setItemAsync: async (key: string, value: string) => {
-          if (typeof window !== 'undefined') {
-            window.localStorage.setItem(key, value);
-          }
-        },
-        deleteItemAsync: async (key: string) => {
-          if (typeof window !== 'undefined') {
-            window.localStorage.removeItem(key);
-          }
-        },
-      }
-    : SecureStore;
-
-type SessionSnapshot = {
-  salesforceUserId: string | null;
-  isAuthenticated: boolean;
-};
+// expo-secure-store ships native modules only. Persist on iOS/Android; on web
+// (dev) the calls are skipped so the app still runs without a storage shim.
+const canPersist = Platform.OS !== 'web';
 
 let inMemoryToken: string | null = null;
-let inMemoryUserId: string | null = null;
-let snapshot: SessionSnapshot = {
-  salesforceUserId: null,
-  isAuthenticated: false,
-};
 let queryClientRef: QueryClient | null = null;
-const listeners = new Set<() => void>();
 
-function refreshSnapshot() {
-  snapshot = {
-    salesforceUserId: inMemoryUserId,
-    isAuthenticated: !!inMemoryToken,
-  };
-  for (const listener of listeners) listener();
-}
-
-export function getAccessToken(): string | null {
+// The token persisted from the last session — used at startup to decide whether
+// to route into the app. Within a running session the live token comes from
+// getValidToken().
+export function getStoredToken(): string | null {
   return inMemoryToken;
 }
 
-export function getSalesforceUserId(): string | null {
-  return inMemoryUserId;
-}
-
+// Loads any persisted Firebase ID token on app startup.
 export async function hydrateSession(): Promise<void> {
-  const [token, userId] = await Promise.all([
-    storage.getItemAsync(TOKEN_KEY),
-    storage.getItemAsync(USER_ID_KEY),
-  ]);
-  inMemoryToken = token;
-  inMemoryUserId = userId;
-  refreshSnapshot();
+  if (canPersist) {
+    inMemoryToken = await SecureStore.getItemAsync(TOKEN_KEY);
+  }
 }
 
-export async function setSession(args: {
-  accessToken: string;
-  salesforceUserId: string;
-}): Promise<void> {
-  await Promise.all([
-    storage.setItemAsync(TOKEN_KEY, args.accessToken),
-    storage.setItemAsync(USER_ID_KEY, args.salesforceUserId),
-  ]);
-  inMemoryToken = args.accessToken;
-  inMemoryUserId = args.salesforceUserId;
-  refreshSnapshot();
+// Stores the Firebase ID token as the app session.
+export async function setSession(idToken: string): Promise<void> {
+  inMemoryToken = idToken;
+  if (canPersist) {
+    await SecureStore.setItemAsync(TOKEN_KEY, idToken);
+  }
 }
 
 export async function clearSession(): Promise<void> {
-  // Guard against repeat calls (e.g. multiple in-flight 401s) so we don't loop
-  // navigation or re-clear an already-empty store.
-  if (!inMemoryToken && !inMemoryUserId) return;
+  // Guard against repeat calls (e.g. several in-flight 401s at once).
+  if (!inMemoryToken) return;
   inMemoryToken = null;
-  inMemoryUserId = null;
-  await Promise.all([
-    storage.deleteItemAsync(TOKEN_KEY).catch(() => undefined),
-    storage.deleteItemAsync(USER_ID_KEY).catch(() => undefined),
-  ]);
+  if (canPersist) {
+    await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => undefined);
+  }
   queryClientRef?.clear();
-  refreshSnapshot();
   router.replace('/login');
 }
 
@@ -102,17 +50,21 @@ export function registerQueryClient(client: QueryClient): void {
   queryClientRef = client;
 }
 
-function subscribe(callback: () => void): () => void {
-  listeners.add(callback);
-  return () => {
-    listeners.delete(callback);
-  };
-}
-
-function getSnapshot(): SessionSnapshot {
-  return snapshot;
-}
-
-export function useSession(): SessionSnapshot {
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+// Returns a current Firebase ID token for protected API calls. Firebase
+// refreshes the token automatically, so getIdToken() yields a valid one (pass
+// forceRefresh on a 401); the result is mirrored into secure storage. Falls
+// back to the last stored token when the Firebase user isn't in memory (e.g.
+// just after a cold start, before re-authentication).
+export async function getValidToken(
+  forceRefresh = false,
+): Promise<string | null> {
+  const user = auth.currentUser;
+  if (!user) {
+    return inMemoryToken;
+  }
+  const token = await user.getIdToken(forceRefresh);
+  if (token !== inMemoryToken) {
+    await setSession(token);
+  }
+  return token;
 }

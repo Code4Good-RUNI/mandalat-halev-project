@@ -9,9 +9,7 @@ import {
   Image,
 } from 'react-native';
 import { router } from 'expo-router';
-import { useQueryClient } from '@tanstack/react-query';
 import { useLogin } from '../api/hooks';
-import { setSession } from '../api/session';
 import { classifyApiError } from '../api/errorClassifier';
 import {
   getLoginBanner,
@@ -25,7 +23,6 @@ export default function LoginScreen() {
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
   const [banner, setBanner] = useState<string | null>(null);
   const { mutate: login, isPending } = useLogin();
-  const queryClient = useQueryClient();
 
   const handleIdChange = (text: string) => {
     setIdNumber(text);
@@ -48,14 +45,14 @@ export default function LoginScreen() {
     login(
       { phoneNumber, idNumber },
       {
-        onSuccess: async (data) => {
+        onSuccess: (data) => {
           if (data.status === 200) {
-            await setSession({
-              accessToken: data.body.accessToken,
-              salesforceUserId: data.body.salesforceUserId,
+            // The user exists. Move to SMS verification, carrying the phone
+            // and ID so that screen can run the Firebase phone-auth step.
+            router.push({
+              pathname: '/verify-sms',
+              params: { phoneNumber, idNumber },
             });
-            await queryClient.invalidateQueries();
-            router.replace('/(tabs)/activities');
             return;
           }
           const apiError = classifyApiError({ data });
