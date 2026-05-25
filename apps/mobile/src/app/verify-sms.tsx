@@ -46,7 +46,8 @@ export default function VerifySmsScreen() {
   const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(
     null,
   );
-  const [code, setCode] = useState('');
+  const [digits, setDigits] = useState(['', '', '', '', '', '']);
+  const digitRefs = useRef<(TextInput | null)[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -121,7 +122,24 @@ export default function VerifySmsScreen() {
     }
   };
 
+  const code = digits.join('');
   const verifyDisabled = code.length !== 6 || verifying || !confirmation;
+
+  const handleDigitChange = (text: string, index: number) => {
+    const digit = text.replace(/[^0-9]/g, '').slice(-1);
+    const next = [...digits];
+    next[index] = digit;
+    setDigits(next);
+    if (digit && index < 5) {
+      digitRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleDigitKeyPress = (key: string, index: number) => {
+    if (key === 'Backspace' && !digits[index] && index > 0) {
+      digitRefs.current[index - 1]?.focus();
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -138,15 +156,21 @@ export default function VerifySmsScreen() {
 
         {error && <Text style={styles.errorText}>{error}</Text>}
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>קוד אימות</Text>
-          <TextInput
-            style={styles.input}
-            value={code}
-            onChangeText={setCode}
-            keyboardType="numeric"
-            maxLength={6}
-          />
+        <View style={styles.digitsContainer}>
+          {digits.map((digit, i) => (
+            <TextInput
+              key={i}
+              ref={(el) => { digitRefs.current[i] = el; }}
+              style={[styles.digitInput, digit ? styles.digitInputFilled : null]}
+              value={digit}
+              onChangeText={(text) => handleDigitChange(text, i)}
+              onKeyPress={({ nativeEvent }) => handleDigitKeyPress(nativeEvent.key, i)}
+              keyboardType="numeric"
+              maxLength={1}
+              textAlign="center"
+              autoFocus={i === 0}
+            />
+          ))}
         </View>
 
         <TouchableOpacity onPress={sendSms} disabled={sending}>
@@ -188,19 +212,25 @@ const styles = StyleSheet.create({
     marginRight: 20,
     marginBottom: 20,
   },
-  inputContainer: { marginHorizontal: 20, marginBottom: 15 },
-  label: {
-    textAlign: 'right' as const,
-    fontSize: 14,
-    marginBottom: 6,
+  digitsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+    marginHorizontal: 20,
+    marginBottom: 15,
+    marginTop: 10,
+  },
+  digitInput: {
+    width: 44,
+    height: 52,
+    borderBottomWidth: 2,
+    borderBottomColor: '#ccc',
+    fontSize: 24,
+    fontWeight: 'bold',
     color: '#333',
   },
-  input: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-    paddingVertical: 8,
-    fontSize: 16,
-    textAlign: 'right' as const,
+  digitInputFilled: {
+    borderBottomColor: '#FF8C00',
   },
   linkText: { textAlign: 'center', marginTop: 20, color: '#666' },
   verifyButton: {

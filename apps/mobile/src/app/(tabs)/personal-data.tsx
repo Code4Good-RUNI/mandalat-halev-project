@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
-  SafeAreaView,
   ScrollView,
   Switch,
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserProfile, useUserContacts } from '../../api/hooks';
 import { QueryErrorState } from '../../components/QueryErrorState';
 
@@ -42,41 +42,37 @@ export default function PersonalDataScreen() {
         <Text style={styles.header}>איזור אישי</Text>
 
         {/* My Details */}
-        <View>
-          <Text>הפרטים שלי</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>הפרטים שלי</Text>
 
-          <View>
-            <Text>שם מלא</Text>
-            <Text>
-              {profile?.firstName} {profile?.lastName}
-            </Text>
+          <View style={styles.row}>
+            <Text style={styles.label}>שם מלא</Text>
+            <Text style={styles.value}>{profile?.firstName} {profile?.lastName}</Text>
           </View>
 
-          <View>
-            <Text>מספר תעודת זהות</Text>
-            <Text>{profile?.idNumber}</Text>
+          <View style={styles.row}>
+            <Text style={styles.label}>מספר תעודת זהות</Text>
+            <Text style={styles.value}>{profile?.idNumber}</Text>
           </View>
 
-          <View>
-            <Text>מספר טלפון</Text>
-            <Text>{profile?.phoneNumber}</Text>
+          <View style={styles.row}>
+            <Text style={styles.label}>מספר טלפון</Text>
+            <Text style={styles.value}>{profile?.phoneNumber}</Text>
           </View>
 
-          <View>
-            <Text>כתובת דואר אלקטרוני</Text>
-            <Text>{profile?.email}</Text>
+          <View style={styles.row}>
+            <Text style={styles.label}>כתובת דואר אלקטרוני</Text>
+            <Text style={styles.value}>{profile?.email}</Text>
           </View>
 
-          <View>
-            <Text>כתובת מגורים</Text>
-            <Text>
-              {profile?.address}, {profile?.city}
-            </Text>
+          <View style={styles.row}>
+            <Text style={styles.label}>כתובת מגורים</Text>
+            <Text style={styles.value}>{profile?.address}, {profile?.city}</Text>
           </View>
 
-          <View>
-            <Text>תאריך לידה</Text>
-            <Text>{profile?.birthDate}</Text>
+          <View style={[styles.row, styles.rowLast]}>
+            <Text style={styles.label}>תאריך לידה</Text>
+            <Text style={styles.value}>{profile?.birthDate}</Text>
           </View>
         </View>
 
@@ -171,6 +167,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
+  rowLast: { borderBottomWidth: 0 },
   label: { color: '#666' },
   value: { fontWeight: '500' },
   card: {
