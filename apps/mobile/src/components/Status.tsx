@@ -24,7 +24,7 @@ export const Status = ({ label }: { label: string }) => {
 };
 
 const styles = StyleSheet.create({
-  badge: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 12 },
+  badge: { paddingVertical: 2, paddingHorizontal: 5, borderRadius: 6, alignSelf: 'flex-start' },
   text: { fontSize: 12, fontWeight: 'bold' },
   defaultBadge: { backgroundColor: '#eee' },
   defaultText: { color: '#333' },

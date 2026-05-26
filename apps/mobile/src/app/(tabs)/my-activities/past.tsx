@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, FlatList, SafeAreaView, StyleSheet, ActivityIndicator } from 'react-native';
-import { ActivityItem } from '../../../components/ActivityItem';
+import { MyActivityItem } from '../../../components/MyActivityItem';
 import { usePastCampaigns } from '../../../api/hooks';
 import { CampaignDetailsModal } from '../../../components/CampaignDetailsModal';
 import { QueryErrorState } from '../../../components/QueryErrorState';
@@ -32,10 +32,9 @@ export default function PreviousActivitiesScreen() {
         data={data.body}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <ActivityItem
+          <MyActivityItem
             title={item.name}
-            host={`${item.host.firstName} ${item.host.lastName}`}
-            time={`${item.startDate} | ${item.durationInHours} שעות`}
+            date={`${item.startDate} | ${item.durationInHours} שעות`}
             location={`${item.locationAddress}, ${item.locationCity}`}
             status={item.hasUserParticipated ? 'נוכח' : 'לא נוכח'}
             onPressDetails={() => setSelectedCampaign(item)}

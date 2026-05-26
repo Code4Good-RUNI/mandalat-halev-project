@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { ActivityItem } from './ActivityItem';
+import { MyActivityItem } from './MyActivityItem';
 import {
   useRegistrationStatus,
   useUnregisterFromCampaign
@@ -89,10 +89,9 @@ export function FutureCampaignItem({ campaign, contacts, contactsLoading, onShow
 
   return (
     <>
-      <ActivityItem
+      <MyActivityItem
         title={campaign.name}
-        host={`${campaign.host.firstName} ${campaign.host.lastName}`}
-        time={`${campaign.startDate} | ${campaign.durationInHours} שעות`}
+        date={`${campaign.startDate} | ${campaign.durationInHours} שעות`}
         location={`${campaign.locationAddress}, ${campaign.locationCity}`}
         status={statusText}
         onPressDetails={onPressDetails}
@@ -110,7 +109,7 @@ export function FutureCampaignItem({ campaign, contacts, contactsLoading, onShow
             </TouchableOpacity>
           )}
         </View>
-      </ActivityItem>
+      </MyActivityItem>
 
       {/* Contact selection bottom sheet — only shown when the user has multiple contacts. */}
       <Modal visible={selectionVisible} transparent animationType="slide">
@@ -160,7 +159,7 @@ export function FutureCampaignItem({ campaign, contacts, contactsLoading, onShow
 }
 
 const styles = StyleSheet.create({
-  actionContainer: { alignItems: 'center' },
+  actionContainer: { alignItems: 'flex-end' },
   unregisterButton: {
     backgroundColor: '#ff4444',
     paddingVertical: 8,

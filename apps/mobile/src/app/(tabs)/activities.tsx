@@ -88,7 +88,8 @@ function ActiveCampaignItem({ item, contacts, contactsLoading, onShowModal, onPr
       <ActivityItem
         title={item.name}
         host={`${item.host.firstName} ${item.host.lastName}`}
-        time={`${item.startDate} (${item.durationInHours} שעות)`}
+        date={item.startDate}
+        duration={`${item.durationInHours} שעות`}
         location={`${item.locationAddress}, ${item.locationCity}`}
         status={isRegistered ? 'נרשמת בהצלחה' : 'פתוח להרשמה'}
         onPressDetails={onPressDetails}
@@ -246,8 +247,8 @@ const styles = StyleSheet.create({
   searchInput: { borderWidth: 1, borderColor: '#ccc', padding: 8, borderRadius: 5 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyText: { textAlign: 'center', marginTop: 30, color: '#666', fontSize: 16 },
-  actionContainer: { alignItems: 'center', marginTop: 10 },
-  registerButton: { backgroundColor: '#FF8C00', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8 },
+  actionContainer: { marginTop: 10 },
+  registerButton: { backgroundColor: '#FF8C00', paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
   disabledButton: { backgroundColor: '#ccc' },
   registerButtonText: { color: '#fff', fontWeight: 'bold' },
   // Notification modal

@@ -3,68 +3,51 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Status } from './Status';
 
-interface ActivityItemProps {
+interface MyActivityItemProps {
   title: string;
-  host?: string;
-  date?: string;
-  duration?: string;
-  time?: string;
+  date: string;
   location: string;
   status: string;
   onPressDetails?: () => void;
   children?: React.ReactNode;
 }
 
-export const ActivityItem = ({
+export const MyActivityItem = ({
   title,
-  host,
   date,
-  duration,
   location,
   status,
   onPressDetails,
   children,
-}: ActivityItemProps) => (
+}: MyActivityItemProps) => (
   <View style={styles.container}>
     <View style={styles.cardRow}>
       {/* Details column on the left */}
       <View style={styles.info}>
-        <Text style={styles.title}>{title}</Text>
+        {/* Status on left, name on right */}
+        <View style={styles.nameRow}>
+          <Status label={status} />
+          <Text style={styles.title}>{title}</Text>
+        </View>
 
-        {(date || duration) && (
-          <View style={styles.metaRow}>
-            {duration && (
-              <View style={[styles.metaItem, styles.durationItem]}>
-                <Text style={styles.metaText}>{duration}</Text>
-                <Ionicons name="time-outline" size={13} color="#888" />
-              </View>
-            )}
-            {date && (
-              <View style={styles.metaItem}>
-                <Text style={styles.metaText}>{date}</Text>
-                <Ionicons name="calendar-outline" size={13} color="#888" />
-              </View>
-            )}
-          </View>
-        )}
+        {/* Date+time and location aligned to the right (photo side) */}
+        <View style={styles.metaItem}>
+          <Text style={styles.metaText}>{date}</Text>
+          <Ionicons name="time-outline" size={13} color="#888" />
+        </View>
 
-        <View style={[styles.metaItem, styles.locationItem]}>
+        <View style={styles.metaItem}>
           <Text style={styles.metaText}>{location}</Text>
           <Ionicons name="location-outline" size={13} color="#888" />
         </View>
-
-        {host && <Text style={styles.host}>{host}</Text>}
 
         <TouchableOpacity onPress={onPressDetails} style={styles.detailsBtn}>
           <Text style={styles.detailsLink}>לפרטים נוספים</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Right column: status badge + photo */}
-      <View style={styles.rightCol}>
-        <Status label={status} />
-        <View style={styles.photo} />
-      </View>
+      {/* Photo on the right */}
+      <View style={styles.photo} />
     </View>
 
     {children && <View style={styles.actions}>{children}</View>}
@@ -91,49 +74,39 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 6,
   },
-  rightCol: {
-    alignItems: 'flex-start',
-    gap: 6,
-    flexShrink: 0,
-  },
   photo: {
     width: 80,
     height: 80,
     borderRadius: 8,
     backgroundColor: '#ddd',
+    flexShrink: 0,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   title: {
     fontSize: 16,
     fontWeight: 'bold',
-    textAlign: 'right',
     color: '#333',
-  },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    textAlign: 'right',
+    flex: 1,
+    paddingRight: 8,
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-  },
-  durationItem: {
-    marginLeft: 20,
-  },
-  locationItem: {
     alignSelf: 'flex-end',
   },
   metaText: {
     fontSize: 13,
     color: '#666',
   },
-  host: {
-    fontSize: 13,
-    color: '#888',
-    textAlign: 'right',
-  },
   detailsBtn: {
     alignSelf: 'flex-end',
+    marginTop: 4,
   },
   detailsLink: {
     color: '#FF8C00',
