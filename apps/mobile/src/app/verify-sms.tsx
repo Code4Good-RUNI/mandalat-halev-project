@@ -19,10 +19,32 @@ import { auth, firebaseConfig } from '../firebase/config';
 import { useCreateSession } from '../api/hooks';
 import { setSession } from '../api/session';
 
-// Israeli mobile numbers arrive as 10 local digits (e.g. 0501234567); Firebase
-// Phone Auth needs E.164 format (+972501234567).
+// Firebase Phone Auth needs E.164 format (+972501234567). Users may type local
+// Israeli formats (0501234567 / 050-1234567), or paste +972... / 972...
 function toE164(phone: string): string {
-  return '+972' + phone.replace(/^0/, '');
+  const trimmed = (phone ?? '').trim();
+  if (!trimmed) return '';
+
+  // Keep only digits; we re-add the '+' ourselves.
+  const digits = trimmed.replace(/\D/g, '');
+
+  // Already has country code (with or without '+')
+  if (digits.startsWith('972')) {
+    return `+${digits}`;
+  }
+
+  // Local Israeli: 0XXXXXXXXX
+  if (digits.startsWith('0')) {
+    return `+972${digits.slice(1)}`;
+  }
+
+  // Local without leading 0 (rare, but happens): 5XXXXXXXX (9 digits)
+  if (digits.length === 9 && digits.startsWith('5')) {
+    return `+972${digits}`;
+  }
+
+  // Fallback: return as-is (likely to fail fast with a clear Firebase error)
+  return `+${digits}`;
 }
 
 function verifyErrorMessage(err: unknown): string {
