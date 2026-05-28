@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
+import { clearSession } from '../../api/session';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserProfile, useUserContacts } from '../../api/hooks';
 import { QueryErrorState } from '../../components/QueryErrorState';
@@ -137,6 +138,10 @@ export default function PersonalDataScreen() {
         <TouchableOpacity style={styles.updateButton}>
           <Text style={styles.updateButtonText}>עדכון פרטים אישיים</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => void clearSession()} style={styles.logoutButton}>
+          <Text style={styles.logoutText}>התנתק</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -186,6 +191,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   updateButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  logoutButton: { marginTop: 16, alignItems: 'center' },
+  logoutText: { color: 'red', fontSize: 16 },
   switchRow: {
     flexDirection: 'row-reverse',
     justifyContent: 'space-between',

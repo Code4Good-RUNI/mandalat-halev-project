@@ -243,7 +243,7 @@ export default function ActivitiesScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   header: { padding: 15 },
-  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right', marginBottom: 10 },
+  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 10 },
   searchInput: { borderWidth: 1, borderColor: '#ccc', padding: 8, borderRadius: 5 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyText: { textAlign: 'center', marginTop: 30, color: '#666', fontSize: 16 },
