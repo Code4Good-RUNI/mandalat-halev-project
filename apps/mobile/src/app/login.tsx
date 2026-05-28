@@ -110,6 +110,7 @@ export default function LoginScreen() {
               style={styles.input}
               value={phoneNumber}
               onChangeText={handlePhoneChange}
+              placeholder="לדוגמה: 0541234567"
               keyboardType="numeric"
               textAlign="right"
             />
