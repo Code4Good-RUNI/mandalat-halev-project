@@ -8,25 +8,17 @@ export class SalesforceCoreService {
   private readonly logger = new Logger(SalesforceCoreService.name);
 
   constructor(private configService: ConfigService) {
-    this.conn = new jsforce.Connection({
-      loginUrl: this.configService.get('SF_HOST'),
-      version: '60.0',
-    });
+    this.conn = new jsforce.Connection({ version: '60.0' });
+    this.onModuleInit();
   }
 
   async onModuleInit() {
-    const loginUrl = this.configService.get<string>('SF_HOST');
-
-    this.logger.log(`DEBUG: loginUrl is "${loginUrl}"`);
-    this.logger.log(
-      '🚀 Server started, attempting to test Salesforce connection...',
-    );
+    this.logger.log('Attempting to connect to Salesforce via Client Credentials flow...');
     try {
       await this.ensureConnected();
-      this.logger.log('✅ SUCCESS: Connected to Salesforce successfully!');
+      this.logger.log('Connected to Salesforce successfully.');
     } catch (error) {
-      this.logger.error('❌ FAILED: Could not connect to Salesforce.');
-
+      this.logger.error('Could not connect to Salesforce.');
       if (error instanceof Error) {
         this.logger.error(`Reason: ${error.message}`);
       } else {
@@ -35,24 +27,71 @@ export class SalesforceCoreService {
     }
   }
 
-  /**
-   * Authenticates with Salesforce using the OAuth2 Client Credentials flow.
-   * Ensures that connection is alive and managing the token refreshing.
-   */
+  private async authenticate(): Promise<void> {
+    const host = this.configService.get<string>('SF_HOST');
+    const clientId = this.configService.get<string>('SF_CLIENT_ID');
+    const clientSecret = this.configService.get<string>('SF_CLIENT_SECRET');
+
+    if (!host || !clientId || !clientSecret) {
+      throw new Error('SF_HOST, SF_CLIENT_ID, or SF_CLIENT_SECRET missing in .env.server');
+    }
+
+    const tokenUrl = `${host}/services/oauth2/token`;
+    const body = new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: clientId,
+      client_secret: clientSecret,
+    });
+
+    const response = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`Client Credentials auth failed (${response.status}): ${errorBody}`);
+    }
+
+    const tokenData = (await response.json()) as {
+      instance_url: string;
+      access_token: string;
+    };
+    this.conn = new jsforce.Connection({
+      instanceUrl: tokenData.instance_url,
+      accessToken: tokenData.access_token,
+      version: '60.0',
+    });
+
+    this.logger.log('Access token acquired via Client Credentials flow.');
+  }
+
   private async ensureConnected(): Promise<void> {
     if (!this.conn.accessToken) {
-      const clientId = this.configService.get<string>('SF_CLIENT_ID');
-      const clientSecret = this.configService.get<string>('SF_CLIENT_SECRET');
+      await this.authenticate();
+    }
+  }
 
-      // ensures that values exist
-      if (!clientId || !clientSecret) {
-        throw new Error(
-          'Salesforce credentials are missing in environment variables',
-        );
+  private isSessionExpiredError(err: unknown): boolean {
+    if (err instanceof Error) {
+      const msg = err.message.toUpperCase();
+      return msg.includes('INVALID_SESSION_ID') || msg.includes('SESSION EXPIRED');
+    }
+    return false;
+  }
+
+  private async withReauth<T>(operation: () => Promise<T>): Promise<T> {
+    try {
+      return await operation();
+    } catch (err) {
+      if (this.isSessionExpiredError(err)) {
+        this.logger.warn('Session expired, re-authenticating...');
+        this.conn = new jsforce.Connection({ version: '60.0' });
+        await this.authenticate();
+        return await operation();
       }
-
-      this.logger.log('Authenticating with Salesforce...');
-      await this.conn.login(clientId, clientSecret);
+      throw err;
     }
   }
 
@@ -72,9 +111,11 @@ export class SalesforceCoreService {
    * @returns A Promise that resolves to an array of records of type T
    */
   async query<T extends jsforce.Record>(soql: string): Promise<T[]> {
-    await this.ensureConnected();
-    const result = await this.conn.query<T>(soql);
-    return result.records;
+    return this.withReauth(async () => {
+      await this.ensureConnected();
+      const result = await this.conn.query<T>(soql);
+      return result.records;
+    });
   }
 
   /**
@@ -84,8 +125,10 @@ export class SalesforceCoreService {
    * @returns A Promise that resolves to the Salesforce creation result
    */
   async create(sobjectName: string, data: any): Promise<any> {
-    const obj = await this.sobject(sobjectName);
-    return obj.create(data);
+    return this.withReauth(async () => {
+      const obj = await this.sobject(sobjectName);
+      return obj.create(data);
+    });
   }
 
   /**
@@ -95,8 +138,10 @@ export class SalesforceCoreService {
    * @returns A Promise that resolves to the Salesforce deletion result
    */
   async destroy(sobjectName: string, id: string): Promise<any> {
-    const obj = await this.sobject(sobjectName);
-    return obj.destroy(id);
+    return this.withReauth(async () => {
+      const obj = await this.sobject(sobjectName);
+      return obj.destroy(id);
+    });
   }
 
   /**
@@ -104,9 +149,12 @@ export class SalesforceCoreService {
    * @param sobjectName - The name of the SObject
    * @param data - The record data to be updated
    * @returns A Promise that resolves to the Salesforce update result
-   */ async update(sobjectName: string, data: any): Promise<any> {
-    const obj = await this.sobject(sobjectName);
-    return obj.update(data);
+   */
+  async update(sobjectName: string, data: any): Promise<any> {
+    return this.withReauth(async () => {
+      const obj = await this.sobject(sobjectName);
+      return obj.update(data);
+    });
   }
 
   /**
