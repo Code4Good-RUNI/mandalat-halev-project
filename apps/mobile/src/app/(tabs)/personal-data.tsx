@@ -93,7 +93,7 @@ export default function PersonalDataScreen() {
         </View>
 
         {/* Notification Settings */}
-        <View style={styles.section}>
+        <View style={[styles.section, { display: 'none' }]}>
           <Text style={styles.sectionTitle}>הגדרת התראות</Text>
 
           <View style={styles.switchRow}>
