@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  Linking,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useLogin } from '../api/hooks';
@@ -117,11 +118,14 @@ export default function LoginScreen() {
             )}
           </View>
 
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => void Linking.openURL('mailto:mandalatlev@gmail.com')}>
             <Text style={styles.linkText}>נתקלת בבעיה? צור איתנו קשר</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.donationButton}>
+          <TouchableOpacity
+            style={styles.donationButton}
+            onPress={() => void Linking.openURL('https://www.mandalathalev.org.il/%D7%AA%D7%A8%D7%95%D7%9E%D7%94-%D7%9C%D7%A2%D7%9E%D7%95%D7%AA%D7%94')}
+          >
             <Text style={styles.donationButtonText}>לתרומות ♥</Text>
           </TouchableOpacity>
         </View>

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  Linking,
 } from 'react-native';
 import { clearSession } from '../../api/session';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -135,7 +136,10 @@ export default function PersonalDataScreen() {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.updateButton}>
+        <TouchableOpacity
+          style={styles.updateButton}
+          onPress={() => void Linking.openURL('mailto:mandalatlev@gmail.com')}
+        >
           <Text style={styles.updateButtonText}>עדכון פרטים אישיים</Text>
         </TouchableOpacity>
 
