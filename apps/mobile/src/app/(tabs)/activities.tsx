@@ -65,8 +65,7 @@ function ActiveCampaignItem({ item, contacts, contactsLoading, onShowModal, onPr
     if (contacts.length <= 1) {
       submitRegistration(contacts.map((c) => c.salesforceUserId));
     } else {
-      // Pre-select all contacts so the user can just confirm without extra taps.
-      setSelectedIds(contacts.map((c) => c.salesforceUserId));
+      setSelectedIds([]);
       setSelectionVisible(true);
     }
   };
@@ -89,7 +88,8 @@ function ActiveCampaignItem({ item, contacts, contactsLoading, onShowModal, onPr
       <ActivityItem
         title={item.name}
         host={`${item.host.firstName} ${item.host.lastName}`}
-        time={`${item.startDate} (${item.durationInHours} שעות)`}
+        date={item.startDate}
+        duration={`${item.durationInHours} שעות`}
         location={`${item.locationAddress}, ${item.locationCity}`}
         status={isRegistered ? 'נרשמת בהצלחה' : 'פתוח להרשמה'}
         onPressDetails={onPressDetails}
@@ -114,7 +114,6 @@ function ActiveCampaignItem({ item, contacts, contactsLoading, onShowModal, onPr
           <View style={styles.selectionModal}>
             <Text style={styles.selectionTitle}>בחר משתתפים</Text>
 
-            {/* One row per contact. Tapping toggles their checkbox. */}
             {contacts.map((contact) => {
               const selected = selectedIds.includes(contact.salesforceUserId);
               return (
@@ -123,11 +122,12 @@ function ActiveCampaignItem({ item, contacts, contactsLoading, onShowModal, onPr
                   style={styles.contactRow}
                   onPress={() => toggleContact(contact.salesforceUserId)}
                 >
-                  {/* Visual checkbox: orange fill when selected, grey border when not. */}
-                  <View style={[styles.checkbox, selected && styles.checkboxSelected]} />
                   <Text style={styles.contactName}>
                     {contact.firstName} {contact.lastName}
                   </Text>
+                  <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
+                    {selected && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -243,12 +243,12 @@ export default function ActivitiesScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   header: { padding: 15 },
-  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right', marginBottom: 10 },
+  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 10 },
   searchInput: { borderWidth: 1, borderColor: '#ccc', padding: 8, borderRadius: 5 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyText: { textAlign: 'center', marginTop: 30, color: '#666', fontSize: 16 },
-  actionContainer: { alignItems: 'center', marginTop: 10 },
-  registerButton: { backgroundColor: '#FF8C00', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8 },
+  actionContainer: { marginTop: 10 },
+  registerButton: { backgroundColor: '#FF8C00', paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
   disabledButton: { backgroundColor: '#ccc' },
   registerButtonText: { color: '#fff', fontWeight: 'bold' },
   // Notification modal
@@ -293,7 +293,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF8C00',
     borderColor: '#FF8C00',
   },
-  contactName: { fontSize: 16, textAlign: 'right', flex: 1, paddingRight: 12 },
+  contactName: { fontSize: 16, textAlign: 'right', flex: 1, paddingLeft: 12 },
+  checkmark: { color: '#fff', fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
   selectionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
