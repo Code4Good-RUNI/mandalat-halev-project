@@ -1,10 +1,9 @@
-import { Injectable, Logger, BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { SalesforceCoreService } from '../core/salesforce-core.service';
 import {
   SalesforceMapper,
   ALLOWED_REGISTRATION_STATUSES,
   CANCELED_STATUSES,
-  COMPLETED_PARTICIPATION_STATUSES,
 } from '../salesforce.mapper';
 import {
   GetFutureCampaignDto,
@@ -13,10 +12,7 @@ import {
   RegisterResponseDto,
   UnregisterFromCampaignDto,
   GetRegistrationStatusDto,
-  GetFutureCampaignSchema,
-  GetPastCampaignSchema,
 } from '@mandalat-halev-project/api-interfaces';
-import { z } from 'zod';
 
 // Campaign fields available in the External Customer App
 // Campaign fields
@@ -82,136 +78,10 @@ export class SalesforceCampaignService {
   //      const testContactId = '003JW00001J9Bu1YAF'; אלון
 
   async onModuleInit() {
-    this.logger.log('🚀 [Campaign Sandbox] Starting Zod Schema Validation...');
-    await this.testUnregistrationSandbox();
-  }
-  private async testUnregistrationSandbox(): Promise<void> {
-    try {
-      const testContactId = '003JW00001J9Bu1YAF';
-      const testCampaignId = '701Vk00000TkOZhIAN'; // אותו קמפיין שנרשמנו אליו
-
-      this.logger.log(
-        `🧪 Starting unregistration test for Contact: ${testContactId}...`,
-      );
-
-      const result = await this.unregister({
-        contactIds: [testContactId],
-        campaignId: testCampaignId,
-      });
-
-      if (result.requestReceivedSuccessfully) {
-        this.logger.log(
-          `✅ Unregistration test passed! Salesforce Member deleted.`,
-        );
-      }
-    } catch (error) {
-      this.logger.error(`❌ Unregistration test failed: ${error.message}`);
-    }
+    //this.logger.log('🚀 [Campaign Sandbox] Starting Zod Schema Validation...');
+    //await this.testRegistrationStatusSandbox();
   }
 
-  /**
-   * פונקציית בדיקה לשמה יצה רישום אמיתי ב-Sandbox)
-   */
-  private async testRegistrationSandbox(): Promise<void> {
-    try {
-      // השתמש ב-ID של משתמש שאפשר לשחק איתו
-      const testContactId = '003JW00001J9Bu1YAF';
-      const testCampaignId = '701Vk00000TkOZhIAN'; // שים כאן ID של קמפיין שקיים במערכת
-
-      this.logger.log(
-        `🧪 Starting registration test for Contact: ${testContactId}...`,
-      );
-
-      const result = await this.register({
-        contactIds: [testContactId],
-        campaignId: testCampaignId,
-      });
-
-      if (result.requestReceivedSuccessfully) {
-        this.logger.log(
-          `✅ Registration test passed! Salesforce Member created.`,
-        );
-      }
-    } catch (error) {
-      this.logger.error(`❌ Registration test failed: ${error.message}`);
-    }
-  }
-
-  /**
-   * פונקציית טסט מקיפה לבדיקת כל סוגי הקמפיינים (פעילים, עתידיים, עבר)
-   */
-  private async testAllCampaignsSandbox(): Promise<void> {
-    try {
-      // ה-ID של המשתמש האמיתי ששמת (כדי שנוכל לראות למה הוא באמת רשום)
-      const testContactId = '003JW00001J9Bu1YAF';
-      this.logger.log(
-        `🔍 Fetching ALL campaigns for contact: ${testContactId}`,
-      );
-      this.logger.debug(`==================================================`);
-
-      // 1. בדיקת קמפיינים פעילים (פתוחים להרשמה)
-      this.logger.log(`🟢 --- ACTIVE CAMPAIGNS (Available to register) ---`);
-      const activeCampaigns = await this.getActiveCampaigns(testContactId);
-      const activeValidation = z
-        .array(GetFutureCampaignSchema)
-        .safeParse(activeCampaigns);
-
-      if (activeValidation.success) {
-        this.logger.log(
-          `✅ PERFECT MATCH! Found ${activeCampaigns.length} Active campaigns.`,
-        );
-        if (activeCampaigns.length > 0)
-          // מחקנו את ה-[0] כאן
-          console.dir(activeValidation.data, { depth: null, colors: true });
-      } else {
-        this.logger.error('❌ Active Campaigns failed Zod validation:');
-        console.error(JSON.stringify(activeValidation.error.format(), null, 2));
-      }
-      this.logger.debug(`--------------------------------------------------`);
-
-      // 2. בדיקת קמפיינים עתידיים (כבר רשום אליהם)
-      this.logger.log(`🔵 --- FUTURE CAMPAIGNS (User is registered) ---`);
-      const futureCampaigns = await this.getFutureCampaigns(testContactId);
-      const futureValidation = z
-        .array(GetFutureCampaignSchema)
-        .safeParse(futureCampaigns);
-
-      if (futureValidation.success) {
-        this.logger.log(
-          `✅ PERFECT MATCH! Found ${futureCampaigns.length} Future campaigns.`,
-        );
-        if (futureCampaigns.length > 0)
-          // מחקנו את ה-[0] כאן
-          console.dir(futureValidation.data, { depth: null, colors: true });
-      } else {
-        this.logger.error('❌ Future Campaigns failed Zod validation:');
-        console.error(JSON.stringify(futureValidation.error.format(), null, 2));
-      }
-      this.logger.debug(`--------------------------------------------------`);
-
-      // 3. בדיקת קמפייני עבר (היסטוריה)
-      this.logger.log(`⚪ --- PAST CAMPAIGNS (History) ---`);
-      const pastCampaigns = await this.getPastCampaigns(testContactId);
-      const pastValidation = z
-        .array(GetPastCampaignSchema)
-        .safeParse(pastCampaigns);
-
-      if (pastValidation.success) {
-        this.logger.log(
-          `✅ PERFECT MATCH! Found ${pastCampaigns.length} Past campaigns.`,
-        );
-        if (pastCampaigns.length > 0)
-          // מחקנו את ה-[0] כאן
-          console.dir(pastValidation.data, { depth: null, colors: true });
-      } else {
-        this.logger.error('❌ Past Campaigns failed Zod validation:');
-        console.error(JSON.stringify(pastValidation.error.format(), null, 2));
-      }
-      this.logger.debug(`==================================================`);
-    } catch (error) {
-      this.logger.error('❌ [Campaign Sandbox] Failed', error);
-    }
-  }
   //------------------------------------------------------------------------------------------------------------------
 
   /**
