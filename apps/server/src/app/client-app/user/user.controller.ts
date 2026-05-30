@@ -1,6 +1,6 @@
 import { Controller, NotFoundException, UseGuards } from '@nestjs/common';
 import { tsRestHandler, TsRestHandler } from '@ts-rest/nest';
-import { userContract, ContactDto } from '@mandalat-halev-project/api-interfaces';
+import { userContract } from '@mandalat-halev-project/api-interfaces';
 import { FirebaseAuthGuard } from '../auth/firebase-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { SalesforceUserService } from '../../salesforce/user/salesforce-user.service';
@@ -30,26 +30,11 @@ export class UserController {
   async getContacts(@CurrentUser('sub') userId: string) {
     return tsRestHandler(userContract.user.contacts, async () => {
 
-      const mockContacts: ContactDto[] = [
-        {
-          salesforceUserId: 'sf-001',
-          firstName: 'Ronen',
-          lastName: 'Cohen',
-          idNumber: '302145678',
-          birthDate: '1985-05-15',
-        },
-        {
-          salesforceUserId: 'sf-002',
-          firstName: 'Yael',
-          lastName: 'Levi',
-          idNumber: '318965431',
-          birthDate: '1992-11-20',
-        }
-      ];
+      const contacts = await this.userService.getFamilyMembers(userId);
 
       return {
         status: 200,
-        body: mockContacts
+        body: contacts
       };
     });
   }

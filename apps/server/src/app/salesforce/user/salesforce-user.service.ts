@@ -3,12 +3,9 @@ import {
   LoginRequestDto,
   UserProfileDto,
   ContactDto,
-  UserProfileSchema,
-  ContactSchema,
 } from '@mandalat-halev-project/api-interfaces';
 import { SalesforceCoreService } from '../core/salesforce-core.service';
 import { SalesforceMapper } from '../salesforce.mapper';
-import { z } from 'zod';
 
 // Contact fields available in the External Customer App
 const CONTACT_FIELDS = [
@@ -36,77 +33,9 @@ export class SalesforceUserService {
     this.logger.log(
       '🚀 [Profile Sandbox] Starting User Profile Verification Flow...',
     );
-    await this.testUserProfileSandbox();
+    //await this.testUserProfileSandbox();
   }
 
-  private async testUserProfileSandbox(): Promise<void> {
-    try {
-      const testPhone = '0543979180';
-      const testId = '212677413';
-
-      this.logger.log(
-        `🔐 [Step 1] Validating credentials via validateLogin...`,
-      );
-      const salesforceUserId = await this.validateLogin({
-        phoneNumber: testPhone,
-        idNumber: testId,
-      });
-
-      if (!salesforceUserId) {
-        this.logger.warn(`❌ Login validation failed.`);
-        return;
-      }
-
-      this.logger.log(
-        `✅ Login Successful! Found Salesforce User ID: ${salesforceUserId}`,
-      );
-
-      this.logger.log(`👤 [Step 2] Fetching profile via getUserProfile...`);
-      const profile = await this.getUserProfile(salesforceUserId);
-
-      this.logger.log(`🛡️ [Step 2.5] Validating Profile against Zod Schema...`);
-      const profileValidation = UserProfileSchema.safeParse(profile);
-
-      if (profileValidation.success) {
-        this.logger.log(
-          '✅ PERFECT MATCH! Profile matches UserProfileSchema exactly:',
-        );
-        console.dir(profileValidation.data, { depth: null, colors: true });
-      } else {
-        this.logger.error('❌ SCHEMA MISMATCH! Profile failed Zod validation:');
-        console.error(
-          JSON.stringify(profileValidation.error.format(), null, 2),
-        );
-      }
-
-      this.logger.log(
-        `👨‍👩‍👧‍👦 [Step 3] Fetching family contacts using SF ID only...`,
-      );
-      const familyMembers = await this.getFamilyMembers(salesforceUserId);
-
-      this.logger.log(`🛡️ [Step 3.5] Validating Family against Zod Schema...`);
-      const ArrayOfContactsSchema = z.array(ContactSchema);
-      const familyValidation = ArrayOfContactsSchema.safeParse(familyMembers);
-
-      if (familyValidation.success) {
-        this.logger.log(
-          `✅ PERFECT MATCH! Family members match z.array(ContactSchema) exactly. (${familyMembers.length} valid members)`,
-        );
-        console.table(familyValidation.data);
-      } else {
-        this.logger.error(
-          '❌ SCHEMA MISMATCH! Family list failed Zod validation:',
-        );
-        console.error(JSON.stringify(familyValidation.error.format(), null, 2));
-      }
-
-      this.logger.debug(
-        `======================================================================`,
-      );
-    } catch (error) {
-      this.logger.error('❌ [Sandbox] Flow crashed', error);
-    }
-  }
   // ---------------------------------------------------------------------------------------------
   // ---------------------------------------------------------------------------------------------
 
