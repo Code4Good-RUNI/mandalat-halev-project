@@ -78,12 +78,63 @@ export class SalesforceCampaignService {
 
   // ---------------------------------------------------------------------------------------------
   // ----------------------------------For testing------------------------------------------------
-  //      const testContactId = '003Vk000008BBuoIAG';
-  //      const testContactId = '003JW00001J9Bu1YAF';
+  //      const testContactId = '003Vk000008BBuoIAG'; משתמש רנדומלי
+  //      const testContactId = '003JW00001J9Bu1YAF'; אלון
 
   async onModuleInit() {
     this.logger.log('🚀 [Campaign Sandbox] Starting Zod Schema Validation...');
-    await this.testAllCampaignsSandbox(); // קורא לפונקציה החדשה והמקיפה
+    await this.testUnregistrationSandbox();
+  }
+  private async testUnregistrationSandbox(): Promise<void> {
+    try {
+      const testContactId = '003JW00001J9Bu1YAF';
+      const testCampaignId = '701Vk00000TkOZhIAN'; // אותו קמפיין שנרשמנו אליו
+
+      this.logger.log(
+        `🧪 Starting unregistration test for Contact: ${testContactId}...`,
+      );
+
+      const result = await this.unregister({
+        contactIds: [testContactId],
+        campaignId: testCampaignId,
+      });
+
+      if (result.requestReceivedSuccessfully) {
+        this.logger.log(
+          `✅ Unregistration test passed! Salesforce Member deleted.`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(`❌ Unregistration test failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * פונקציית בדיקה לשמה יצה רישום אמיתי ב-Sandbox)
+   */
+  private async testRegistrationSandbox(): Promise<void> {
+    try {
+      // השתמש ב-ID של משתמש שאפשר לשחק איתו
+      const testContactId = '003JW00001J9Bu1YAF';
+      const testCampaignId = '701Vk00000TkOZhIAN'; // שים כאן ID של קמפיין שקיים במערכת
+
+      this.logger.log(
+        `🧪 Starting registration test for Contact: ${testContactId}...`,
+      );
+
+      const result = await this.register({
+        contactIds: [testContactId],
+        campaignId: testCampaignId,
+      });
+
+      if (result.requestReceivedSuccessfully) {
+        this.logger.log(
+          `✅ Registration test passed! Salesforce Member created.`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(`❌ Registration test failed: ${error.message}`);
+    }
   }
 
   /**
@@ -255,7 +306,6 @@ export class SalesforceCampaignService {
     });
   }
 
-
   /**
    * Registers multiple contacts to a campaign.
    */
@@ -267,30 +317,27 @@ export class SalesforceCampaignService {
         `Registering contact ${contactId} to campaign ${campaignId}`,
       );
 
+      const checkQuery = soql`SELECT Id FROM CampaignMember WHERE ContactId = '${contactId}' AND CampaignId = '${campaignId}' LIMIT 1`;
+      const existingRecords = await this.core.query<any>(checkQuery);
+
+      if (existingRecords.length > 0) {
+        this.logger.warn(
+          `Contact ${contactId} is already registered to ${campaignId}`,
+        );
+        continue;
+      }
+
       const result = await this.core.create('CampaignMember', {
         ContactId: contactId,
         CampaignId: campaignId,
-        Status: 'Registered',
+        Status: 'Prospect',
       });
 
       if (!result.success) {
-        const errorCode = result.errors?.[0]?.statusCode || '';
         const errorMsg = result.errors?.[0]?.message || 'Unknown error';
-
         this.logger.error(
-          `Registration failed for contact ${contactId}: ${errorCode} - ${errorMsg}`,
+          `Registration failed for contact ${contactId}: ${errorMsg}`,
         );
-
-        if (errorCode === 'DUPLICATE_VALUE') {
-          throw new BadRequestException(
-            `Contact ${contactId} is already registered to this campaign`,
-          );
-        }
-        if (errorCode === 'FIELD_INTEGRITY_EXCEPTION') {
-          throw new BadRequestException(
-            `Invalid contact or campaign ID for contact ${contactId}`,
-          );
-        }
         throw new InternalServerErrorException(`Salesforce error: ${errorMsg}`);
       }
     }
@@ -310,12 +357,12 @@ export class SalesforceCampaignService {
     const { contactIds, campaignId } = dto;
 
     for (const contactId of contactIds) {
-      const memberObj = await this.core.sobject('CampaignMember');
+      this.logger.log(
+        `Unregistering contact ${contactId} from campaign ${campaignId}`,
+      );
 
-      const records = await memberObj
-        .find({ ContactId: contactId, CampaignId: campaignId }, ['Id'])
-        .limit(1)
-        .execute();
+      const query = soql`SELECT Id FROM CampaignMember WHERE ContactId = '${contactId}' AND CampaignId = '${campaignId}' LIMIT 1`;
+      const records = await this.core.query<any>(query);
 
       if (records.length === 0) {
         this.logger.warn(
@@ -327,16 +374,16 @@ export class SalesforceCampaignService {
       }
 
       const memberRecordId = records[0].Id;
-      if (!memberRecordId) {
+
+      const result = await this.core.destroy('CampaignMember', memberRecordId);
+
+      if (!result.success) {
         throw new InternalServerErrorException(
-          'Campaign Member ID is missing in Salesforce',
+          `Failed to unregister contact ${contactId}`,
         );
       }
 
-      await this.core.destroy('CampaignMember', memberRecordId);
-      this.logger.log(
-        `Successfully unregistered contact ${contactId} from campaign ${campaignId}`,
-      );
+      this.logger.log(`Successfully unregistered contact ${contactId}`);
     }
 
     return {
