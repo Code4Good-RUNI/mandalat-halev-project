@@ -11,12 +11,25 @@ export class SalesforceMapper {
   /**
    * Maps the fields of CampaignDto
    */
+  /**
+   * Maps the fields of CampaignDto
+   */
   static mapBaseCampaign(reg: any) {
+    const hostFullName = reg.AdvisorName__r?.Name || 'לא ידוע';
+    const spaceIdx = hostFullName.indexOf(' ');
+    const fName =
+      reg.AdvisorName__r?.FirstName ||
+      (spaceIdx > -1 ? hostFullName.substring(0, spaceIdx) : hostFullName);
+    const lName =
+      reg.AdvisorName__r?.LastName ||
+      (spaceIdx > -1 ? hostFullName.substring(spaceIdx + 1) : '');
+
     return {
       id: reg.Id || '',
       name: reg.Name || '',
       description: reg.Description || '',
-      imageUrl: '',
+      // Zod .url() יקרוס על מחרוזת ריקה, לכן נשים תמונה דיפולטיבית חוקית:
+      imageUrl: 'https://mandalat-halev.org/assets/default-campaign.png',
       startDate: this.formatDateToIsraeli(reg.StartDate),
       endDate: this.formatDateToIsraeli(reg.EndDate),
       durationInHours: this.calculateDuration(reg.StartDate, reg.EndDate),
@@ -25,16 +38,28 @@ export class SalesforceMapper {
       numOfParticipants: reg.max_participants__c || 0,
       numOfParticipantsRegistered: reg.NumberOfContacts || 0,
       isActive: !!reg.IsActive,
-      host: reg.AdvisorName__r?.Name || '',
+      host: {
+        salesforceUserId: reg.AdvisorName__c || '',
+        firstName: fName,
+        lastName: lName,
+        idNumber: reg.AdvisorName__r?.RegisteredID__c || '',
+        birthDate: this.formatDateToIsraeli(reg.AdvisorName__r?.Birthdate),
+      },
     };
   }
 
   /**
-   * Gets user approval status
+   * Gets user approval status (Maps Salesforce CampaignMember Status to App UI Status)
    */
   static mapStatusToApproval(status: string) {
-    if (status === 'Confirmed') return 'approved';
-    if (status === 'Rejected') return 'rejected';
+    if (!status) return 'pending';
+
+    const normalizedStatus = status.toLowerCase();
+
+    if (normalizedStatus === 'confirmed') return 'approved';
+    if (normalizedStatus === 'canceled') return 'rejected';
+    if (normalizedStatus === 'prospect') return 'pending';
+
     return 'pending';
   }
 
