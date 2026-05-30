@@ -1,4 +1,4 @@
-import { Controller, NotFoundException, BadRequestException, UseGuards } from '@nestjs/common';
+import { Controller, NotFoundException, UseGuards } from '@nestjs/common';
 import { tsRestHandler, TsRestHandler } from '@ts-rest/nest';
 import { userContract } from '@mandalat-halev-project/api-interfaces';
 import { FirebaseAuthGuard } from '../auth/firebase-auth.guard';
@@ -46,10 +46,7 @@ export class CampaignsController {
         throw new NotFoundException('Campaign not found');
       }
 
-      const result = await this.campaignService.register(
-        body.contactIds,
-        body.campaignId,
-      );
+      const result = await this.campaignService.register(body);
 
       return { status: 200, body: result };
     });
@@ -61,10 +58,7 @@ export class CampaignsController {
     return tsRestHandler(
       userContract.campaigns.unregister,
       async ({ body }) => {
-        const result = await this.campaignService.unregister(
-          body.contactIds,
-          body.campaignId,
-        );
+        const result = await this.campaignService.unregister(body);
 
         return { status: 200, body: result };
       },
