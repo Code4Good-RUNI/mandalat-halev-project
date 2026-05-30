@@ -1,3 +1,7 @@
+export const ALLOWED_REGISTRATION_STATUSES = ['בתהליך'];
+export const CANCELED_STATUSES = ['בוטל'];
+export const COMPLETED_PARTICIPATION_STATUSES = ['בתכנון', 'בתהליך', 'הסתיים', 'פעיל']; // סטטוסים שמעידים על השתתפות
+
 export class SalesforceMapper {
   /**
    * Convert date to Israeli format if needed
@@ -37,7 +41,7 @@ export class SalesforceMapper {
       locationCity: reg.ActivityLocation__c || '',
       numOfParticipants: reg.max_participants__c || 0,
       numOfParticipantsRegistered: reg.NumberOfContacts || 0,
-      isActive: !!reg.IsActive,
+      isActive: ALLOWED_REGISTRATION_STATUSES.includes(reg.Status),
       host: {
         salesforceUserId: reg.AdvisorName__c || '',
         firstName: fName,
