@@ -1,11 +1,29 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { LoginRequestDto, UserProfileDto } from '@mandalat-halev-project/api-interfaces';
+import {
+  LoginRequestDto,
+  UserProfileDto,
+  ContactDto,
+  UserProfileSchema,
+  ContactSchema,
+} from '@mandalat-halev-project/api-interfaces';
 import { SalesforceCoreService } from '../core/salesforce-core.service';
 import { SalesforceMapper } from '../salesforce.mapper';
+import { z } from 'zod';
 
 // Contact fields available in the External Customer App
-const CONTACT_FIELDS = ['Id', 'Name', 'Email', 'Phone', 'MobilePhone', 'RegisteredID__c', 'StreetName__c', 'CityName__c', 'Birthdate'];
-
+const CONTACT_FIELDS = [
+  'Id',
+  'Name',
+  'Email',
+  'Phone',
+  'MobilePhone',
+  'RegisteredID__c',
+  'StreetName__c',
+  'settlement_Name__r.Name',
+  'HomeNumber__c',
+  'Apartment_No_Field__c',
+  'Birthdate',
+];
 @Injectable()
 export class SalesforceUserService {
   private readonly logger = new Logger(SalesforceUserService.name);
@@ -15,164 +33,94 @@ export class SalesforceUserService {
   // -------------------------------------For testing------------------------------------------------
 
   async onModuleInit() {
-    //this.logger.log('🚀 [Sandbox] Fetching all Salesforce Contact fields...');
-    //await this.debugPrintAllContactFields();
-    //await this.findFamilyIdentifierAdvancedSandbox();
+    this.logger.log(
+      '🚀 [Profile Sandbox] Starting User Profile Verification Flow...',
+    );
+    await this.testUserProfileSandbox();
   }
 
-  private async debugPrintAllContactFields() {
+  private async testUserProfileSandbox(): Promise<void> {
     try {
-      // גישה לאובייקט ה-Contact
-      const contactObj = await this.core.sobject('Contact');
+      const testPhone = '0543979180';
+      const testId = '212677413';
 
-      // פקודת ה-Describe מושכת את כל המטא-דאטה של הטבלה מסיילספורס
-      const metadata = await contactObj.describe();
-
-      // חילוץ השמות של השדות והסוג שלהם (למשל: Email, Phone, custom__c)
-      const allFields = metadata.fields.map(
-        (field) => `${field.name} (${field.type})`,
+      this.logger.log(
+        `🔐 [Step 1] Validating credentials via validateLogin...`,
       );
-
-      this.logger.debug(`==================================================`);
-      this.logger.debug(
-        `Found ${allFields.length} fields in Salesforce Contact table:`,
-      );
-      this.logger.debug(`==================================================`);
-
-      // הדפסת המערך המלא בצורה קריאה לטרמינל
-      console.dir(allFields, { maxArrayLength: null });
-
-      this.logger.debug(`==================================================`);
-    } catch (error) {
-      this.logger.error(
-        '❌ [Sandbox] Failed to fetch Salesforce metadata',
-        error,
-      );
-    }
-  }
-
-  public async printAllUsersAccountData(): Promise<void> {
-    try {
-      this.logger.log('🔄 [Sandbox] Fetching ALL users from Salesforce...');
-      const contactObj = await this.core.sobject('Contact');
-
-      const records = await contactObj
-        .find({}, [
-          'Id',
-          'Name',
-          'RegisteredID__c',
-          'npe01__Type_of_Account__c',
-          'npo02__Household__c', // משתמשים בזה במקום AccountId שחסום כרגע
-        ])
-        .execute();
-
-      this.logger.debug(`==================================================`);
-      this.logger.debug(
-        `📊 Found ${records.length} total users in Salesforce Contact table:`,
-      );
-      this.logger.debug(`==================================================`);
-
-      console.dir(records, { depth: null, colors: true, maxArrayLength: null });
-
-      this.logger.debug(`==================================================`);
-    } catch (error) {
-      this.logger.error(
-        '❌ [Sandbox] Error fetching all users account data',
-        error,
-      );
-    }
-  }
-
-
-  public async findFamilyIdentifierAdvancedSandbox(): Promise<void> {
-    try {
-      const contactObj = await this.core.sobject('Contact');
-
-      // 1. משיכת כל השדות האפשריים דינמית מה-Describe Call
-      this.logger.log('🧬 Fetching complete Contact schema metadata...');
-      const metadata = await contactObj.describe();
-      const allFields = metadata.fields.map(f => f.name);
-
-      this.logger.log(`Found ${allFields.length} possible fields to scan.`);
-
-      // 2. שליפת כל הרשומות מהדאטה-בייס עם כל השדות שגילינו
-      this.logger.log('📥 Downloading all records for mass analysis...');
-      const records = await contactObj.find({}, allFields).execute();
-      this.logger.log(`Loaded ${records.length} records successfully.`);
-
-      // 3. חלוקה ראשונית לחבורות (Clusters) לפי שם משפחה + רחוב
-      const clusters: Record<string, any[]> = {};
-      records.forEach((rcrd: any) => {
-        const lastName = (rcrd.LastName || '').trim();
-        const street = (rcrd.StreetName__c || '').trim();
-
-        if (lastName && street) {
-          const key = `${lastName}_${street}`;
-          if (!clusters[key]) clusters[key] = [];
-          clusters[key].push(rcrd);
-        }
+      const salesforceUserId = await this.validateLogin({
+        phoneNumber: testPhone,
+        idNumber: testId,
       });
 
-      // סינון רק של חבורות אמיתיות (לפחות שני אנשים באותו בית)
-      const validClusters = Object.values(clusters).filter(c => c.length > 1);
-      this.logger.log(`Identified ${validClusters.length} distinct multi-person family clusters.`);
+      if (!salesforceUserId) {
+        this.logger.warn(`❌ Login validation failed.`);
+        return;
+      }
 
-      // 4. מנוע ההצלבה: נבדוק עבור כל שדה בכמה חבורות יש התאמה מלאה
-      const fieldMatchStats: Record<string, number> = {};
+      this.logger.log(
+        `✅ Login Successful! Found Salesforce User ID: ${salesforceUserId}`,
+      );
 
-      allFields.forEach(fieldName => {
-        let matchingClustersCount = 0;
+      this.logger.log(`👤 [Step 2] Fetching profile via getUserProfile...`);
+      const profile = await this.getUserProfile(salesforceUserId);
 
-        validClusters.forEach(members => {
-          const firstMemberValue = members[0][fieldName];
+      this.logger.log(`🛡️ [Step 2.5] Validating Profile against Zod Schema...`);
+      const profileValidation = UserProfileSchema.safeParse(profile);
 
-          // תנאי להתאמה: הערך קיים (לא ריק/null/undefined) וזהה לחלוטין אצל כל בני החבורה
-          const isValueValueValid = firstMemberValue !== undefined && firstMemberValue !== null && firstMemberValue !== '';
-          const isIdenticalAcrossCluster = isValueValueValid && members.every(m => m[fieldName] === firstMemberValue);
+      if (profileValidation.success) {
+        this.logger.log(
+          '✅ PERFECT MATCH! Profile matches UserProfileSchema exactly:',
+        );
+        console.dir(profileValidation.data, { depth: null, colors: true });
+      } else {
+        this.logger.error('❌ SCHEMA MISMATCH! Profile failed Zod validation:');
+        console.error(
+          JSON.stringify(profileValidation.error.format(), null, 2),
+        );
+      }
 
-          if (isIdenticalAcrossCluster) {
-            matchingClustersCount++;
-          }
-        });
+      this.logger.log(
+        `👨‍👩‍👧‍👦 [Step 3] Fetching family contacts using SF ID only...`,
+      );
+      const familyMembers = await this.getFamilyMembers(salesforceUserId);
 
-        // שומרים את הסטטיסטיקה רק לשדות שהיו להם התאמות בפועל
-        if (matchingClustersCount > 0) {
-          fieldMatchStats[fieldName] = matchingClustersCount;
-        }
-      });
+      this.logger.log(`🛡️ [Step 3.5] Validating Family against Zod Schema...`);
+      const ArrayOfContactsSchema = z.array(ContactSchema);
+      const familyValidation = ArrayOfContactsSchema.safeParse(familyMembers);
 
-      // 5. מיון התוצאות מהגבוה לנמוך והצגה בטבלה קריאה
-      const sortedResults = Object.entries(fieldMatchStats)
-        .map(([field, count]) => ({
-          'Field Name': field,
-          'Matching Clusters Count': count,
-          'Success Rate': `${((count / validClusters.length) * 100).toFixed(1)}%`
-        }))
-        .sort((a, b) => b['Matching Clusters Count'] - a['Matching Clusters Count']);
+      if (familyValidation.success) {
+        this.logger.log(
+          `✅ PERFECT MATCH! Family members match z.array(ContactSchema) exactly. (${familyMembers.length} valid members)`,
+        );
+        console.table(familyValidation.data);
+      } else {
+        this.logger.error(
+          '❌ SCHEMA MISMATCH! Family list failed Zod validation:',
+        );
+        console.error(JSON.stringify(familyValidation.error.format(), null, 2));
+      }
 
-      this.logger.debug(`======================================================================`);
-      this.logger.debug(`🎯 FIELD MATCHING STATISTICS (Sorted by Cluster Match Count)`);
-      this.logger.debug(`======================================================================`);
-      console.table(sortedResults);
-      this.logger.debug(`======================================================================`);
-
+      this.logger.debug(
+        `======================================================================`,
+      );
     } catch (error) {
-      this.logger.error('❌ [Sandbox] Advanced Engine crashed', error);
+      this.logger.error('❌ [Sandbox] Flow crashed', error);
     }
   }
-
+  // ---------------------------------------------------------------------------------------------
   // ---------------------------------------------------------------------------------------------
 
   async validateLogin(credentials: LoginRequestDto): Promise<string | null> {
     const { phoneNumber, idNumber } = credentials;
+    const phoneVariations = SalesforceMapper.getPhoneVariations(phoneNumber);
 
     const contactObj = await this.core.sobject('Contact');
     const records = await contactObj
       .find(
         {
           $or: [
-            { Phone: SalesforceMapper.formatPhoneNumber(phoneNumber) },
-            { MobilePhone: SalesforceMapper.formatPhoneNumber(phoneNumber) },
+            { Phone: { $in: phoneVariations } },
+            { MobilePhone: { $in: phoneVariations } },
           ],
           RegisteredID__c: idNumber,
         },
@@ -213,17 +161,40 @@ export class SalesforceUserService {
       const rawPhone =
         (raw.Phone as string) || (raw.MobilePhone as string) || '';
 
+      const rawEmail = (raw.Email as string) || '';
+      const safeEmail = rawEmail.includes('@')
+        ? rawEmail
+        : 'no-email@mandalat-halev.org';
+
+      const cityStr = (raw.settlement_Name__r as any)?.Name || '';
+
+      const street = (raw.StreetName__c as string) || '';
+      const homeNumber = raw.HomeNumber__c ? String(raw.HomeNumber__c) : '';
+      const apartment = raw.Apartment_No_Field__c
+        ? String(raw.Apartment_No_Field__c)
+        : '';
+
+      let fullAddress = street;
+      if (homeNumber) {
+        fullAddress += ` ${homeNumber}`;
+      }
+      if (apartment) {
+        fullAddress += `, דירה ${apartment}`;
+      }
+
       return {
         salesforceUserId,
         firstName:
           spaceIndex > -1 ? fullName.substring(0, spaceIndex) : fullName,
         lastName: spaceIndex > -1 ? fullName.substring(spaceIndex + 1) : '',
-        email: (raw.Email as string) || '',
+        email: safeEmail,
         phoneNumber: SalesforceMapper.formatPhoneNumber(rawPhone),
         idNumber: (raw.RegisteredID__c as string) || '',
-        address: (raw.StreetName__c as string) || '',
-        city: (raw.CityName__c as string) || '',
-        birthDate: (raw.Birthdate as string) || '',
+        address: fullAddress.trim(),
+        city: cityStr,
+        birthDate: SalesforceMapper.formatDateToIsraeli(
+          raw.Birthdate as string,
+        ),
       };
     } catch (error) {
       this.logger.error(
@@ -232,5 +203,80 @@ export class SalesforceUserService {
       );
       throw error;
     }
+  }
+
+  async getFamilyMembers(salesforceUserId: string): Promise<ContactDto[]> {
+    const contactObj = await this.core.sobject('Contact');
+
+    const userRecords = await contactObj
+      .find({ Id: salesforceUserId }, [
+        'Id',
+        'Name',
+        'FirstName',
+        'LastName',
+        'RegisteredID__c',
+        'AccountId',
+      ])
+      .limit(1)
+      .execute();
+
+    if (userRecords.length === 0) {
+      this.logger.warn(`User not found for Salesforce ID: ${salesforceUserId}`);
+      return [];
+    }
+
+    const currentUser = userRecords[0];
+    const accountId = currentUser.AccountId;
+
+    if (!accountId) {
+      this.logger.debug(
+        `User ${currentUser.Name} is not associated with any Account (Household).`,
+      );
+      return [
+        {
+          salesforceUserId: currentUser.Id,
+          firstName: currentUser.FirstName || currentUser.Name,
+          lastName: currentUser.LastName || '',
+          idNumber: (currentUser.RegisteredID__c as string) || '',
+          birthDate: '',
+        },
+      ];
+    }
+
+    this.logger.debug(
+      `User found. Fetching ALL family members for Account ID: ${accountId} (Including the current user)`,
+    );
+
+    const familyMembersRaw = await contactObj
+      .find({ AccountId: accountId }, [
+        'Id',
+        'Name',
+        'FirstName',
+        'LastName',
+        'RegisteredID__c',
+        'Birthdate',
+      ])
+      .execute();
+
+    return familyMembersRaw.map((member: any) => {
+      const fullName = (member.Name as string) || '';
+      const spaceIdx = fullName.indexOf(' ');
+      const fName =
+        member.FirstName ||
+        (spaceIdx > -1 ? fullName.substring(0, spaceIdx) : fullName);
+      const lName =
+        member.LastName ||
+        (spaceIdx > -1 ? fullName.substring(spaceIdx + 1) : '');
+
+      return {
+        salesforceUserId: member.Id,
+        firstName: fName,
+        lastName: lName,
+        idNumber: (member.RegisteredID__c as string) || '',
+        birthDate: SalesforceMapper.formatDateToIsraeli(
+          member.Birthdate as string,
+        ),
+      };
+    });
   }
 }

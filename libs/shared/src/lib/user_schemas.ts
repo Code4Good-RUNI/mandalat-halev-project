@@ -122,7 +122,7 @@ export const CampaignSchema = z.object({
   numOfParticipants: z.number(),
   numOfParticipantsRegistered: z.number(),
   isActive: z.boolean(),
-  host: z.string(),
+  host: ContactSchema,
 });
 
 export type CampaignDto = z.infer<typeof CampaignSchema>;

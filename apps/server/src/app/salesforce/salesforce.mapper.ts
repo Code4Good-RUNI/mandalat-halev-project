@@ -71,4 +71,48 @@ export class SalesforceMapper {
 
     return cleaned;
   }
+
+  /**
+   * returns an array with all the available formats of Israeli PhoneNumber
+   */
+  static getPhoneVariations(phone: string): string[] {
+    if (!phone) return [];
+
+    let cleaned = phone.replace(/\D/g, '');
+
+    if (cleaned.startsWith('972')) {
+      cleaned = '0' + cleaned.slice(3);
+    }
+
+    if (cleaned.length !== 10 && cleaned.length !== 9) {
+      return Array.from(new Set([phone, cleaned]));
+    }
+
+    const isMobile = cleaned.length === 10;
+    const prefix = isMobile ? cleaned.slice(0, 3) : cleaned.slice(0, 2);
+    const rest = isMobile ? cleaned.slice(3) : cleaned.slice(2);
+
+    // (XXX-XXX-XXXX or XX-XXX-XXXX)
+    const mid = isMobile ? cleaned.slice(3, 6) : cleaned.slice(2, 5);
+    const end = isMobile ? cleaned.slice(6) : cleaned.slice(5);
+
+    const prefixNoZero = prefix.slice(1);
+
+    const variations = new Set([
+      cleaned, // 0541114444
+      `${prefix}-${rest}`, // 054-1114444
+      `${prefix} ${rest}`, // 054 1114444
+      `${prefix}-${mid}-${end}`, // 054-111-4444
+      `${prefix} ${mid} ${end}`, // 054 111 4444
+      `972${prefixNoZero}${rest}`, // 972541114444
+      `+972${prefixNoZero}${rest}`, // +972541114444
+      `972-${prefixNoZero}-${rest}`, // 972-54-1114444
+      `+972-${prefixNoZero}-${rest}`, // +972-54-1114444
+      `972-${prefixNoZero}-${mid}-${end}`, // 972-54-111-4444
+      `+972-${prefixNoZero}-${mid}-${end}`, // +972-54-111-4444
+      `+972 ${prefixNoZero} ${mid} ${end}`, // +972 54 444 4444
+    ]);
+
+    return Array.from(variations);
+  }
 }
