@@ -1,10 +1,11 @@
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   SafeAreaView,
   TouchableOpacity,
+  Pressable,
   StyleSheet,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -60,7 +61,7 @@ export default function VerifySmsScreen() {
     null,
   );
   const [digits, setDigits] = useState(['', '', '', '', '', '']);
-  const digitRefs = useRef<(TextInput | null)[]>([]);
+  const codeInputRef = useRef<TextInput>(null);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -129,21 +130,20 @@ export default function VerifySmsScreen() {
   const code = digits.join('');
   const verifyDisabled = code.length !== 6 || verifying || !confirmation;
 
-  const handleDigitChange = (text: string, index: number) => {
-    const digit = text.replace(/[^0-9]/g, '').slice(-1);
-    const next = [...digits];
-    next[index] = digit;
-    setDigits(next);
-    if (digit && index < 5) {
-      digitRefs.current[index + 1]?.focus();
+  const setCodeFromString = (text: string) => {
+    const cleaned = text.replace(/\D/g, '').slice(0, 6);
+    const next = ['', '', '', '', '', ''];
+    for (let i = 0; i < cleaned.length; i++) {
+      next[i] = cleaned[i]!;
     }
+    setDigits(next);
   };
 
-  const handleDigitKeyPress = (key: string, index: number) => {
-    if (key === 'Backspace' && !digits[index] && index > 0) {
-      digitRefs.current[index - 1]?.focus();
+  useEffect(() => {
+    if (confirmation) {
+      codeInputRef.current?.focus();
     }
-  };
+  }, [confirmation]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -158,22 +158,30 @@ export default function VerifySmsScreen() {
 
         {error && <Text style={styles.errorText}>{error}</Text>}
 
-        <View style={styles.digitsContainer}>
+        <Pressable
+          style={styles.digitsContainer}
+          onPress={() => codeInputRef.current?.focus()}
+        >
+          <TextInput
+            ref={codeInputRef}
+            value={code}
+            onChangeText={setCodeFromString}
+            keyboardType="number-pad"
+            textContentType="oneTimeCode"
+            autoComplete="sms-otp"
+            maxLength={6}
+            caretHidden
+            style={styles.hiddenCodeInput}
+          />
           {digits.map((digit, i) => (
-            <TextInput
+            <View
               key={i}
-              ref={(el) => { digitRefs.current[i] = el; }}
-              style={[styles.digitInput, digit ? styles.digitInputFilled : null]}
-              value={digit}
-              onChangeText={(text) => handleDigitChange(text, i)}
-              onKeyPress={({ nativeEvent }) => handleDigitKeyPress(nativeEvent.key, i)}
-              keyboardType="numeric"
-              maxLength={1}
-              textAlign="center"
-              autoFocus={i === 0}
-            />
+              style={[styles.digitBox, digit ? styles.digitInputFilled : null]}
+            >
+              <Text style={styles.digitText}>{digit}</Text>
+            </View>
           ))}
-        </View>
+        </Pressable>
 
         <TouchableOpacity onPress={sendSms} disabled={sending}>
           <Text style={styles.linkText}>
@@ -221,12 +229,22 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 15,
     marginTop: 10,
+    position: 'relative',
   },
-  digitInput: {
+  hiddenCodeInput: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.02,
+    color: 'transparent',
+  },
+  digitBox: {
     width: 44,
     height: 52,
     borderBottomWidth: 2,
     borderBottomColor: '#ccc',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  digitText: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
