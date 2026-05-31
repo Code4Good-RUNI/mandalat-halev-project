@@ -25,10 +25,29 @@ export class NotificationsController {
     });
   }
 
+  @TsRestHandler(userContract.notifications.unregister)
+  async unregisterDevice(@CurrentUser('sub') salesforceUserId: string) {
+    return tsRestHandler(userContract.notifications.unregister, async ({ body }) => {
+      await this.notificationsService.unregister(salesforceUserId, body.nativeToken);
+      return { status: 200, body: { ok: true } };
+    });
+  }
+
+  @TsRestHandler(userContract.notifications.preferences)
+  async updatePreferences(@CurrentUser('sub') salesforceUserId: string) {
+    return tsRestHandler(userContract.notifications.preferences, async ({ body }) => {
+      await this.notificationsService.updatePreferences(
+        salesforceUserId, 
+        body.nativeToken, 
+        body.preferences
+      );
+      return { status: 200, body: { ok: true } };
+    });
+  }
+
   @TsRestHandler(userContract.notifications.test)
   async sendTestNotification(@CurrentUser('sub') salesforceUserId: string) {
     return tsRestHandler(userContract.notifications.test, async ({ body }) => {
-      
       await this.notificationsService.sendToUser(salesforceUserId, {
         title: body.title,
         body: body.body,
