@@ -1,6 +1,10 @@
-import { Injectable, Logger, BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { SalesforceCoreService } from '../core/salesforce-core.service';
-import { SalesforceMapper } from '../salesforce.mapper';
+import {
+  SalesforceMapper,
+  ALLOWED_REGISTRATION_STATUSES,
+  CANCELED_STATUSES,
+} from '../salesforce.mapper';
 import {
   GetFutureCampaignDto,
   GetPastCampaignDto,
@@ -27,6 +31,10 @@ const CF = {
   NUM_OF_CONTACTS: 'NumberOfContacts',
   HOST_ID: 'AdvisorName__c',
   HOST_NAME: 'AdvisorName__r.Name',
+  HOST_FIRST_NAME: 'AdvisorName__r.FirstName',
+  HOST_LAST_NAME: 'AdvisorName__r.LastName',
+  HOST_ID_NUMBER: 'AdvisorName__r.RegisteredID__c',
+  HOST_BIRTHDATE: 'AdvisorName__r.Birthdate',
 };
 
 // Campaign Member fields
@@ -39,10 +47,20 @@ const CMF = {
 
 // Fields to select in campaign queries
 const CAMPAIGN_QUERY_FIELDS = [
-  CF.ID, CF.NAME, CF.DESCRIPTION, CF.IS_ACTIVE,
-  CF.START_DATE, CF.END_DATE, CF.TYPE,
-  CF.DAYS_AND_HOURS, CF.LOCATION, CF.MAX_PARTICIPANTS,
-  CF.NUM_OF_CONTACTS, CF.HOST_ID, CF.HOST_NAME,
+  CF.ID,
+  CF.NAME,
+  CF.DESCRIPTION,
+  CF.IS_ACTIVE,
+  CF.STATUS,
+  CF.START_DATE,
+  CF.END_DATE,
+  CF.TYPE,
+  CF.DAYS_AND_HOURS,
+  CF.LOCATION,
+  CF.MAX_PARTICIPANTS,
+  CF.NUM_OF_CONTACTS,
+  CF.HOST_ID,
+  CF.HOST_NAME,
 ].join(', ');
 
 // SOQL injection avoiding tag
@@ -56,54 +74,27 @@ export class SalesforceCampaignService {
 
   // ---------------------------------------------------------------------------------------------
   // ----------------------------------For testing------------------------------------------------
+  //      const testContactId = '003Vk000008BBuoIAG'; משתמש רנדומלי
+  //      const testContactId = '003JW00001J9Bu1YAF'; אלון
 
   async onModuleInit() {
-    this.logger.log(
-      '🚀 [Campaign Sandbox] Starting Campaign Registration Field Discovery...',
-    );
-    await this.debugDiscoverCampaignRegistrationField();
-  }
-
-  /**
-   * פונקציית ניסויים: מאתרת ומדפיסה את מבנה הנתונים של קמפיין עם רשומים
-   */
-  private async debugDiscoverCampaignRegistrationField(): Promise<void> {
-    try {
-      const campaignId = '7010X000000ey5vQAA';
-      const memberObj = await this.core.sobject('CampaignMember');
-
-      // נשלוף את ה-ContactId ואת ה-Status של כולם בקמפיין הזה
-      const registrations = await memberObj
-        .find({ CampaignId: campaignId }, ['ContactId', 'Status'])
-        .execute();
-
-      this.logger.debug(`==================================================`);
-      this.logger.debug(`📋 DETAILED CAMPAIGN MEMBER STATUSES`);
-      this.logger.debug(`==================================================`);
-      console.dir(registrations, { maxArrayLength: null });
-      this.logger.debug(`==================================================`);
-    } catch (error) {
-      this.logger.error('❌ [Campaign Sandbox] Failed', error);
-    }
+    //this.logger.log('🚀 [Campaign Sandbox] Starting Zod Schema Validation...');
+    //await this.testRegistrationStatusSandbox();
   }
 
   //------------------------------------------------------------------------------------------------------------------
 
-  // is not done!!!!! need to be checked
   /**
    * Get user's future campaigns
    * @param salesforceUserId - Salesforce user ID received when logged in
    * @returns GetFutureCampaignDto or null if not found
    */
   async getFutureCampaigns(contactId: string): Promise<GetFutureCampaignDto[]> {
-    const query = soql`
-      SELECT ${CAMPAIGN_QUERY_FIELDS},
-        (SELECT ${CMF.STATUS} FROM CampaignMembers WHERE ${CMF.CONTACT_ID} = '${contactId}' LIMIT 1)
-      FROM Campaign
-      WHERE ${CF.END_DATE} >= TODAY
-        AND ${CF.IS_ACTIVE} = true
-        AND ${CF.ID} IN (SELECT ${CMF.CAMPAIGN_ID} FROM CampaignMember WHERE ${CMF.CONTACT_ID} = '${contactId}')
-      ORDER BY ${CF.START_DATE} ASC`;
+    const query = soql`SELECT ${CAMPAIGN_QUERY_FIELDS}, (SELECT ${CMF.STATUS}
+                                  FROM CampaignMembers WHERE ${CMF.CONTACT_ID} = '${contactId}' LIMIT 1)
+                                  FROM Campaign WHERE ${CF.END_DATE} >= TODAY AND ${CF.ID} IN (SELECT ${CMF.CAMPAIGN_ID}
+                                  FROM CampaignMember WHERE ${CMF.CONTACT_ID} = '${contactId}')
+                                                ORDER BY ${CF.START_DATE} ASC`;
 
     const records = await this.core.query<any>(query);
 
@@ -111,8 +102,6 @@ export class SalesforceCampaignService {
       const membership = campaign.CampaignMembers?.records?.[0];
       return {
         ...SalesforceMapper.mapBaseCampaign(campaign),
-
-        // fields of GetFutureCampaignDto
         isRelevantToUser: true,
         isUserRegistered: true,
         userApprovalStatus: SalesforceMapper.mapStatusToApproval(
@@ -122,23 +111,22 @@ export class SalesforceCampaignService {
     });
   }
 
-  // is not done!!!!! need to be checked
   /**
    * Get campaigns available for registration (Future and user NOT registered)
    * @param salesforceUserId - Salesforce user ID
    * @returns GetFutureCampaignDto[]
    */
   async getActiveCampaigns(contactId: string): Promise<GetFutureCampaignDto[]> {
-    const query = soql`
-        SELECT ${CAMPAIGN_QUERY_FIELDS}
-        FROM Campaign
-        WHERE ${CF.END_DATE} >= TODAY
-          AND ${CF.ID} NOT IN (
-            SELECT ${CMF.CAMPAIGN_ID}
-            FROM CampaignMember
-            WHERE ${CMF.CONTACT_ID} = '${contactId}'
-        )
-        ORDER BY ${CF.START_DATE} ASC`;
+    const allowedStatusesSOQL = ALLOWED_REGISTRATION_STATUSES.map(
+      (status) => `'${status}'`,
+    ).join(', ');
+
+    const query = `SELECT ${CAMPAIGN_QUERY_FIELDS} FROM Campaign
+                        WHERE ${CF.END_DATE} >= TODAY AND ${CF.STATUS}
+                        IN(${allowedStatusesSOQL}) AND ${CF.ID}                                 
+                        NOT IN (SELECT ${CMF.CAMPAIGN_ID} FROM CampaignMember
+                        WHERE ${CMF.CONTACT_ID} = '${contactId}')
+                        ORDER BY ${CF.START_DATE} ASC`;
 
     const records = await this.core.query<any>(query);
 
@@ -151,7 +139,6 @@ export class SalesforceCampaignService {
       }),
     );
   }
-  // is not done!!!!! need to be checked
 
   /**
    * Get user's past campaigns
@@ -159,23 +146,35 @@ export class SalesforceCampaignService {
    * @returns GetPastCampaignDto[]
    */
   async getPastCampaigns(contactId: string): Promise<GetPastCampaignDto[]> {
-    const query = soql`SELECT ${CAMPAIGN_QUERY_FIELDS}
-      FROM Campaign
-      WHERE ${CF.END_DATE} < TODAY
-        AND ${CF.ID} IN (SELECT ${CMF.CAMPAIGN_ID} FROM CampaignMember WHERE ${CMF.CONTACT_ID} = '${contactId}')
-      ORDER BY ${CF.END_DATE} DESC`;
-
+    const query = `SELECT ${CAMPAIGN_QUERY_FIELDS}, (SELECT ${CMF.STATUS} FROM
+                      CampaignMembers WHERE ${CMF.CONTACT_ID} = '${contactId}' LIMIT 1)
+                        FROM Campaign WHERE ${CF.END_DATE} < TODAY AND ${CF.ID}
+                        IN (SELECT ${CMF.CAMPAIGN_ID} FROM CampaignMember WHERE 
+                        ${CMF.CONTACT_ID} = '${contactId}') ORDER BY ${CF.END_DATE} DESC`;
     const records = await this.core.query<any>(query);
 
-    return records.map(
-      (reg): GetPastCampaignDto => ({
-        ...SalesforceMapper.mapBaseCampaign(reg),
-        hasUserParticipated: true,
-      }),
-    );
-  }
+    return records.map((reg): GetPastCampaignDto => {
+      const membership = reg.CampaignMembers?.records?.[0];
 
-  // is not done!!!!! need to be checked
+      const approvalStatus = SalesforceMapper.mapStatusToApproval(
+        membership?.Status,
+      );
+
+      const isCampaignCanceled = CANCELED_STATUSES.includes(reg.Status);
+
+      const hasParticipated =
+        !isCampaignCanceled && approvalStatus !== 'rejected';
+
+      this.logger.debug(
+        `[DEBUG] Campaign: ${reg.Name} | Approval: ${approvalStatus} | CampaignCanceled: ${isCampaignCanceled} | Result: ${hasParticipated}`,
+      );
+
+      return {
+        ...SalesforceMapper.mapBaseCampaign(reg),
+        hasUserParticipated: hasParticipated,
+      };
+    });
+  }
 
   /**
    * Registers multiple contacts to a campaign.
@@ -188,30 +187,27 @@ export class SalesforceCampaignService {
         `Registering contact ${contactId} to campaign ${campaignId}`,
       );
 
+      const checkQuery = soql`SELECT Id FROM CampaignMember WHERE ContactId = '${contactId}' AND CampaignId = '${campaignId}' LIMIT 1`;
+      const existingRecords = await this.core.query<any>(checkQuery);
+
+      if (existingRecords.length > 0) {
+        this.logger.warn(
+          `Contact ${contactId} is already registered to ${campaignId}`,
+        );
+        continue;
+      }
+
       const result = await this.core.create('CampaignMember', {
         ContactId: contactId,
         CampaignId: campaignId,
-        Status: 'Registered',
+        Status: 'Prospect',
       });
 
       if (!result.success) {
-        const errorCode = result.errors?.[0]?.statusCode || '';
         const errorMsg = result.errors?.[0]?.message || 'Unknown error';
-
         this.logger.error(
-          `Registration failed for contact ${contactId}: ${errorCode} - ${errorMsg}`,
+          `Registration failed for contact ${contactId}: ${errorMsg}`,
         );
-
-        if (errorCode === 'DUPLICATE_VALUE') {
-          throw new BadRequestException(
-            `Contact ${contactId} is already registered to this campaign`,
-          );
-        }
-        if (errorCode === 'FIELD_INTEGRITY_EXCEPTION') {
-          throw new BadRequestException(
-            `Invalid contact or campaign ID for contact ${contactId}`,
-          );
-        }
         throw new InternalServerErrorException(`Salesforce error: ${errorMsg}`);
       }
     }
@@ -231,12 +227,12 @@ export class SalesforceCampaignService {
     const { contactIds, campaignId } = dto;
 
     for (const contactId of contactIds) {
-      const memberObj = await this.core.sobject('CampaignMember');
+      this.logger.log(
+        `Unregistering contact ${contactId} from campaign ${campaignId}`,
+      );
 
-      const records = await memberObj
-        .find({ ContactId: contactId, CampaignId: campaignId }, ['Id'])
-        .limit(1)
-        .execute();
+      const query = soql`SELECT Id FROM CampaignMember WHERE ContactId = '${contactId}' AND CampaignId = '${campaignId}' LIMIT 1`;
+      const records = await this.core.query<any>(query);
 
       if (records.length === 0) {
         this.logger.warn(
@@ -248,16 +244,16 @@ export class SalesforceCampaignService {
       }
 
       const memberRecordId = records[0].Id;
-      if (!memberRecordId) {
+
+      const result = await this.core.destroy('CampaignMember', memberRecordId);
+
+      if (!result.success) {
         throw new InternalServerErrorException(
-          'Campaign Member ID is missing in Salesforce',
+          `Failed to unregister contact ${contactId}`,
         );
       }
 
-      await this.core.destroy('CampaignMember', memberRecordId);
-      this.logger.log(
-        `Successfully unregistered contact ${contactId} from campaign ${campaignId}`,
-      );
+      this.logger.log(`Successfully unregistered contact ${contactId}`);
     }
 
     return {
