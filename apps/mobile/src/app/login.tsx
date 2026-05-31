@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,11 @@ import {
   StyleSheet,
   Image,
   Linking,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useLogin } from '../api/hooks';
@@ -24,6 +29,7 @@ export default function LoginScreen() {
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
   const [banner, setBanner] = useState<string | null>(null);
   const { mutate: login, isPending } = useLogin();
+  const phoneInputRef = useRef<TextInput>(null);
 
   const handleIdChange = (text: string) => {
     setIdNumber(text);
@@ -40,6 +46,7 @@ export default function LoginScreen() {
   };
 
   const handleSubmit = () => {
+    Keyboard.dismiss();
     setBanner(null);
     setFieldErrors({});
 
@@ -76,78 +83,109 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.inner}>
-        <View>
-          <Image
-          source={require('../../assets/images/logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-          <Text style={styles.welcome}>שלום!</Text>
-          <Text style={styles.subText}>התחבר על מנת להמשיך</Text>
-
-          {banner && <Text style={styles.errorText}>{banner}</Text>}
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>מספר תעודת זהות</Text>
-            <TextInput
-              style={styles.input}
-              value={idNumber}
-              onChangeText={handleIdChange}
-              keyboardType="numeric"
-              placeholder="פורמט 9 ספרות, כולל ספרת ביקורת"
-              placeholderTextColor="#aaa"
-              textAlign="right"
-            />
-            {fieldErrors.idNumber && (
-              <Text style={styles.fieldErrorText}>{fieldErrors.idNumber}</Text>
-            )}
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>מספר טלפון נייד</Text>
-            <TextInput
-              style={styles.input}
-              value={phoneNumber}
-              onChangeText={handlePhoneChange}
-              placeholder="לדוגמה: 0541234567"
-              keyboardType="numeric"
-              textAlign="right"
-            />
-            {fieldErrors.phoneNumber && (
-              <Text style={styles.fieldErrorText}>{fieldErrors.phoneNumber}</Text>
-            )}
-          </View>
-
-          <TouchableOpacity onPress={() => void Linking.openURL('mailto:mandalatlev@gmail.com')}>
-            <Text style={styles.linkText}>נתקלת בבעיה? צור איתנו קשר</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.donationButton}
-            onPress={() => void Linking.openURL('https://www.mandalathalev.org.il/%D7%AA%D7%A8%D7%95%D7%9E%D7%94-%D7%9C%D7%A2%D7%9E%D7%95%D7%AA%D7%94')}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <ScrollView
+            style={styles.flex}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
           >
-            <Text style={styles.donationButtonText}>לתרומות ♥</Text>
-          </TouchableOpacity>
-        </View>
+            <View>
+              <Image
+                source={require('../../assets/images/logo.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+              <Text style={styles.welcome}>שלום!</Text>
+              <Text style={styles.subText}>התחבר על מנת להמשיך</Text>
 
-        <TouchableOpacity
-          style={[styles.loginButton, isPending && { opacity: 0.6 }]}
-          disabled={isPending}
-          onPress={handleSubmit}
-        >
-          <Text style={styles.loginButtonText}>
-            {isPending ? 'מתחבר...' : 'התחבר'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+              {banner && <Text style={styles.errorText}>{banner}</Text>}
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>מספר תעודת זהות</Text>
+                <TextInput
+                  style={styles.input}
+                  value={idNumber}
+                  onChangeText={handleIdChange}
+                  keyboardType="numeric"
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => phoneInputRef.current?.focus()}
+                  placeholder="פורמט 9 ספרות, כולל ספרת ביקורת"
+                  placeholderTextColor="#aaa"
+                  textAlign="right"
+                />
+                {fieldErrors.idNumber && (
+                  <Text style={styles.fieldErrorText}>{fieldErrors.idNumber}</Text>
+                )}
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>מספר טלפון נייד</Text>
+                <TextInput
+                  ref={phoneInputRef}
+                  style={styles.input}
+                  value={phoneNumber}
+                  onChangeText={handlePhoneChange}
+                  placeholder="לדוגמה: 0541234567"
+                  keyboardType="numeric"
+                  returnKeyType="done"
+                  onSubmitEditing={Keyboard.dismiss}
+                  textAlign="right"
+                />
+                {fieldErrors.phoneNumber && (
+                  <Text style={styles.fieldErrorText}>
+                    {fieldErrors.phoneNumber}
+                  </Text>
+                )}
+              </View>
+
+              <TouchableOpacity
+                onPress={() => void Linking.openURL('mailto:mandalatlev@gmail.com')}
+              >
+                <Text style={styles.linkText}>נתקלת בבעיה? צור איתנו קשר</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.donationButton}
+                onPress={() =>
+                  void Linking.openURL(
+                    'https://www.mandalathalev.org.il/%D7%AA%D7%A8%D7%95%D7%9E%D7%94-%D7%9C%D7%A2%D7%9E%D7%95%D7%AA%D7%94',
+                  )
+                }
+              >
+                <Text style={styles.donationButtonText}>לתרומות ♥</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.loginButton, isPending && { opacity: 0.6 }]}
+              disabled={isPending}
+              onPress={handleSubmit}
+            >
+              <Text style={styles.loginButtonText}>
+                {isPending ? 'מתחבר...' : 'התחבר'}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  inner: { flex: 1, justifyContent: 'space-between', paddingBottom: 24 },
+  flex: { flex: 1 },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
+    paddingBottom: 24,
+  },
   logo: { width: 150, height: 115, alignSelf: 'center', marginTop: 40 },
   welcome: {
     fontSize: 32,
