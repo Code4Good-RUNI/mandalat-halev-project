@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,40 +11,31 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import {
   signInWithPhoneNumber,
-  type ApplicationVerifier,
   type ConfirmationResult,
 } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
 import { auth, firebaseConfig } from '../firebase/config';
+import { toE164 } from '../firebase/phoneAuth';
 import { useCreateSession } from '../api/hooks';
 import { setSession } from '../api/session';
 
-// Firebase Phone Auth needs E.164 format (+972501234567). Users may type local
-// Israeli formats (0501234567 / 050-1234567), or paste +972... / 972...
-function toE164(phone: string): string {
-  const trimmed = (phone ?? '').trim();
-  if (!trimmed) return '';
-
-  // Keep only digits; we re-add the '+' ourselves.
-  const digits = trimmed.replace(/\D/g, '');
-
-  // Already has country code (with or without '+')
-  if (digits.startsWith('972')) {
-    return `+${digits}`;
+function sendSmsErrorMessage(err: unknown): string {
+  if (err instanceof FirebaseError) {
+    if (err.code === 'auth/invalid-phone-number') {
+      return 'מספר הטלפון אינו תקין.';
+    }
+    if (err.code === 'auth/too-many-requests') {
+      return 'יותר מדי ניסיונות. המתן מעט ונסה שוב.';
+    }
+    if (
+      err.code === 'auth/captcha-check-failed' ||
+      err.code === 'auth/missing-client-identifier'
+    ) {
+      return 'אימות reCAPTCHA נכשל. נסה שוב.';
+    }
+    return `שליחת קוד האימות נכשלה (${err.code}).`;
   }
-
-  // Local Israeli: 0XXXXXXXXX
-  if (digits.startsWith('0')) {
-    return `+972${digits.slice(1)}`;
-  }
-
-  // Local without leading 0 (rare, but happens): 5XXXXXXXX (9 digits)
-  if (digits.length === 9 && digits.startsWith('5')) {
-    return `+972${digits}`;
-  }
-
-  // Fallback: return as-is (likely to fail fast with a clear Firebase error)
-  return `+${digits}`;
+  return 'שליחת קוד האימות נכשלה. נסה שוב.';
 }
 
 function verifyErrorMessage(err: unknown): string {
@@ -74,40 +65,31 @@ export default function VerifySmsScreen() {
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const { mutateAsync: createSession } = useCreateSession();
+  const e164Phone = phoneNumber ? toE164(phoneNumber) : '';
 
   const sendSms = useCallback(async () => {
-    if (!phoneNumber) return;
-    // expo-firebase-recaptcha's WebView verifier hangs on this project's
-    // Enterprise→v2 reCAPTCHA fallback. In dev, bypass it with a stub verifier;
-    // paired with appVerificationDisabledForTesting + a registered Firebase
-    // test number, signInWithPhoneNumber resolves with no WebView. Prod uses
-    // the modal.
-    const verifier = __DEV__
-      ? ({
-          type: 'recaptcha',
-          verify: () => Promise.resolve('test'),
-          _reset: () => undefined, // SDK calls _reset() in a finally block
-        } as unknown as ApplicationVerifier)
-      : (recaptchaVerifier.current as ApplicationVerifier | null);
-    if (!verifier) return;
+    if (!phoneNumber || !e164Phone) return;
+
+    const verifier = recaptchaVerifier.current;
+    if (!verifier) {
+      setError('reCAPTCHA עדיין נטען. נסה שוב בעוד רגע.');
+      return;
+    }
+
     setError(null);
     setSending(true);
     try {
-      const result = await signInWithPhoneNumber(
-        auth,
-        toE164(phoneNumber),
-        verifier,
-      );
+      const result = await signInWithPhoneNumber(auth, e164Phone, verifier);
       setConfirmation(result);
-    } catch {
-      setError('שליחת קוד האימות נכשלה. נסה שוב.');
+    } catch (err) {
+      setError(sendSmsErrorMessage(err));
     } finally {
       setSending(false);
     }
-  }, [phoneNumber]);
+  }, [phoneNumber, e164Phone]);
 
   // Send the verification SMS once when the screen opens.
-  useEffect(() => {
+  useLayoutEffect(() => {
     void sendSms();
   }, [sendSms]);
 
@@ -165,13 +147,11 @@ export default function VerifySmsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {!__DEV__ && (
-        <FirebaseRecaptchaVerifierModal
-          ref={recaptchaVerifier}
-          firebaseConfig={firebaseConfig}
-          attemptInvisibleVerification
-        />
-      )}
+      <FirebaseRecaptchaVerifierModal
+        ref={recaptchaVerifier}
+        firebaseConfig={firebaseConfig}
+        attemptInvisibleVerification={false}
+      />
       <View>
         <Text style={styles.title}>אימות מספר טלפון</Text>
         <Text style={styles.subText}>הזן את הקוד שנשלח ל-{phoneNumber}</Text>
