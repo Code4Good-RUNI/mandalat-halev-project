@@ -165,6 +165,8 @@ export default function ActivitiesScreen() {
   const { data: contactsData, isPending: contactsLoading } = useUserContacts();
   const contacts = contactsData?.status === 200 ? contactsData.body : [];
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   // State for the post-registration notification popup.
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
@@ -189,6 +191,12 @@ export default function ActivitiesScreen() {
     return <QueryErrorState onRetry={refetch} />;
   }
 
+  const campaigns = data.body;
+  const trimmed = searchQuery.trim();
+  const filteredCampaigns = trimmed
+    ? campaigns.filter((c) => c.name.toLowerCase().includes(trimmed.toLowerCase()))
+    : campaigns;
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
@@ -197,12 +205,14 @@ export default function ActivitiesScreen() {
           placeholder="חיפוש..."
           textAlign="right"
           style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
         />
       </View>
 
       {/* Efficiently renders only the campaign cards currently visible on screen. */}
       <FlatList
-        data={data.body}
+        data={filteredCampaigns}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
           <ActiveCampaignItem
@@ -214,7 +224,11 @@ export default function ActivitiesScreen() {
           />
         )}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>לא נמצאו פעילויות תואמות לחיפוש.</Text>
+          <Text style={styles.emptyText}>
+            {campaigns.length === 0
+              ? 'אין פעילויות זמינות כרגע.'
+              : 'לא נמצאו פעילויות תואמות לחיפוש'}
+          </Text>
         }
       />
 
