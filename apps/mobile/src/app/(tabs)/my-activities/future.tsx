@@ -48,6 +48,9 @@ export default function FutureActivitiesScreen() {
           />
         )}
         contentContainerStyle={{ paddingBottom: 20, paddingHorizontal: 15 }}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>לא קיימות פעילויות עתידיות</Text>
+        }
       />
 
       <Modal visible={modalVisible} transparent={true} animationType="fade">
@@ -79,4 +82,5 @@ const styles = StyleSheet.create({
   modalText: { fontSize: 16, marginBottom: 20, textAlign: 'center' },
   closeButton: { backgroundColor: '#FF8C00', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
   closeButtonText: { color: '#fff', fontWeight: 'bold' },
+  emptyText: { textAlign: 'center', marginTop: 30, color: '#666', fontSize: 16 },
 });
