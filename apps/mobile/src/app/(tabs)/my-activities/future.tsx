@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FlatList, SafeAreaView, Text, StyleSheet, ActivityIndicator, Modal, TouchableOpacity, View } from 'react-native';
-import { useFutureCampaigns, useUserContacts } from '../../../api/hooks';
+import { useFutureCampaigns } from '../../../api/hooks';
 import { FutureCampaignItem } from '../../../components/FutureCampaignItem';
 import { CampaignDetailsModal } from '../../../components/CampaignDetailsModal';
 import { QueryErrorState } from '../../../components/QueryErrorState';
@@ -8,8 +8,6 @@ import type { GetFutureCampaignDto } from '@mandalat-halev-project/api-interface
 
 export default function FutureActivitiesScreen() {
   const { data, isPending, isError, refetch } = useFutureCampaigns();
-  const { data: contactsData, isPending: contactsLoading } = useUserContacts();
-  const contacts = contactsData?.status === 200 ? contactsData.body : [];
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [selectedCampaign, setSelectedCampaign] = useState<GetFutureCampaignDto | null>(null);
@@ -41,8 +39,6 @@ export default function FutureActivitiesScreen() {
         renderItem={({ item }) => (
           <FutureCampaignItem
             campaign={item}
-            contacts={contacts}
-            contactsLoading={contactsLoading}
             onShowModal={showModal}
             onPressDetails={() => setSelectedCampaign(item)}
           />
