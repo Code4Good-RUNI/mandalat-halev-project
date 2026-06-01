@@ -3,7 +3,14 @@ import { View, Text, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } fr
 import { useQueryClient } from '@tanstack/react-query';
 import { MyActivityItem } from './MyActivityItem';
 import { useRegisteredMembers, useUnregisteredContacts, useUnregisterFromCampaign, useRegisterForCampaign } from '../api/hooks';
-import type { GetFutureCampaignDto } from '@mandalat-halev-project/api-interfaces';
+import { Status } from './Status';
+import type { GetFutureCampaignDto, ApprovalStatus } from '@mandalat-halev-project/api-interfaces';
+
+const approvalStatusLabel = (status: ApprovalStatus): string => {
+  if (status === 'approved') return 'אושר';
+  if (status === 'rejected') return 'נדחה';
+  return 'מחכה לאישור';
+};
 
 export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
   campaign: GetFutureCampaignDto;
@@ -187,9 +194,19 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
         title={campaign.name}
         date={`${campaign.startDate} | ${campaign.durationInHours} שעות`}
         location={`${campaign.locationAddress}, ${campaign.locationCity}`}
-        status={statusText}
+        status={members.length > 1 ? undefined : statusText}
         onPressDetails={onPressDetails}
       >
+        {members.length > 1 && (
+          <View style={styles.memberStatusList}>
+            {members.map((m) => (
+              <View key={m.salesforceUserId} style={styles.memberStatusRow}>
+                <Status label={approvalStatusLabel(m.registrationStatus)} />
+                <Text style={styles.memberName}>{m.firstName} {m.lastName}</Text>
+              </View>
+            ))}
+          </View>
+        )}
         <View style={styles.actionContainer}>
           {renderRegisterAction()}
           {renderAction()}
@@ -284,6 +301,9 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
 }
 
 const styles = StyleSheet.create({
+  memberStatusList: { gap: 6, marginBottom: 4 },
+  memberStatusRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 8 },
+  memberName: { fontSize: 14, color: '#333', textAlign: 'right' },
   actionContainer: { alignItems: 'flex-end', gap: 8 },
   registerButton: {
     backgroundColor: '#FF8C00',

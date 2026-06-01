@@ -5,13 +5,13 @@ export const Status = ({ label }: { label: string }) => {
   let badgeStyle = styles.defaultBadge;
   let textStyle = styles.defaultText;
 
-  if (label === 'רשום' || label === 'נוכח') {
+  if (label === 'רשום' || label === 'נוכח' || label === 'אושר') {
     badgeStyle = styles.registeredBadge;
     textStyle = styles.registeredText;
-  } else if (label === 'מחכה לאישור') {
+  } else if (label === 'מחכה לאישור' || label === 'ברשימת המתנה') {
     badgeStyle = styles.pendingBadge;
     textStyle = styles.pendingText;
-  } else if (label === 'בוטל' || label === 'לא רשום' || label === 'לא נוכח') {
+  } else if (label === 'בוטל' || label === 'לא רשום' || label === 'לא נוכח' || label === 'נדחה') {
     badgeStyle = styles.cancelledBadge;
     textStyle = styles.cancelledText;
   }
