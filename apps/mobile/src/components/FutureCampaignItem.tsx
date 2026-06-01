@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { MyActivityItem } from './MyActivityItem';
-import { useRegisteredMembers, useUnregisterFromCampaign } from '../api/hooks';
+import { useRegisteredMembers, useUnregisteredContacts, useUnregisterFromCampaign, useRegisterForCampaign } from '../api/hooks';
 import type { GetFutureCampaignDto } from '@mandalat-halev-project/api-interfaces';
 
 export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
@@ -13,6 +13,8 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
   const queryClient = useQueryClient();
   const [selectionVisible, setSelectionVisible] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [registerModalVisible, setRegisterModalVisible] = useState(false);
+  const [registerSelectedIds, setRegisterSelectedIds] = useState<string[]>([]);
 
   const {
     data: membersData,
@@ -22,6 +24,16 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
   } = useRegisteredMembers(campaign.id);
 
   const { mutate: unregister, isPending: isUnregistering } = useUnregisterFromCampaign();
+  const { mutate: register, isPending: isRegistering } = useRegisterForCampaign();
+
+  const {
+    data: unregisteredData,
+    isPending: unregisteredLoading,
+    isError: isUnregisteredError,
+    refetch: refetchUnregistered,
+  } = useUnregisteredContacts(campaign.id);
+
+  const unregisteredContacts = unregisteredData?.status === 200 ? unregisteredData.body.contacts : [];
 
   const members = membersData?.status === 200 ? membersData.body.registeredMembers : [];
 
@@ -77,6 +89,70 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
     performUnregister(selectedIds);
   };
 
+  const performRegister = (contactIds: string[]) => {
+    register(
+      { campaignId: campaign.id, contactIds },
+      {
+        onSuccess: (data) => {
+          if (data.status === 200 && data.body?.requestReceivedSuccessfully) {
+            onShowModal('בקשת ההרשמה נשלחה בהצלחה!');
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'future'] });
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'active'] });
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'registeredMembers', campaign.id] });
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'unregisteredContacts', campaign.id] });
+          } else {
+            const errorMessage = (data.body as any)?.message || 'אירעה שגיאה בהרשמה. אנא נסה שוב.';
+            onShowModal(errorMessage);
+          }
+        },
+        onError: () => onShowModal('שגיאת תקשורת או מערכת. אנא בדוק את החיבור ונסה שוב.'),
+      }
+    );
+  };
+
+  const handleRegisterMore = () => {
+    setRegisterSelectedIds([]);
+    setRegisterModalVisible(true);
+  };
+
+  const toggleRegisterContact = (id: string) => {
+    setRegisterSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const confirmRegister = () => {
+    setRegisterModalVisible(false);
+    performRegister(registerSelectedIds);
+  };
+
+  const renderRegisterAction = () => {
+    if (unregisteredLoading) {
+      return <ActivityIndicator size="small" color="#FF8C00" />;
+    }
+    if (isUnregisteredError || unregisteredData?.status !== 200) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>שגיאה בטעינת הנתונים</Text>
+          <TouchableOpacity onPress={() => refetchUnregistered()}>
+            <Text style={styles.retryText}>נסה שוב</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return (
+      <TouchableOpacity
+        style={[styles.registerButton, (isRegistering || unregisteredContacts.length === 0) && styles.disabledButton]}
+        onPress={handleRegisterMore}
+        disabled={isRegistering || unregisteredContacts.length === 0}
+      >
+        <Text style={styles.registerButtonText}>
+          {isRegistering ? 'נרשם...' : 'רישום משתתפים נוספים'}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
   const renderAction = () => {
     if (membersLoading) {
       return <ActivityIndicator size="small" color="#ff4444" />;
@@ -115,9 +191,52 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
         onPressDetails={onPressDetails}
       >
         <View style={styles.actionContainer}>
+          {renderRegisterAction()}
           {renderAction()}
         </View>
       </MyActivityItem>
+
+      <Modal visible={registerModalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.selectionModal}>
+            <Text style={[styles.selectionTitle, styles.registerSelectionTitle]}>בחר משתתפים לרישום</Text>
+
+            {unregisteredContacts.map((contact) => {
+              const selected = registerSelectedIds.includes(contact.salesforceUserId);
+              return (
+                <TouchableOpacity
+                  key={contact.salesforceUserId}
+                  style={styles.contactRow}
+                  onPress={() => toggleRegisterContact(contact.salesforceUserId)}
+                >
+                  <Text style={styles.contactName}>
+                    {contact.firstName} {contact.lastName}
+                  </Text>
+                  <View style={[styles.checkbox, selected && styles.registerCheckboxSelected]}>
+                    {selected && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+
+            <View style={styles.selectionButtons}>
+              <TouchableOpacity
+                onPress={() => setRegisterModalVisible(false)}
+                style={styles.cancelButton}
+              >
+                <Text style={styles.cancelButtonText}>ביטול</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={confirmRegister}
+                disabled={registerSelectedIds.length === 0}
+                style={[styles.registerConfirmButton, registerSelectedIds.length === 0 && styles.disabledButton]}
+              >
+                <Text style={styles.confirmButtonText}>אישור</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={selectionVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -165,7 +284,23 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
 }
 
 const styles = StyleSheet.create({
-  actionContainer: { alignItems: 'flex-end' },
+  actionContainer: { alignItems: 'flex-end', gap: 8 },
+  registerButton: {
+    backgroundColor: '#FF8C00',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  registerButtonText: { color: '#fff', fontWeight: 'bold' },
+  registerSelectionTitle: { color: '#FF8C00' },
+  registerCheckboxSelected: { backgroundColor: '#FF8C00', borderColor: '#FF8C00' },
+  registerConfirmButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#FF8C00',
+    alignItems: 'center' as const,
+  },
   unregisterButton: {
     backgroundColor: '#ff4444',
     paddingVertical: 8,
