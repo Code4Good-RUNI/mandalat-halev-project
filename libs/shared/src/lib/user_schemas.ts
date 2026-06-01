@@ -88,6 +88,7 @@ export const UserProfileSchema = z.object({
   city: z.string(),
   birthDate: z.string(), // DD/MM/YYYY
 });
+
 export type UserProfileDto = z.infer<typeof UserProfileSchema>;
 
 export const ContactSchema = z.object({

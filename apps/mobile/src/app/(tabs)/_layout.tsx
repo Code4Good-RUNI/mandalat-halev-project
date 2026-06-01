@@ -1,40 +1,40 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { clearSession } from '../../api/session';
-
-// clearSession() wipes the stored Firebase ID token + query cache and routes
-// back to /login.
-function LogoutButton() {
-  return (
-    <TouchableOpacity
-      onPress={() => {
-        void clearSession();
-      }}
-      style={styles.logout}
-    >
-      <Text style={styles.logoutText}>התנתק</Text>
-    </TouchableOpacity>
-  );
-}
+import { Ionicons } from '@expo/vector-icons';
 
 export default function TabsLayout() {
   return (
-    <Tabs
-      initialRouteName="activities"
-      screenOptions={{ headerRight: () => <LogoutButton /> }}
-    >
+    <Tabs initialRouteName="activities">
+      <Tabs.Screen
+        name="personal-data"
+        options={{
+          title: 'איזור אישי',
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="people-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="activities"
+        options={{
+          title: 'פעילויות',
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="pulse-outline" size={size} color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="my-activities"
-        options={{ title: 'הפעילויות שלי', headerShown: false }}
+        options={{
+          title: 'הפעילויות שלי',
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="checkmark-done-outline" size={size} color={color} />
+          ),
+        }}
       />
-      <Tabs.Screen name="personal-data" options={{ title: 'נתונים אישיים' }} />
-      <Tabs.Screen name="activities" options={{ title: 'פעילויות' }} />
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  logout: { marginHorizontal: 16 },
-  logoutText: { color: '#FF8C00', fontWeight: 'bold', fontSize: 16 },
-});

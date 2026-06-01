@@ -1,28 +1,42 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   SafeAreaView,
   TouchableOpacity,
+  Pressable,
   StyleSheet,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import {
   signInWithPhoneNumber,
-  type ApplicationVerifier,
   type ConfirmationResult,
 } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
 import { auth, firebaseConfig } from '../firebase/config';
+import { toE164 } from '../firebase/phoneAuth';
 import { useCreateSession } from '../api/hooks';
 import { setSession } from '../api/session';
 
-// Israeli mobile numbers arrive as 10 local digits (e.g. 0501234567); Firebase
-// Phone Auth needs E.164 format (+972501234567).
-function toE164(phone: string): string {
-  return '+972' + phone.replace(/^0/, '');
+function sendSmsErrorMessage(err: unknown): string {
+  if (err instanceof FirebaseError) {
+    if (err.code === 'auth/invalid-phone-number') {
+      return 'מספר הטלפון אינו תקין.';
+    }
+    if (err.code === 'auth/too-many-requests') {
+      return 'יותר מדי ניסיונות. המתן מעט ונסה שוב.';
+    }
+    if (
+      err.code === 'auth/captcha-check-failed' ||
+      err.code === 'auth/missing-client-identifier'
+    ) {
+      return 'אימות reCAPTCHA נכשל. נסה שוב.';
+    }
+    return `שליחת קוד האימות נכשלה (${err.code}).`;
+  }
+  return 'שליחת קוד האימות נכשלה. נסה שוב.';
 }
 
 function verifyErrorMessage(err: unknown): string {
@@ -46,45 +60,37 @@ export default function VerifySmsScreen() {
   const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(
     null,
   );
-  const [code, setCode] = useState('');
+  const [digits, setDigits] = useState(['', '', '', '', '', '']);
+  const codeInputRef = useRef<TextInput>(null);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const { mutateAsync: createSession } = useCreateSession();
+  const e164Phone = phoneNumber ? toE164(phoneNumber) : '';
 
   const sendSms = useCallback(async () => {
-    if (!phoneNumber) return;
-    // expo-firebase-recaptcha's WebView verifier hangs on this project's
-    // Enterprise→v2 reCAPTCHA fallback. In dev, bypass it with a stub verifier;
-    // paired with appVerificationDisabledForTesting + a registered Firebase
-    // test number, signInWithPhoneNumber resolves with no WebView. Prod uses
-    // the modal.
-    const verifier = __DEV__
-      ? ({
-          type: 'recaptcha',
-          verify: () => Promise.resolve('test'),
-          _reset: () => undefined, // SDK calls _reset() in a finally block
-        } as unknown as ApplicationVerifier)
-      : (recaptchaVerifier.current as ApplicationVerifier | null);
-    if (!verifier) return;
+    if (!phoneNumber || !e164Phone) return;
+
+    const verifier = recaptchaVerifier.current;
+    if (!verifier) {
+      setError('reCAPTCHA עדיין נטען. נסה שוב בעוד רגע.');
+      return;
+    }
+
     setError(null);
     setSending(true);
     try {
-      const result = await signInWithPhoneNumber(
-        auth,
-        toE164(phoneNumber),
-        verifier,
-      );
+      const result = await signInWithPhoneNumber(auth, e164Phone, verifier);
       setConfirmation(result);
-    } catch {
-      setError('שליחת קוד האימות נכשלה. נסה שוב.');
+    } catch (err) {
+      setError(sendSmsErrorMessage(err));
     } finally {
       setSending(false);
     }
-  }, [phoneNumber]);
+  }, [phoneNumber, e164Phone]);
 
   // Send the verification SMS once when the screen opens.
-  useEffect(() => {
+  useLayoutEffect(() => {
     void sendSms();
   }, [sendSms]);
 
@@ -121,33 +127,61 @@ export default function VerifySmsScreen() {
     }
   };
 
+  const code = digits.join('');
   const verifyDisabled = code.length !== 6 || verifying || !confirmation;
+
+  const setCodeFromString = (text: string) => {
+    const cleaned = text.replace(/\D/g, '').slice(0, 6);
+    const next = ['', '', '', '', '', ''];
+    for (let i = 0; i < cleaned.length; i++) {
+      next[i] = cleaned[i]!;
+    }
+    setDigits(next);
+  };
+
+  useEffect(() => {
+    if (confirmation) {
+      codeInputRef.current?.focus();
+    }
+  }, [confirmation]);
 
   return (
     <SafeAreaView style={styles.container}>
-      {!__DEV__ && (
-        <FirebaseRecaptchaVerifierModal
-          ref={recaptchaVerifier}
-          firebaseConfig={firebaseConfig}
-          attemptInvisibleVerification
-        />
-      )}
+      <FirebaseRecaptchaVerifierModal
+        ref={recaptchaVerifier}
+        firebaseConfig={firebaseConfig}
+        attemptInvisibleVerification={false}
+      />
       <View>
         <Text style={styles.title}>אימות מספר טלפון</Text>
         <Text style={styles.subText}>הזן את הקוד שנשלח ל-{phoneNumber}</Text>
 
         {error && <Text style={styles.errorText}>{error}</Text>}
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>קוד אימות</Text>
+        <Pressable
+          style={styles.digitsContainer}
+          onPress={() => codeInputRef.current?.focus()}
+        >
           <TextInput
-            style={styles.input}
+            ref={codeInputRef}
             value={code}
-            onChangeText={setCode}
-            keyboardType="numeric"
+            onChangeText={setCodeFromString}
+            keyboardType="number-pad"
+            textContentType="oneTimeCode"
+            autoComplete="sms-otp"
             maxLength={6}
+            caretHidden
+            style={styles.hiddenCodeInput}
           />
-        </View>
+          {digits.map((digit, i) => (
+            <View
+              key={i}
+              style={[styles.digitBox, digit ? styles.digitInputFilled : null]}
+            >
+              <Text style={styles.digitText}>{digit}</Text>
+            </View>
+          ))}
+        </Pressable>
 
         <TouchableOpacity onPress={sendSms} disabled={sending}>
           <Text style={styles.linkText}>
@@ -188,19 +222,35 @@ const styles = StyleSheet.create({
     marginRight: 20,
     marginBottom: 20,
   },
-  inputContainer: { marginHorizontal: 20, marginBottom: 15 },
-  label: {
-    textAlign: 'right' as const,
-    fontSize: 14,
-    marginBottom: 6,
+  digitsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+    marginHorizontal: 20,
+    marginBottom: 15,
+    marginTop: 10,
+    position: 'relative',
+  },
+  hiddenCodeInput: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.02,
+    color: 'transparent',
+  },
+  digitBox: {
+    width: 44,
+    height: 52,
+    borderBottomWidth: 2,
+    borderBottomColor: '#ccc',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  digitText: {
+    fontSize: 24,
+    fontWeight: 'bold',
     color: '#333',
   },
-  input: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-    paddingVertical: 8,
-    fontSize: 16,
-    textAlign: 'right' as const,
+  digitInputFilled: {
+    borderBottomColor: '#FF8C00',
   },
   linkText: { textAlign: 'center', marginTop: 20, color: '#666' },
   verifyButton: {

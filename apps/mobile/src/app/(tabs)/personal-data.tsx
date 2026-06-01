@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
-  SafeAreaView,
   ScrollView,
   Switch,
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  Linking,
 } from 'react-native';
+import { clearSession } from '../../api/session';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserProfile, useUserContacts } from '../../api/hooks';
 import { QueryErrorState } from '../../components/QueryErrorState';
 
@@ -42,41 +44,37 @@ export default function PersonalDataScreen() {
         <Text style={styles.header}>איזור אישי</Text>
 
         {/* My Details */}
-        <View>
-          <Text>הפרטים שלי</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>הפרטים שלי</Text>
 
-          <View>
-            <Text>שם מלא</Text>
-            <Text>
-              {profile?.firstName} {profile?.lastName}
-            </Text>
+          <View style={styles.row}>
+            <Text style={styles.label}>שם מלא</Text>
+            <Text style={styles.value}>{profile?.firstName} {profile?.lastName}</Text>
           </View>
 
-          <View>
-            <Text>מספר תעודת זהות</Text>
-            <Text>{profile?.idNumber}</Text>
+          <View style={styles.row}>
+            <Text style={styles.label}>מספר תעודת זהות</Text>
+            <Text style={styles.value}>{profile?.idNumber}</Text>
           </View>
 
-          <View>
-            <Text>מספר טלפון</Text>
-            <Text>{profile?.phoneNumber}</Text>
+          <View style={styles.row}>
+            <Text style={styles.label}>מספר טלפון</Text>
+            <Text style={styles.value}>{profile?.phoneNumber}</Text>
           </View>
 
-          <View>
-            <Text>כתובת דואר אלקטרוני</Text>
-            <Text>{profile?.email}</Text>
+          <View style={styles.row}>
+            <Text style={styles.label}>כתובת דואר אלקטרוני</Text>
+            <Text style={styles.value}>{profile?.email}</Text>
           </View>
 
-          <View>
-            <Text>כתובת מגורים</Text>
-            <Text>
-              {profile?.address}, {profile?.city}
-            </Text>
+          <View style={styles.row}>
+            <Text style={styles.label}>כתובת מגורים</Text>
+            <Text style={styles.value}>{profile?.address}, {profile?.city}</Text>
           </View>
 
-          <View>
-            <Text>תאריך לידה</Text>
-            <Text>{profile?.birthDate}</Text>
+          <View style={[styles.row, styles.rowLast]}>
+            <Text style={styles.label}>תאריך לידה</Text>
+            <Text style={styles.value}>{profile?.birthDate}</Text>
           </View>
         </View>
 
@@ -96,7 +94,7 @@ export default function PersonalDataScreen() {
         </View>
 
         {/* Notification Settings */}
-        <View style={styles.section}>
+        <View style={[styles.section, { display: 'none' }]}>
           <Text style={styles.sectionTitle}>הגדרת התראות</Text>
 
           <View style={styles.switchRow}>
@@ -138,8 +136,15 @@ export default function PersonalDataScreen() {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.updateButton}>
+        <TouchableOpacity
+          style={styles.updateButton}
+          onPress={() => void Linking.openURL('mailto:mandalatlev@gmail.com')}
+        >
           <Text style={styles.updateButtonText}>עדכון פרטים אישיים</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => void clearSession()} style={styles.logoutButton}>
+          <Text style={styles.logoutText}>התנתק</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -171,6 +176,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
+  rowLast: { borderBottomWidth: 0 },
   label: { color: '#666' },
   value: { fontWeight: '500' },
   card: {
@@ -189,6 +195,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   updateButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  logoutButton: { marginTop: 16, alignItems: 'center' },
+  logoutText: { color: 'red', fontSize: 16 },
   switchRow: {
     flexDirection: 'row-reverse',
     justifyContent: 'space-between',

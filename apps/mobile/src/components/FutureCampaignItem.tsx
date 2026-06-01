@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { ActivityItem } from './ActivityItem';
+import { MyActivityItem } from './MyActivityItem';
 import {
   useRegistrationStatus,
   useUnregisterFromCampaign
@@ -71,7 +71,7 @@ export function FutureCampaignItem({ campaign, contacts, contactsLoading, onShow
     if (contacts.length <= 1) {
       performUnregister(contacts.map((c) => c.salesforceUserId));
     } else {
-      setSelectedIds(contacts.map((c) => c.salesforceUserId));
+      setSelectedIds([]);
       setSelectionVisible(true);
     }
   };
@@ -89,10 +89,9 @@ export function FutureCampaignItem({ campaign, contacts, contactsLoading, onShow
 
   return (
     <>
-      <ActivityItem
+      <MyActivityItem
         title={campaign.name}
-        host={`${campaign.host.firstName} ${campaign.host.lastName}`}
-        time={`${campaign.startDate} | ${campaign.durationInHours} שעות`}
+        date={`${campaign.startDate} | ${campaign.durationInHours} שעות`}
         location={`${campaign.locationAddress}, ${campaign.locationCity}`}
         status={statusText}
         onPressDetails={onPressDetails}
@@ -110,7 +109,7 @@ export function FutureCampaignItem({ campaign, contacts, contactsLoading, onShow
             </TouchableOpacity>
           )}
         </View>
-      </ActivityItem>
+      </MyActivityItem>
 
       {/* Contact selection bottom sheet — only shown when the user has multiple contacts. */}
       <Modal visible={selectionVisible} transparent animationType="slide">
@@ -126,10 +125,12 @@ export function FutureCampaignItem({ campaign, contacts, contactsLoading, onShow
                   style={styles.contactRow}
                   onPress={() => toggleContact(contact.salesforceUserId)}
                 >
-                  <View style={[styles.checkbox, selected && styles.checkboxSelected]} />
                   <Text style={styles.contactName}>
                     {contact.firstName} {contact.lastName}
                   </Text>
+                  <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
+                    {selected && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -158,7 +159,7 @@ export function FutureCampaignItem({ campaign, contacts, contactsLoading, onShow
 }
 
 const styles = StyleSheet.create({
-  actionContainer: { alignItems: 'center' },
+  actionContainer: { alignItems: 'flex-end' },
   unregisterButton: {
     backgroundColor: '#ff4444',
     paddingVertical: 8,
@@ -202,7 +203,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#ff4444',
     borderColor: '#ff4444',
   },
-  contactName: { fontSize: 16, textAlign: 'right', flex: 1, paddingRight: 12 },
+  contactName: { fontSize: 16, textAlign: 'right', flex: 1, paddingLeft: 12 },
+  checkmark: { color: '#fff', fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
   selectionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
