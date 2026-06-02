@@ -65,6 +65,7 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'future'] });
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'active'] });
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'registrationStatus', campaign.id] });
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'unregisteredContacts', campaign.id] });
           } else {
             const errorMessage = (data.body as any)?.message || 'משהו השתבש בביטול ההרשמה. אנא נסה שוב.';
             onShowModal(errorMessage);
