@@ -147,22 +147,6 @@ export const userContract = c.router({
         campaignId: z.coerce.string(),
       }),
       responses: {
-        200: GetRegistrationStatusSchema,
-        400: ValidationErrorResponseSchema,
-        401: ErrorResponseSchema,
-        403: ErrorResponseSchema,
-        404: ErrorResponseSchema,
-        500: ErrorResponseSchema,
-      },
-      summary: 'Get registration status for a specific user and campaign',
-    },
-    registeredMembers: {
-      method: 'GET',
-      path: '/campaigns/registration-status',
-      query: z.object({
-        campaignId: z.coerce.string(),
-      }),
-      responses: {
         200: z.object({ registeredMembers: z.array(CampaignMemberRegistrationSchema) }),
         400: ValidationErrorResponseSchema,
         401: ErrorResponseSchema,
@@ -170,7 +154,7 @@ export const userContract = c.router({
         404: ErrorResponseSchema,
         500: ErrorResponseSchema,
       },
-      summary: 'Get all registered members for a campaign',
+      summary: 'Get all registered contacts for a campaign and their approval status',
     },
     unregisteredContacts: {
       method: 'GET',

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { MyActivityItem } from './MyActivityItem';
-import { useRegisteredMembers, useUnregisteredContacts, useUnregisterFromCampaign, useRegisterForCampaign } from '../api/hooks';
+import { useRegistrationStatus, useUnregisteredContacts, useUnregisterFromCampaign, useRegisterForCampaign } from '../api/hooks';
 import { Status } from './Status';
 import type { GetFutureCampaignDto, ApprovalStatus } from '@mandalat-halev-project/api-interfaces';
 
@@ -28,7 +28,7 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
     isPending: membersLoading,
     isError: isMembersError,
     refetch: refetchMembers,
-  } = useRegisteredMembers(campaign.id);
+  } = useRegistrationStatus(campaign.id);
 
   const { mutate: unregister, isPending: isUnregistering } = useUnregisterFromCampaign();
   const { mutate: register, isPending: isRegistering } = useRegisterForCampaign();
@@ -64,7 +64,6 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
             onShowModal('הרישום בוטל בהצלחה!');
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'future'] });
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'active'] });
-            queryClient.invalidateQueries({ queryKey: ['campaigns', 'registeredMembers', campaign.id] });
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'registrationStatus', campaign.id] });
           } else {
             const errorMessage = (data.body as any)?.message || 'משהו השתבש בביטול ההרשמה. אנא נסה שוב.';
