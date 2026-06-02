@@ -9,6 +9,7 @@ import type { GetFutureCampaignDto, ApprovalStatus } from '@mandalat-halev-proje
 const approvalStatusLabel = (status: ApprovalStatus): string => {
   if (status === 'approved') return 'אושר';
   if (status === 'rejected') return 'נדחה';
+  if (status === 'waiting_list') return 'ברשימת המתנה';
   return 'מחכה לאישור';
 };
 
@@ -40,9 +41,8 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
     refetch: refetchUnregistered,
   } = useUnregisteredContacts(campaign.id);
 
-  const unregisteredContacts = unregisteredData?.status === 200 ? unregisteredData.body.contacts : [];
-
-  const members = membersData?.status === 200 ? membersData.body.registeredMembers : [];
+  const unregisteredContacts = (unregisteredData?.status === 200 ? unregisteredData.body : undefined)?.contacts ?? [];
+  const members = (membersData?.status === 200 ? membersData.body : undefined)?.registeredMembers ?? [];
 
   let statusText: string;
   if (membersLoading) {
@@ -65,6 +65,7 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'future'] });
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'active'] });
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'registrationStatus', campaign.id] });
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'unregisteredContacts', campaign.id] });
           } else {
             const errorMessage = (data.body as any)?.message || 'משהו השתבש בביטול ההרשמה. אנא נסה שוב.';
             onShowModal(errorMessage);
@@ -104,7 +105,7 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
             onShowModal('בקשת ההרשמה נשלחה בהצלחה!');
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'future'] });
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'active'] });
-            queryClient.invalidateQueries({ queryKey: ['campaigns', 'registeredMembers', campaign.id] });
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'registrationStatus', campaign.id] });
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'unregisteredContacts', campaign.id] });
           } else {
             const errorMessage = (data.body as any)?.message || 'אירעה שגיאה בהרשמה. אנא נסה שוב.';
@@ -193,10 +194,10 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
         title={campaign.name}
         date={`${campaign.startDate} | ${campaign.durationInHours} שעות`}
         location={`${campaign.locationAddress}, ${campaign.locationCity}`}
-        status={members.length > 1 ? undefined : statusText}
+        status={members.length >= 1 ? undefined : statusText}
         onPressDetails={onPressDetails}
       >
-        {members.length > 1 && (
+        {members.length >= 1 && (
           <View style={styles.memberStatusList}>
             {members.map((m) => (
               <View key={m.salesforceUserId} style={styles.memberStatusRow}>
@@ -300,17 +301,20 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
 }
 
 const styles = StyleSheet.create({
-  memberStatusList: { gap: 6, marginBottom: 4 },
-  memberStatusRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 8 },
-  memberName: { fontSize: 14, color: '#333', textAlign: 'right' },
-  actionContainer: { alignItems: 'flex-end', gap: 8 },
+  memberStatusList: { gap: 4, marginBottom: 12 },
+  memberStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  memberName: { flex: 1, fontSize: 14, color: '#333', textAlign: 'right' },
+  actionContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'stretch', gap: 8, marginTop: 4 },
   registerButton: {
+    flex: 1,
     backgroundColor: '#FF8C00',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  registerButtonText: { color: '#fff', fontWeight: 'bold' },
+  registerButtonText: { color: '#fff', fontWeight: 'bold', textAlign: 'center' },
   registerSelectionTitle: { color: '#FF8C00' },
   registerCheckboxSelected: { backgroundColor: '#FF8C00', borderColor: '#FF8C00' },
   registerConfirmButton: {
@@ -321,13 +325,16 @@ const styles = StyleSheet.create({
     alignItems: 'center' as const,
   },
   unregisterButton: {
-    backgroundColor: '#ff4444',
+    flex: 1,
+    backgroundColor: '#FF8C00',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   disabledButton: { opacity: 0.6 },
-  unregisterButtonText: { color: '#fff', fontWeight: 'bold' },
+  unregisterButtonText: { color: '#fff', fontWeight: 'bold', textAlign: 'center' },
   errorContainer: { alignItems: 'flex-end', gap: 4 },
   errorText: { color: '#ff4444', fontSize: 13 },
   retryText: { color: '#FF8C00', fontSize: 13, fontWeight: 'bold' },
