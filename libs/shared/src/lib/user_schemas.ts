@@ -105,7 +105,12 @@ export type ContactDto = z.infer<typeof ContactSchema>;
  */
 
 // Define allowed status values using Zod Enum
-export const ApprovalStatusSchema = z.enum(['pending', 'approved', 'rejected']);
+export const ApprovalStatusSchema = z.enum([
+  'pending',
+  'approved',
+  'rejected',
+  'waiting_list',
+]);
 export type ApprovalStatus = z.infer<typeof ApprovalStatusSchema>;
 
 // Base schema for a Campaign
@@ -166,16 +171,6 @@ export const RegisterResponseSchema = z.object({
 
 export type RegisterResponseDto = z.infer<typeof RegisterResponseSchema>;
 
-export const GetRegistrationStatusSchema = z.object({
-  campaignId: z.string(),
-  registrationStatus: ApprovalStatusSchema,
-  additionalInfo: z.string().optional(),
-});
-
-export type GetRegistrationStatusDto = z.infer<
-  typeof GetRegistrationStatusSchema
->;
-
 export const CampaignMemberRegistrationSchema = ContactSchema.extend({
   registrationStatus: ApprovalStatusSchema,
   additionalInfo: z.string().optional(),
@@ -183,6 +178,24 @@ export const CampaignMemberRegistrationSchema = ContactSchema.extend({
 
 export type CampaignMemberRegistrationDto = z.infer<
   typeof CampaignMemberRegistrationSchema
+>;
+
+export const GetRegistrationStatusSchema = z.object({
+  campaignId: z.string(),
+  registeredMembers: z.array(CampaignMemberRegistrationSchema),
+});
+
+export type GetRegistrationStatusDto = z.infer<
+  typeof GetRegistrationStatusSchema
+>;
+
+export const GetUnregisteredCampaignContactsResponseSchema = z.object({
+  campaignId: z.string(),
+  contacts: z.array(ContactSchema),
+});
+
+export type GetUnregisteredCampaignContactsResponseDto = z.infer<
+  typeof GetUnregisteredCampaignContactsResponseSchema
 >;
 
 /**
