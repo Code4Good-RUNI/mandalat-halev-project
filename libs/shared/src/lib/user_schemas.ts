@@ -176,6 +176,15 @@ export type GetRegistrationStatusDto = z.infer<
   typeof GetRegistrationStatusSchema
 >;
 
+export const CampaignMemberRegistrationSchema = ContactSchema.extend({
+  registrationStatus: ApprovalStatusSchema,
+  additionalInfo: z.string().optional(),
+});
+
+export type CampaignMemberRegistrationDto = z.infer<
+  typeof CampaignMemberRegistrationSchema
+>;
+
 /**
  * NOTIFICATIONS SCHEMAS
  */

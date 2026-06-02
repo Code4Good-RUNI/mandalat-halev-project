@@ -11,6 +11,7 @@ import {
   UnregisterFromCampaignSchema,
   RegisterResponseSchema,
   GetRegistrationStatusSchema,
+  CampaignMemberRegistrationSchema,
   ErrorResponseSchema,
   ValidationErrorResponseSchema,
   RegisterDeviceTokenSchema,
@@ -154,6 +155,38 @@ export const userContract = c.router({
         500: ErrorResponseSchema,
       },
       summary: 'Get registration status for a specific user and campaign',
+    },
+    registeredMembers: {
+      method: 'GET',
+      path: '/campaigns/registration-status',
+      query: z.object({
+        campaignId: z.coerce.string(),
+      }),
+      responses: {
+        200: z.object({ registeredMembers: z.array(CampaignMemberRegistrationSchema) }),
+        400: ValidationErrorResponseSchema,
+        401: ErrorResponseSchema,
+        403: ErrorResponseSchema,
+        404: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+      summary: 'Get all registered members for a campaign',
+    },
+    unregisteredContacts: {
+      method: 'GET',
+      path: '/campaigns/unregistered-contacts',
+      query: z.object({
+        campaignId: z.coerce.string(),
+      }),
+      responses: {
+        200: z.object({ contacts: z.array(ContactSchema) }),
+        400: ValidationErrorResponseSchema,
+        401: ErrorResponseSchema,
+        403: ErrorResponseSchema,
+        404: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+      summary: 'Get household contacts not yet registered to a campaign',
     },
   },
   notifications: {
