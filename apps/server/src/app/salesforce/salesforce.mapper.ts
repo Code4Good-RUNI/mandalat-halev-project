@@ -32,7 +32,7 @@ export class SalesforceMapper {
       id: reg.Id || '',
       name: reg.Name || '',
       description: reg.Description || '',
-      // Zod .url() יקרוס על מחרוזת ריקה, לכן נשים תמונה דיפולטיבית חוקית:
+      // current default image url
       imageUrl: 'https://mandalat-halev.org/assets/default-campaign.png',
       startDate: this.formatDateToIsraeli(reg.StartDate),
       endDate: this.formatDateToIsraeli(reg.EndDate),
@@ -58,11 +58,12 @@ export class SalesforceMapper {
   static mapStatusToApproval(status: string) {
     if (!status) return 'pending';
 
-    const normalizedStatus = status.toLowerCase();
+    const normalizedStatus = status.toLowerCase().trim();
 
     if (normalizedStatus === 'confirmed') return 'approved';
     if (normalizedStatus === 'canceled') return 'rejected';
     if (normalizedStatus === 'prospect') return 'pending';
+    if (normalizedStatus === 'wait') return 'waiting_list'; // need to verify the correct name in SF after created
 
     return 'pending';
   }
