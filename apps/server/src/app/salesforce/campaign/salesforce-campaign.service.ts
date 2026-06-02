@@ -281,11 +281,13 @@ export class SalesforceCampaignService {
   }
 
   /**
-   * Get campaigns available for registration (Future and user NOT registered)
+   * Get campaigns available for registration (Future and none of the users are registered)
    * @param salesforceUserId - Salesforce user ID
    * @returns GetFutureCampaignDto[]
    */
   async getActiveCampaigns(contactId: string): Promise<GetFutureCampaignDto[]> {
+    const familyIds = await this.getSecureFamilyIdsForQuery(contactId);
+
     const allowedStatusesSOQL = ALLOWED_REGISTRATION_STATUSES.map(
       (status) => `'${status}'`,
     ).join(', ');
@@ -294,7 +296,7 @@ export class SalesforceCampaignService {
                         WHERE ${CF.END_DATE} >= TODAY AND ${CF.STATUS}
                         IN(${allowedStatusesSOQL}) AND ${CF.ID}                                 
                         NOT IN (SELECT ${CMF.CAMPAIGN_ID} FROM CampaignMember
-                        WHERE ${CMF.CONTACT_ID} = '${contactId}')
+                        WHERE ${CMF.CONTACT_ID} IN (${familyIds}))
                         ORDER BY ${CF.START_DATE} ASC`;
 
     const records = await this.core.query<any>(query);
@@ -507,6 +509,18 @@ export class SalesforceCampaignService {
     const query = soql`SELECT ${CF.ID} FROM Campaign WHERE ${CF.ID} = '${campaignId}' LIMIT 1`;
     const records = await this.core.query(query);
     return records.length > 0;
+  }
+
+  /**
+   * Helper: Gets family IDs formatted for SOQL in a secure way
+   */
+  private async getSecureFamilyIdsForQuery(contactId: string): Promise<string> {
+    const familyMembers = await this.userService.getFamilyMembers(contactId);
+    return familyMembers
+      .map((m) => m.salesforceUserId)
+      .filter((id) => /^[a-zA-Z0-9]{15,18}$/.test(id)) // הגנה מ-Injection
+      .map((id) => `'${id}'`)
+      .join(', ');
   }
 }
 
