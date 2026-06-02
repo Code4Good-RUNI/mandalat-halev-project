@@ -40,9 +40,8 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
     refetch: refetchUnregistered,
   } = useUnregisteredContacts(campaign.id);
 
-  const unregisteredContacts = unregisteredData?.status === 200 ? unregisteredData.body.contacts : [];
-
-  const members = membersData?.status === 200 ? membersData.body.registeredMembers : [];
+  const unregisteredContacts = (unregisteredData?.status === 200 ? unregisteredData.body : undefined)?.contacts ?? [];
+  const members = (membersData?.status === 200 ? membersData.body : undefined)?.registeredMembers ?? [];
 
   let statusText: string;
   if (membersLoading) {
@@ -104,7 +103,7 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
             onShowModal('בקשת ההרשמה נשלחה בהצלחה!');
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'future'] });
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'active'] });
-            queryClient.invalidateQueries({ queryKey: ['campaigns', 'registeredMembers', campaign.id] });
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'registrationStatus', campaign.id] });
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'unregisteredContacts', campaign.id] });
           } else {
             const errorMessage = (data.body as any)?.message || 'אירעה שגיאה בהרשמה. אנא נסה שוב.';
