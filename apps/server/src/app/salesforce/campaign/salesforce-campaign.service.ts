@@ -1,4 +1,11 @@
-import { Injectable, Logger, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  InternalServerErrorException,
+  NotFoundException,
+  forwardRef,
+  Inject,
+} from '@nestjs/common';
 import { SalesforceCoreService } from '../core/salesforce-core.service';
 import {
   SalesforceMapper,
@@ -12,7 +19,10 @@ import {
   RegisterResponseDto,
   UnregisterFromCampaignDto,
   GetRegistrationStatusDto,
+  CampaignMemberRegistrationDto,
+  ContactDto,
 } from '@mandalat-halev-project/api-interfaces';
+import { SalesforceUserService } from '../user/salesforce-user.service';
 
 // Campaign fields available in the External Customer App
 // Campaign fields
@@ -70,31 +80,190 @@ const soql = SalesforceCoreService.soql;
 export class SalesforceCampaignService {
   private readonly logger = new Logger(SalesforceCoreService.name);
 
-  constructor(private readonly core: SalesforceCoreService) {}
-
+  constructor(
+    private readonly core: SalesforceCoreService,
+    @Inject(forwardRef(() => SalesforceUserService))
+    private readonly userService: SalesforceUserService,
+  ) {}
   // ---------------------------------------------------------------------------------------------
   // ----------------------------------For testing------------------------------------------------
   //      const testContactId = '003Vk000008BBuoIAG'; משתמש רנדומלי
   //      const testContactId = '003JW00001J9Bu1YAF'; אלון
+  //ID: 701Vk00000TkN4AIAV | Name: "קבוצת תמיכה דיאדי י א'-ב'" | Dates: 2025-10-15 - 2026-06-30
+  //ID: 701Vk00000TkOZhIAN | Name: "קבוצת תמיכה ילדים ה'-ו'." | Dates: 2025-10-15 - 2026-06-30
+  //ID: 701Vk00000TkOZiIAN | Name: "קבוצת תמיכה אופקים" | Dates: 2025-10-15 - 2026-06-30
+  //ID: 701Vk00000TkRAzIAN | Name: "קבוצת תמיכה -אבלים" | Dates: 2025-10-15 - 2026-06-30
+  //ID: 701Vk00000TkRqvIAF | Name: "קבוצת תמיכה  חופים -מחלימות" | Dates: 2025-10-15 - 2026-06-30
+  //ID: 701Vk00000TkSa5IAF | Name: "קבוצת תמיכה אדוות - מחלימות" | Dates: 2025-10-15 - 2026-06-30
 
   async onModuleInit() {
-    //this.logger.log('🚀 [Campaign Sandbox] Starting Zod Schema Validation...');
-    //await this.testRegistrationStatusSandbox();
+    this.logger.log(
+      '🚀 [Campaign Sandbox] Starting Household Registration Logic Test...',
+    );
+
+    //await this.printAvailableCampaignsForTesting();
+
+    // בחר את ה-ContactId ואת הקמפיין לבדיקה (החלף בקמפיין אמיתי שיש לך ב-SF)
+    const testContactId = '003JW00001J9Bu1YAF'; // אלון
+    const testCampaignId = '701Vk00000TkN4AIAV'; // <<< --- שים פה CampaignId אמיתי מה-Sandbox שלך!
+
+    // נריץ את הטסט רק אם הוזן ID תקין של קמפיין
+    if (testCampaignId.length > 10) {
+      //await this.testHouseholdLogic(testContactId, testCampaignId);
+    } else {
+      this.logger.warn(
+        '⚠️ [Campaign Sandbox] Test skipped: Please provide a valid testCampaignId in onModuleInit.',
+      );
+    }
   }
 
+  private async printAvailableCampaignsForTesting() {
+    this.logger.log('🔎 --- Fetching Future Campaigns from Salesforce --- 🔎');
+    try {
+      // שליפת קמפיינים שהתאריך סיום שלהם לא עבר, מוגבל ל-10 התוצאות הראשונות כדי לא להציף את הלוג
+      const query = `SELECT Id, Name, StartDate, EndDate FROM Campaign WHERE EndDate >= TODAY ORDER BY StartDate ASC LIMIT 10`;
+      const records = await this.core.query<any>(query);
+
+      if (records.length === 0) {
+        this.logger.warn('⚠️ No future campaigns found in Salesforce!');
+        return;
+      }
+
+      records.forEach((camp, index) => {
+        this.logger.log(
+          `[${index + 1}] ID: ${camp.Id} | Name: "${camp.Name}" | Dates: ${camp.StartDate} - ${camp.EndDate}`,
+        );
+      });
+      this.logger.log(
+        '👆 Copy one of the IDs above and paste it into testCampaignId in onModuleInit',
+      );
+    } catch (error) {
+      this.logger.error('🚨 Failed to fetch campaigns:', error);
+    }
+  }
+
+  /**
+   * Helper function to test the new household queries on boot
+   */
+  private async testHouseholdLogic(contactId: string, campaignId: string) {
+    try {
+      this.logger.log(
+        `🧪 Testing Household Logic for Contact: ${contactId} | Campaign: ${campaignId}`,
+      );
+
+      // --- 1. בדיקת שליפת בני המשפחה ---
+      const family = await this.userService.getFamilyMembers(contactId);
+      this.logger.log(`👨‍👩‍👧‍👦 1. Family Members Found: ${family.length}`);
+      family.forEach((f) =>
+        this.logger.debug(
+          `   - ${f.firstName} ${f.lastName} (${f.salesforceUserId})`,
+        ),
+      );
+
+      if (family.length === 0) {
+        this.logger.warn(
+          '⚠️ No family members found. Cannot test household logic properly.',
+        );
+        return;
+      }
+
+      // --- 4. בדיקת קמפיינים עתידיים לכל המשפחה ---
+      this.logger.log(`\n🔮 4. Testing getFutureCampaigns (Household)...`);
+      const futureCampaigns = await this.getFutureCampaigns(contactId);
+      this.logger.log(
+        `   ✅ Future Campaigns Found: ${futureCampaigns.length}`,
+      );
+      futureCampaigns.forEach((c) => {
+        this.logger.debug(
+          `   - 📅 [${c.name}] | Is Someone Registered? ${c.isUserRegistered} | Approval Status: ${c.userApprovalStatus}`,
+        );
+      });
+
+      // --- 5. בדיקת קמפיינים מהעבר לכל המשפחה ---
+      this.logger.log(`\n⏪ 5. Testing getPastCampaigns (Household)...`);
+      const pastCampaigns = await this.getPastCampaigns(contactId);
+      this.logger.log(`   ✅ Past Campaigns Found: ${pastCampaigns.length}`);
+      pastCampaigns.forEach((c) => {
+        this.logger.debug(
+          `   - 🕰️ [${c.name}] | Has Someone Participated? ${c.hasUserParticipated}`,
+        );
+      });
+
+      // --- 2. בדיקת מי רשום לקמפיין הספציפי ---
+      this.logger.log(
+        `\n📋 2. Testing getRegistrationStatus (Specific Campaign)...`,
+      );
+      const registrationStatusResult = await this.getRegistrationStatus(
+        contactId,
+        campaignId,
+      );
+
+      this.logger.log(
+        `   ✅ Registered Members Count: ${registrationStatusResult.registeredMembers.length}`,
+      );
+      registrationStatusResult.registeredMembers.forEach((m) => {
+        this.logger.debug(
+          `   - 🟢 ${m.firstName} ${m.lastName} -> Status: [${m.registrationStatus}]`,
+        );
+      });
+
+      // --- 3. בדיקת מי *לא* רשום לקמפיין הספציפי ---
+      this.logger.log(`\n🚷 3. Testing getUnregisteredContactsForCampaign...`);
+      const unregisteredResult = await this.getUnregisteredContactsForCampaign(
+        contactId,
+        campaignId,
+      );
+
+      this.logger.log(
+        `   ✅ Unregistered Contacts Count: ${unregisteredResult.contacts.length}`,
+      );
+      unregisteredResult.contacts.forEach((m) => {
+        this.logger.debug(
+          `   - 🔴 ${m.firstName} ${m.lastName} is NOT registered.`,
+        );
+      });
+
+      // בדיקת תקינות מתמטית (סך המשפחה צריך להיות שווה לרשומים + לא רשומים)
+      const totalProcessed =
+        registrationStatusResult.registeredMembers.length +
+        unregisteredResult.contacts.length;
+      if (totalProcessed === family.length) {
+        this.logger.log(
+          `   🎉 MATCH: Registered (${registrationStatusResult.registeredMembers.length}) + Unregistered (${unregisteredResult.contacts.length}) = Total Family (${family.length})`,
+        );
+      } else {
+        this.logger.error(
+          `   ❌ MISMATCH: Counts do not match! Processed: ${totalProcessed}, Total Family: ${family.length}`,
+        );
+      }
+
+      this.logger.log(`\n🏁 --- END OF HOUSEHOLD LOGIC TEST --- 🏁\n`);
+    } catch (error) {
+      this.logger.error(`🚨 Test failed with error:`, error);
+    }
+  }
   //------------------------------------------------------------------------------------------------------------------
 
   /**
    * Get user's future campaigns
-   * @param salesforceUserId - Salesforce user ID received when logged in
-   * @returns GetFutureCampaignDto or null if not found
+   * @param contactId - Salesforce Contact ID
+   * @returns GetFutureCampaignDto[]
    */
   async getFutureCampaigns(contactId: string): Promise<GetFutureCampaignDto[]> {
-    const query = soql`SELECT ${CAMPAIGN_QUERY_FIELDS}, (SELECT ${CMF.STATUS}
-                                  FROM CampaignMembers WHERE ${CMF.CONTACT_ID} = '${contactId}' LIMIT 1)
-                                  FROM Campaign WHERE ${CF.END_DATE} >= TODAY AND ${CF.ID} IN (SELECT ${CMF.CAMPAIGN_ID}
-                                  FROM CampaignMember WHERE ${CMF.CONTACT_ID} = '${contactId}')
-                                                ORDER BY ${CF.START_DATE} ASC`;
+    const familyMembers = await this.userService.getFamilyMembers(contactId);
+
+    const familyIds = familyMembers
+      .map((m) => m.salesforceUserId)
+      .filter((id) => /^[a-zA-Z0-9]{15,18}$/.test(id))
+      .map((id) => `'${id}'`)
+      .join(', ');
+
+    const query = `SELECT ${CAMPAIGN_QUERY_FIELDS}, 
+                          (SELECT ${CMF.STATUS} FROM CampaignMembers WHERE ${CMF.CONTACT_ID} IN (${familyIds}) LIMIT 1)
+                        FROM Campaign 
+                        WHERE ${CF.END_DATE} >= TODAY 
+                        AND ${CF.ID} IN (SELECT ${CMF.CAMPAIGN_ID} FROM CampaignMember WHERE ${CMF.CONTACT_ID} IN (${familyIds}))
+                        ORDER BY ${CF.START_DATE} ASC`;
 
     const records = await this.core.query<any>(query);
 
@@ -103,7 +272,7 @@ export class SalesforceCampaignService {
       return {
         ...SalesforceMapper.mapBaseCampaign(campaign),
         isRelevantToUser: true,
-        isUserRegistered: true,
+        isUserRegistered: !!membership,
         userApprovalStatus: SalesforceMapper.mapStatusToApproval(
           membership?.Status,
         ),
@@ -142,32 +311,35 @@ export class SalesforceCampaignService {
 
   /**
    * Get user's past campaigns
-   * @param salesforceUserId - Salesforce user ID received when logged in
+   * @param contactId - Salesforce Contact ID
    * @returns GetPastCampaignDto[]
    */
   async getPastCampaigns(contactId: string): Promise<GetPastCampaignDto[]> {
-    const query = `SELECT ${CAMPAIGN_QUERY_FIELDS}, (SELECT ${CMF.STATUS} FROM
-                      CampaignMembers WHERE ${CMF.CONTACT_ID} = '${contactId}' LIMIT 1)
-                        FROM Campaign WHERE ${CF.END_DATE} < TODAY AND ${CF.ID}
-                        IN (SELECT ${CMF.CAMPAIGN_ID} FROM CampaignMember WHERE 
-                        ${CMF.CONTACT_ID} = '${contactId}') ORDER BY ${CF.END_DATE} DESC`;
+    const familyMembers = await this.userService.getFamilyMembers(contactId);
+
+    const familyIds = familyMembers
+      .map((m) => m.salesforceUserId)
+      .filter((id) => /^[a-zA-Z0-9]{15,18}$/.test(id))
+      .map((id) => `'${id}'`)
+      .join(', ');
+
+    const query = `SELECT ${CAMPAIGN_QUERY_FIELDS}, 
+                      (SELECT ${CMF.STATUS} FROM CampaignMembers WHERE ${CMF.CONTACT_ID} IN (${familyIds}) LIMIT 1)
+                      FROM Campaign 
+                      WHERE ${CF.END_DATE} < TODAY 
+                      AND ${CF.ID} IN (SELECT ${CMF.CAMPAIGN_ID} FROM CampaignMember WHERE ${CMF.CONTACT_ID} IN (${familyIds})) 
+                      ORDER BY ${CF.END_DATE} DESC`;
+
     const records = await this.core.query<any>(query);
 
     return records.map((reg): GetPastCampaignDto => {
       const membership = reg.CampaignMembers?.records?.[0];
-
       const approvalStatus = SalesforceMapper.mapStatusToApproval(
         membership?.Status,
       );
-
       const isCampaignCanceled = CANCELED_STATUSES.includes(reg.Status);
-
       const hasParticipated =
         !isCampaignCanceled && approvalStatus !== 'rejected';
-
-      this.logger.debug(
-        `[DEBUG] Campaign: ${reg.Name} | Approval: ${approvalStatus} | CampaignCanceled: ${isCampaignCanceled} | Result: ${hasParticipated}`,
-      );
 
       return {
         ...SalesforceMapper.mapBaseCampaign(reg),
@@ -262,27 +434,73 @@ export class SalesforceCampaignService {
     };
   }
 
+  /**
+   * Get registration status for all household members
+   */
   async getRegistrationStatus(
     contactId: string,
     campaignId: string,
   ): Promise<GetRegistrationStatusDto> {
+    const familyMembers = await this.userService.getFamilyMembers(contactId);
+    const familyIds = familyMembers.map((m) => m.salesforceUserId);
+
     const memberObj = await this.core.sobject('CampaignMember');
     const records = await memberObj
-      .find({ [CMF.CONTACT_ID]: contactId, [CMF.CAMPAIGN_ID]: campaignId }, [
-        CMF.STATUS,
-      ])
-      .limit(1)
+      .find(
+        {
+          [CMF.CAMPAIGN_ID]: campaignId,
+          [CMF.CONTACT_ID]: { $in: familyIds },
+        },
+        [CMF.CONTACT_ID, CMF.STATUS],
+      )
       .execute();
 
-    const registrationRecord = records[0];
+    const statusMap = new Map<string, string>();
+    records.forEach((record) => {
+      statusMap.set(record.ContactId, record.Status);
+    });
 
-    return {
-      campaignId,
-      registrationStatus: registrationRecord
-        ? SalesforceMapper.mapStatusToApproval(registrationRecord[CMF.STATUS])
-        : 'pending',
-      additionalInfo: '',
-    };
+    const registeredMembers: CampaignMemberRegistrationDto[] = familyMembers
+      .filter((member) => statusMap.has(member.salesforceUserId))
+      .map((member) => ({
+        ...member,
+        registrationStatus: SalesforceMapper.mapStatusToApproval(
+          statusMap.get(member.salesforceUserId)!,
+        ),
+        additionalInfo: '',
+      }));
+
+    return { campaignId, registeredMembers };
+  }
+
+  /**
+   * Get household contacts who are NOT registered for a specific campaign
+   */
+  async getUnregisteredContactsForCampaign(
+    contactId: string,
+    campaignId: string,
+  ): Promise<{ campaignId: string; contacts: ContactDto[] }> {
+    const familyMembers = await this.userService.getFamilyMembers(contactId);
+    const familyIds = familyMembers.map((m) => m.salesforceUserId);
+
+    const memberObj = await this.core.sobject('CampaignMember');
+    const records = await memberObj
+      .find(
+        {
+          [CMF.CAMPAIGN_ID]: campaignId,
+          [CMF.CONTACT_ID]: { $in: familyIds },
+        },
+        [CMF.CONTACT_ID],
+      )
+      .execute();
+
+    const registeredIds = new Set(records.map((record) => record.ContactId));
+
+    const unregisteredContacts = familyMembers.filter(
+      (member) => !registeredIds.has(member.salesforceUserId),
+    );
+
+    return { campaignId, contacts: unregisteredContacts };
   }
 
   async campaignExists(campaignId: string): Promise<boolean> {
