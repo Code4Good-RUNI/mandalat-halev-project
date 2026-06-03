@@ -104,3 +104,13 @@ export function useRegistrationStatus(campaignId: string) {
       }),
   });
 }
+
+export function useUnregisteredContacts(campaignId: string) {
+  return useQuery({
+    queryKey: ['campaigns', 'unregisteredContacts', campaignId],
+    queryFn: () =>
+      api.campaigns.unregisteredContacts({
+        query: { campaignId },
+      }),
+  });
+}

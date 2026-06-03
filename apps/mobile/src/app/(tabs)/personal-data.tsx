@@ -25,6 +25,7 @@ export default function PersonalDataScreen() {
 
   const { data: contactsData } = useUserContacts();
   const contacts = contactsData?.status === 200 ? contactsData.body : [];
+  const familyContacts = contacts.filter((c) => c.salesforceUserId !== profile?.salesforceUserId);
 
   if (isPending) {
     return (
@@ -81,10 +82,10 @@ export default function PersonalDataScreen() {
         {/* Family Members */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>בני משפחה</Text>
-          {contacts.length === 0 ? (
+          {familyContacts.length === 0 ? (
             <Text style={styles.cardDetail}>אין בני משפחה רשומים</Text>
           ) : (
-            contacts.map((contact) => (
+            familyContacts.map((contact) => (
               <View key={contact.salesforceUserId} style={styles.card}>
                 <Text style={styles.cardName}>{contact.firstName} {contact.lastName}</Text>
                 <Text style={styles.cardDetail}>ת.ז. {contact.idNumber}</Text>

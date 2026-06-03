@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FlatList, SafeAreaView, Text, StyleSheet, ActivityIndicator, Modal, TouchableOpacity, View } from 'react-native';
-import { useFutureCampaigns, useUserContacts } from '../../../api/hooks';
+import { useFutureCampaigns } from '../../../api/hooks';
 import { FutureCampaignItem } from '../../../components/FutureCampaignItem';
 import { CampaignDetailsModal } from '../../../components/CampaignDetailsModal';
 import { QueryErrorState } from '../../../components/QueryErrorState';
@@ -8,8 +8,6 @@ import type { GetFutureCampaignDto } from '@mandalat-halev-project/api-interface
 
 export default function FutureActivitiesScreen() {
   const { data, isPending, isError, refetch } = useFutureCampaigns();
-  const { data: contactsData, isPending: contactsLoading } = useUserContacts();
-  const contacts = contactsData?.status === 200 ? contactsData.body : [];
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [selectedCampaign, setSelectedCampaign] = useState<GetFutureCampaignDto | null>(null);
@@ -41,13 +39,14 @@ export default function FutureActivitiesScreen() {
         renderItem={({ item }) => (
           <FutureCampaignItem
             campaign={item}
-            contacts={contacts}
-            contactsLoading={contactsLoading}
             onShowModal={showModal}
             onPressDetails={() => setSelectedCampaign(item)}
           />
         )}
         contentContainerStyle={{ paddingBottom: 20, paddingHorizontal: 15 }}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>לא קיימות פעילויות עתידיות</Text>
+        }
       />
 
       <Modal visible={modalVisible} transparent={true} animationType="fade">
@@ -79,4 +78,5 @@ const styles = StyleSheet.create({
   modalText: { fontSize: 16, marginBottom: 20, textAlign: 'center' },
   closeButton: { backgroundColor: '#FF8C00', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
   closeButtonText: { color: '#fff', fontWeight: 'bold' },
+  emptyText: { textAlign: 'center', marginTop: 30, color: '#666', fontSize: 16 },
 });

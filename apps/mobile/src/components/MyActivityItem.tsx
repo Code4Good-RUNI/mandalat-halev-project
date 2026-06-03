@@ -7,7 +7,7 @@ interface MyActivityItemProps {
   title: string;
   date: string;
   location: string;
-  status: string;
+  status?: string;
   onPressDetails?: () => void;
   children?: React.ReactNode;
 }
@@ -26,7 +26,7 @@ export const MyActivityItem = ({
       <View style={styles.info}>
         {/* Status on left, name on right */}
         <View style={styles.nameRow}>
-          <Status label={status} />
+          {status ? <Status label={status} /> : null}
           <Text style={styles.title}>{title}</Text>
         </View>
 

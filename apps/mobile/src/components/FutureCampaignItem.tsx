@@ -1,60 +1,71 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { MyActivityItem } from './MyActivityItem';
-import {
-  useRegistrationStatus,
-  useUnregisterFromCampaign
-} from '../api/hooks';
-import type { GetFutureCampaignDto, ContactDto } from '@mandalat-halev-project/api-interfaces';
+import { useRegistrationStatus, useUnregisteredContacts, useUnregisterFromCampaign, useRegisterForCampaign } from '../api/hooks';
+import { Status } from './Status';
+import type { GetFutureCampaignDto, ApprovalStatus } from '@mandalat-halev-project/api-interfaces';
 
-export function FutureCampaignItem({ campaign, contacts, contactsLoading, onShowModal, onPressDetails }: {
+const approvalStatusLabel = (status: ApprovalStatus): string => {
+  if (status === 'approved') return 'אושר';
+  if (status === 'rejected') return 'נדחה';
+  if (status === 'waiting_list') return 'ברשימת המתנה';
+  return 'מחכה לאישור';
+};
+
+export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
   campaign: GetFutureCampaignDto;
-  contacts: ContactDto[];
-  contactsLoading: boolean;
   onShowModal: (msg: string) => void;
   onPressDetails: () => void;
 }) {
   const queryClient = useQueryClient();
-  const [isUnregistered, setIsUnregistered] = useState(false);
   const [selectionVisible, setSelectionVisible] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [registerModalVisible, setRegisterModalVisible] = useState(false);
+  const [registerSelectedIds, setRegisterSelectedIds] = useState<string[]>([]);
 
   const {
-    data: statusData,
-    isPending: statusPending,
-    isFetching,
-    isError: isStatusError,
+    data: membersData,
+    isPending: membersLoading,
+    isError: isMembersError,
+    refetch: refetchMembers,
   } = useRegistrationStatus(campaign.id);
+
   const { mutate: unregister, isPending: isUnregistering } = useUnregisterFromCampaign();
+  const { mutate: register, isPending: isRegistering } = useRegisterForCampaign();
+
+  const {
+    data: unregisteredData,
+    isPending: unregisteredLoading,
+    isError: isUnregisteredError,
+    refetch: refetchUnregistered,
+  } = useUnregisteredContacts(campaign.id);
+
+  const unregisteredContacts = (unregisteredData?.status === 200 ? unregisteredData.body : undefined)?.contacts ?? [];
+  const members = (membersData?.status === 200 ? membersData.body : undefined)?.registeredMembers ?? [];
 
   let statusText: string;
-  if (statusPending || isFetching) {
+  if (membersLoading) {
     statusText = 'טוען...';
-  } else if (statusData?.status === 200) {
-    statusText = statusData.body.registrationStatus === 'approved' ? 'רשום' : 'מחכה לאישור';
-  } else if (isStatusError || statusData) {
+  } else if (isMembersError || membersData?.status !== 200) {
     statusText = 'שגיאה בטעינת הסטטוס';
+  } else if (members.length > 0) {
+    statusText = members.every((m) => m.registrationStatus === 'approved') ? 'רשום' : 'מחכה לאישור';
   } else {
     statusText = 'לא ידוע';
   }
 
-  if (isUnregistered) {
-    statusText = 'בוטל';
-  }
-
-  // Sends the unregistration request with the given contact IDs.
   const performUnregister = (contactIds: string[]) => {
     unregister(
       { campaignId: campaign.id, contactIds },
       {
         onSuccess: (data) => {
           if (data.status === 200 && data.body?.requestReceivedSuccessfully) {
-            setIsUnregistered(true);
             onShowModal('הרישום בוטל בהצלחה!');
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'future'] });
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'active'] });
             queryClient.invalidateQueries({ queryKey: ['campaigns', 'registrationStatus', campaign.id] });
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'unregisteredContacts', campaign.id] });
           } else {
             const errorMessage = (data.body as any)?.message || 'משהו השתבש בביטול ההרשמה. אנא נסה שוב.';
             onShowModal(errorMessage);
@@ -65,11 +76,9 @@ export function FutureCampaignItem({ campaign, contacts, contactsLoading, onShow
     );
   };
 
-  // If the user has only one contact (themselves), unregister immediately.
-  // If they have multiple contacts, open the selection modal.
   const handleUnregister = () => {
-    if (contacts.length <= 1) {
-      performUnregister(contacts.map((c) => c.salesforceUserId));
+    if (members.length <= 1) {
+      performUnregister(members.map((m) => m.salesforceUserId));
     } else {
       setSelectedIds([]);
       setSelectionVisible(true);
@@ -87,46 +96,180 @@ export function FutureCampaignItem({ campaign, contacts, contactsLoading, onShow
     performUnregister(selectedIds);
   };
 
+  const performRegister = (contactIds: string[]) => {
+    register(
+      { campaignId: campaign.id, contactIds },
+      {
+        onSuccess: (data) => {
+          if (data.status === 200 && data.body?.requestReceivedSuccessfully) {
+            onShowModal('בקשת ההרשמה נשלחה בהצלחה!');
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'future'] });
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'active'] });
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'registrationStatus', campaign.id] });
+            queryClient.invalidateQueries({ queryKey: ['campaigns', 'unregisteredContacts', campaign.id] });
+          } else {
+            const errorMessage = (data.body as any)?.message || 'אירעה שגיאה בהרשמה. אנא נסה שוב.';
+            onShowModal(errorMessage);
+          }
+        },
+        onError: () => onShowModal('שגיאת תקשורת או מערכת. אנא בדוק את החיבור ונסה שוב.'),
+      }
+    );
+  };
+
+  const handleRegisterMore = () => {
+    setRegisterSelectedIds([]);
+    setRegisterModalVisible(true);
+  };
+
+  const toggleRegisterContact = (id: string) => {
+    setRegisterSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const confirmRegister = () => {
+    setRegisterModalVisible(false);
+    performRegister(registerSelectedIds);
+  };
+
+  const renderRegisterAction = () => {
+    if (unregisteredLoading) {
+      return <ActivityIndicator size="small" color="#FF8C00" />;
+    }
+    if (isUnregisteredError || unregisteredData?.status !== 200) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>שגיאה בטעינת הנתונים</Text>
+          <TouchableOpacity onPress={() => refetchUnregistered()}>
+            <Text style={styles.retryText}>נסה שוב</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return (
+      <TouchableOpacity
+        style={[styles.registerButton, (isRegistering || unregisteredContacts.length === 0) && styles.disabledButton]}
+        onPress={handleRegisterMore}
+        disabled={isRegistering || unregisteredContacts.length === 0}
+      >
+        <Text style={styles.registerButtonText}>
+          {isRegistering ? 'נרשם...' : 'רישום משתתפים נוספים'}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderAction = () => {
+    if (membersLoading) {
+      return <ActivityIndicator size="small" color="#ff4444" />;
+    }
+    if (isMembersError || membersData?.status !== 200) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>שגיאה בטעינת הנתונים</Text>
+          <TouchableOpacity onPress={() => refetchMembers()}>
+            <Text style={styles.retryText}>נסה שוב</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    if (members.length === 0) return null;
+    return (
+      <TouchableOpacity
+        style={[styles.unregisterButton, isUnregistering && styles.disabledButton]}
+        onPress={handleUnregister}
+        disabled={isUnregistering}
+      >
+        <Text style={styles.unregisterButtonText}>
+          {isUnregistering ? 'מבטל...' : 'ביטול רישום'}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <>
       <MyActivityItem
         title={campaign.name}
         date={`${campaign.startDate} | ${campaign.durationInHours} שעות`}
         location={`${campaign.locationAddress}, ${campaign.locationCity}`}
-        status={statusText}
+        status={members.length >= 1 ? undefined : statusText}
         onPressDetails={onPressDetails}
       >
+        {members.length >= 1 && (
+          <View style={styles.memberStatusList}>
+            {members.map((m) => (
+              <View key={m.salesforceUserId} style={styles.memberStatusRow}>
+                <Status label={approvalStatusLabel(m.registrationStatus)} />
+                <Text style={styles.memberName}>{m.firstName} {m.lastName}</Text>
+              </View>
+            ))}
+          </View>
+        )}
         <View style={styles.actionContainer}>
-          {!isUnregistered && (
-            <TouchableOpacity
-              style={[styles.unregisterButton, (isUnregistering || contactsLoading) && styles.disabledButton]}
-              onPress={handleUnregister}
-              disabled={isUnregistering || contactsLoading}
-            >
-              <Text style={styles.unregisterButtonText}>
-                {isUnregistering ? 'מבטל...' : 'ביטול רישום'}
-              </Text>
-            </TouchableOpacity>
-          )}
+          {renderRegisterAction()}
+          {renderAction()}
         </View>
       </MyActivityItem>
 
-      {/* Contact selection bottom sheet — only shown when the user has multiple contacts. */}
+      <Modal visible={registerModalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.selectionModal}>
+            <Text style={[styles.selectionTitle, styles.registerSelectionTitle]}>בחר משתתפים לרישום</Text>
+
+            {unregisteredContacts.map((contact) => {
+              const selected = registerSelectedIds.includes(contact.salesforceUserId);
+              return (
+                <TouchableOpacity
+                  key={contact.salesforceUserId}
+                  style={styles.contactRow}
+                  onPress={() => toggleRegisterContact(contact.salesforceUserId)}
+                >
+                  <Text style={styles.contactName}>
+                    {contact.firstName} {contact.lastName}
+                  </Text>
+                  <View style={[styles.checkbox, selected && styles.registerCheckboxSelected]}>
+                    {selected && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+
+            <View style={styles.selectionButtons}>
+              <TouchableOpacity
+                onPress={() => setRegisterModalVisible(false)}
+                style={styles.cancelButton}
+              >
+                <Text style={styles.cancelButtonText}>ביטול</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={confirmRegister}
+                disabled={registerSelectedIds.length === 0}
+                style={[styles.registerConfirmButton, registerSelectedIds.length === 0 && styles.disabledButton]}
+              >
+                <Text style={styles.confirmButtonText}>אישור</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={selectionVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.selectionModal}>
             <Text style={styles.selectionTitle}>בחר משתתפים לביטול</Text>
 
-            {contacts.map((contact) => {
-              const selected = selectedIds.includes(contact.salesforceUserId);
+            {members.map((member) => {
+              const selected = selectedIds.includes(member.salesforceUserId);
               return (
                 <TouchableOpacity
-                  key={contact.salesforceUserId}
+                  key={member.salesforceUserId}
                   style={styles.contactRow}
-                  onPress={() => toggleContact(contact.salesforceUserId)}
+                  onPress={() => toggleContact(member.salesforceUserId)}
                 >
                   <Text style={styles.contactName}>
-                    {contact.firstName} {contact.lastName}
+                    {member.firstName} {member.lastName}
                   </Text>
                   <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
                     {selected && <Text style={styles.checkmark}>✓</Text>}
@@ -142,7 +285,6 @@ export function FutureCampaignItem({ campaign, contacts, contactsLoading, onShow
               >
                 <Text style={styles.cancelButtonText}>ביטול</Text>
               </TouchableOpacity>
-              {/* Confirm is disabled when no contacts are selected. */}
               <TouchableOpacity
                 onPress={confirmUnregister}
                 disabled={selectedIds.length === 0}
@@ -159,15 +301,43 @@ export function FutureCampaignItem({ campaign, contacts, contactsLoading, onShow
 }
 
 const styles = StyleSheet.create({
-  actionContainer: { alignItems: 'flex-end' },
-  unregisterButton: {
-    backgroundColor: '#ff4444',
+  memberStatusList: { gap: 4, marginBottom: 12 },
+  memberStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  memberName: { flex: 1, fontSize: 14, color: '#333', textAlign: 'right' },
+  actionContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'stretch', gap: 8, marginTop: 4 },
+  registerButton: {
+    flex: 1,
+    backgroundColor: '#FF8C00',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  registerButtonText: { color: '#fff', fontWeight: 'bold', textAlign: 'center' },
+  registerSelectionTitle: { color: '#FF8C00' },
+  registerCheckboxSelected: { backgroundColor: '#FF8C00', borderColor: '#FF8C00' },
+  registerConfirmButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#FF8C00',
+    alignItems: 'center' as const,
+  },
+  unregisterButton: {
+    flex: 1,
+    backgroundColor: '#FF8C00',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   disabledButton: { opacity: 0.6 },
-  unregisterButtonText: { color: '#fff', fontWeight: 'bold' },
+  unregisterButtonText: { color: '#fff', fontWeight: 'bold', textAlign: 'center' },
+  errorContainer: { alignItems: 'flex-end', gap: 4 },
+  errorText: { color: '#ff4444', fontSize: 13 },
+  retryText: { color: '#FF8C00', fontSize: 13, fontWeight: 'bold' },
   // Contact selection bottom sheet
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   selectionModal: {

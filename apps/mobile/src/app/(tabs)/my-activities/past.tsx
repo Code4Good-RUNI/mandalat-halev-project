@@ -41,6 +41,9 @@ export default function PreviousActivitiesScreen() {
           />
         )}
         contentContainerStyle={{ paddingBottom: 20, paddingHorizontal: 15 }}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>לא קיימות פעילויות קודמות</Text>
+        }
       />
 
       <CampaignDetailsModal 
@@ -57,4 +60,5 @@ const styles = StyleSheet.create({
   center: { justifyContent: 'center', alignItems: 'center' },
   header: { padding: 15 },
   title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right' },
+  emptyText: { textAlign: 'center', marginTop: 30, color: '#666', fontSize: 16 },
 });

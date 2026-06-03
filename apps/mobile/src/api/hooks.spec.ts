@@ -247,7 +247,7 @@ describe('useRegisterForCampaign', () => {
 
     result.current.mutate({
       campaignId: '1',
-      numOfParticipantsToRegister: 1,
+      contactIds: ['003-test-contact'],
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -255,7 +255,7 @@ describe('useRegisterForCampaign', () => {
     expect(mockedApi.campaigns.register).toHaveBeenCalledWith({
       body: {
         campaignId: '1',
-        numOfParticipantsToRegister: 1,
+        contactIds: ['003-test-contact'],
       },
     });
     expect(result.current.data).toEqual(mockResponse);
@@ -281,7 +281,7 @@ describe('useUnregisterFromCampaign', () => {
 
     result.current.mutate({
       campaignId: '1',
-      numOfParticipantsToUnregister: 1,
+      contactIds: ['003-test-contact'],
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -289,7 +289,7 @@ describe('useUnregisterFromCampaign', () => {
     expect(mockedApi.campaigns.unregister).toHaveBeenCalledWith({
       body: {
         campaignId: '1',
-        numOfParticipantsToUnregister: 1,
+        contactIds: ['003-test-contact'],
       },
     });
     expect(result.current.data).toEqual(mockResponse);
@@ -301,9 +301,14 @@ describe('useRegistrationStatus', () => {
     const mockResponse = {
       status: 200,
       body: {
-        campaignId: '1',
-        registrationStatus: 'approved' as const,
-        additionalInfo: 'Welcome!',
+        registeredMembers: [
+          {
+            salesforceUserId: '003-test-contact',
+            registrationStatus: 'approved' as const,
+            firstName: 'Test',
+            lastName: 'User',
+          },
+        ],
       },
     };
     (mockedApi.campaigns.registrationStatus as jest.Mock).mockResolvedValue(

@@ -11,6 +11,7 @@ import {
   UnregisterFromCampaignSchema,
   RegisterResponseSchema,
   GetRegistrationStatusSchema,
+  GetUnregisteredCampaignContactsResponseSchema,
   ErrorResponseSchema,
   ValidationErrorResponseSchema,
   RegisterDeviceTokenSchema,
@@ -43,8 +44,8 @@ export const userContract = c.router({
       responses: {
         200: LoginResponseSchema,
         400: ValidationErrorResponseSchema,
-        401: ErrorResponseSchema, 
-        500: ErrorResponseSchema, 
+        401: ErrorResponseSchema,
+        500: ErrorResponseSchema,
       },
       summary: 'Finalize Firebase login and embed custom claims',
     },
@@ -69,9 +70,9 @@ export const userContract = c.router({
       responses: {
         200: z.array(ContactSchema),
         400: ValidationErrorResponseSchema,
-        401: ErrorResponseSchema, 
-        403: ErrorResponseSchema, 
-        500: ErrorResponseSchema, 
+        401: ErrorResponseSchema,
+        403: ErrorResponseSchema,
+        500: ErrorResponseSchema,
       },
       summary: 'Get user contacts',
     },
@@ -155,7 +156,24 @@ export const userContract = c.router({
         404: ErrorResponseSchema,
         500: ErrorResponseSchema,
       },
-      summary: 'Get registration status for a specific user and campaign',
+      summary:
+        'Get all registered contacts for a campaign and their approval status',
+    },
+    unregisteredContacts: {
+      method: 'GET',
+      path: '/campaigns/unregistered-contacts',
+      query: z.object({
+        campaignId: z.coerce.string(),
+      }),
+      responses: {
+        200: GetUnregisteredCampaignContactsResponseSchema,
+        400: ValidationErrorResponseSchema,
+        401: ErrorResponseSchema,
+        403: ErrorResponseSchema,
+        404: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+      summary: 'Get household contacts not yet registered to a campaign',
     },
   },
   notifications: {

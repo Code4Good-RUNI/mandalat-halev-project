@@ -19,5 +19,6 @@ describe('API client', () => {
     expect(typeof api.campaigns.register).toBe('function');
     expect(typeof api.campaigns.unregister).toBe('function');
     expect(typeof api.campaigns.registrationStatus).toBe('function');
+    expect(typeof api.campaigns.unregisteredContacts).toBe('function');
   });
 });
