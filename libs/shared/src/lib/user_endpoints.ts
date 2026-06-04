@@ -17,6 +17,8 @@ import {
   RegisterDeviceTokenSchema,
   TestNotificationSchema,
   NotificationSuccessResponseSchema,
+  UnregisterDeviceTokenSchema,
+  UpdateNotificationPreferencesSchema,
 } from './user_schemas.js';
 
 const c = initContract();
@@ -198,6 +200,30 @@ export const userContract = c.router({
         500: ErrorResponseSchema,
       },
       summary: 'Send a test notification to all devices of the user (dev only)',
+    },
+    unregister: {
+      method: 'POST',
+      path: '/notifications/unregister',
+      body: UnregisterDeviceTokenSchema,
+      responses: {
+        200: NotificationSuccessResponseSchema,
+        400: ValidationErrorResponseSchema,
+        401: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+      summary: 'Unregister a device push token (disable notifications)',
+    },
+    preferences: {
+      method: 'PATCH',
+      path: '/notifications/preferences',
+      body: UpdateNotificationPreferencesSchema,
+      responses: {
+        200: NotificationSuccessResponseSchema,
+        400: ValidationErrorResponseSchema,
+        401: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+      summary: 'Update partial notification preferences for a specific device',
     },
   },
 });

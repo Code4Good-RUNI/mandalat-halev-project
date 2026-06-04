@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as admin from 'firebase-admin';
-import { IPushTokenRepository, PushTokenRecord } from './push-token.repository';
+import { IPushTokenRepository, PushTokenRecord, NotificationPreferencesRecord } from './push-token.repository';
 
 @Injectable()
 export class FirestorePushTokenRepository implements IPushTokenRepository {
@@ -9,7 +9,7 @@ export class FirestorePushTokenRepository implements IPushTokenRepository {
     return admin.firestore().collection('pushTokens');
   }
 
-  async upsert(tokenData: Omit<PushTokenRecord, 'id' | 'updatedAt'>): Promise<PushTokenRecord> {
+  async upsert(tokenData: Omit<PushTokenRecord, 'id' | 'updatedAt' | 'enabled' | 'preferences'>): Promise<PushTokenRecord> {
     const snapshot = await this.collection
       .where('salesforceUserId', '==', tokenData.salesforceUserId)
       .where('nativeToken', '==', tokenData.nativeToken)
@@ -23,15 +23,62 @@ export class FirestorePushTokenRepository implements IPushTokenRepository {
       await doc.ref.update({
         updatedAt: now,
         expoToken: tokenData.expoToken,
+        enabled: true,
       });
-      return { id: doc.id, ...doc.data(), updatedAt: now } as PushTokenRecord;
+      
+      return { 
+        id: doc.id, 
+        ...doc.data(), 
+        expoToken: tokenData.expoToken, 
+        enabled: true, 
+        updatedAt: now 
+      } as PushTokenRecord;
     } else {
       const newRecord = {
         ...tokenData,
+        enabled: true,
+        preferences: {
+          activityUpdates: true,
+          activityReminders: true,
+          orgMessages: true,
+        },
         updatedAt: now,
       };
       const docRef = await this.collection.add(newRecord);
       return { id: docRef.id, ...newRecord } as PushTokenRecord;
+    }
+  }
+
+  async unregister(salesforceUserId: string, nativeToken: string): Promise<void> {
+    const snapshot = await this.collection
+      .where('salesforceUserId', '==', salesforceUserId)
+      .where('nativeToken', '==', nativeToken)
+      .limit(1)
+      .get();
+
+    if (!snapshot.empty) {
+      await snapshot.docs[0].ref.update({
+        enabled: false,
+        updatedAt: new Date()
+      });
+    }
+  }
+
+  async updatePreferences(salesforceUserId: string, nativeToken: string, preferences: Partial<NotificationPreferencesRecord>): Promise<void> {
+    const snapshot = await this.collection
+      .where('salesforceUserId', '==', salesforceUserId)
+      .where('nativeToken', '==', nativeToken)
+      .limit(1)
+      .get();
+
+    if (!snapshot.empty) {
+      const updates: Record<string, Date | boolean> = { updatedAt: new Date() };
+      for (const [key, value] of Object.entries(preferences)) {
+        if (value !== undefined) {
+          updates[`preferences.${key}`] = value;
+        }
+      }
+      await snapshot.docs[0].ref.update(updates);
     }
   }
 

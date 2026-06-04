@@ -1,7 +1,13 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import * as admin from 'firebase-admin';
 import { PUSH_TOKEN_REPOSITORY } from './push-token.repository';
-import type { IPushTokenRepository } from './push-token.repository';
+import type { IPushTokenRepository, PushTokenRecord, NotificationPreferencesRecord } from './push-token.repository';
+
+export enum NotificationCategory {
+  ACTIVITY_UPDATES = 'activityUpdates',
+  ACTIVITY_REMINDERS = 'activityReminders',
+  ORG_MESSAGES = 'orgMessages',
+}
 
 @Injectable()
 export class NotificationsService {
@@ -21,20 +27,45 @@ export class NotificationsService {
     });
   }
 
-  async sendToUser(salesforceUserId: string, payload: { title: string; body: string; data?: Record<string, string> }) {
-    const tokens = await this.repository.getByUserId(salesforceUserId);
-    if (tokens.length === 0) return;
-
-    const nativeTokens = tokens.map(t => t.nativeToken);
-    await this.sendToTokens(nativeTokens, payload);
+  async unregister(salesforceUserId: string, nativeToken: string) {
+    await this.repository.unregister(salesforceUserId, nativeToken);
   }
 
-  async sendToAll(payload: { title: string; body: string; data?: Record<string, string> }) {
-    const tokens = await this.repository.getAll();
-    if (tokens.length === 0) return;
+  async updatePreferences(salesforceUserId: string, nativeToken: string, preferences: Partial<NotificationPreferencesRecord>) {
+    await this.repository.updatePreferences(salesforceUserId, nativeToken, preferences);
+  }
 
-    const nativeTokens = tokens.map(t => t.nativeToken);
-    await this.sendToTokens(nativeTokens, payload);
+  async sendToUser(
+    salesforceUserId: string, 
+    payload: { title: string; body: string; data?: Record<string, string> },
+    category?: NotificationCategory
+  ) {
+    const tokens = await this.repository.getByUserId(salesforceUserId);
+    const validTokens = this.filterValidTokens(tokens, category);
+    
+    if (validTokens.length === 0) return;
+    await this.sendToTokens(validTokens, payload);
+  }
+
+  async sendToAll(
+    payload: { title: string; body: string; data?: Record<string, string> },
+    category?: NotificationCategory  
+  ) {
+    const tokens = await this.repository.getAll();
+    const validTokens = this.filterValidTokens(tokens, category);
+
+    if (validTokens.length === 0) return;
+    await this.sendToTokens(validTokens, payload);
+  }
+
+  private filterValidTokens(tokens: PushTokenRecord[], category?: NotificationCategory): string[] {
+    return tokens
+      .filter(t => t.enabled !== false) // Default to true if missing (for legacy records)
+      .filter(t => {
+        if (!category) return true;
+        return t.preferences?.[category] !== false; // Send unless explicitly opted out
+      })
+      .map(t => t.nativeToken);
   }
 
   private async sendToTokens(tokens: string[], payload: { title: string; body: string; data?: Record<string, string> }) {

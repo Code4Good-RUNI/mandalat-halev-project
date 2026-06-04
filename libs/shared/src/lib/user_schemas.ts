@@ -227,3 +227,28 @@ export const NotificationSuccessResponseSchema = z.object({
   ok: z.literal(true),
 });
 export type NotificationSuccessResponseDto = z.infer<typeof NotificationSuccessResponseSchema>;
+
+// Request body for unregistering a token
+export const UnregisterDeviceTokenSchema = z.object({
+  nativeToken: z.string(),
+});
+export type UnregisterDeviceTokenDto = z.infer<typeof UnregisterDeviceTokenSchema>;
+
+// Preferences schema
+export const NotificationPreferencesSchema = z.object({
+  activityUpdates: z.boolean().default(true),
+  activityReminders: z.boolean().default(true),
+  orgMessages: z.boolean().default(true),
+});
+export type NotificationPreferencesDto = z.infer<typeof NotificationPreferencesSchema>;
+
+// Request body for updating preferences
+export const UpdateNotificationPreferencesSchema = z.object({
+  nativeToken: z.string(),
+  preferences: z.object({
+    activityUpdates: z.boolean().optional(),
+    activityReminders: z.boolean().optional(),
+    orgMessages: z.boolean().optional(),
+  }),
+});
+export type UpdateNotificationPreferencesDto = z.infer<typeof UpdateNotificationPreferencesSchema>;
