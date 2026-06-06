@@ -208,4 +208,19 @@ export class SalesforceUserService {
       };
     });
   }
+
+  // =========================================================================
+  // CRON JOB GLOBAL QUERIES 
+  // =========================================================================
+
+  /**
+   * Retrieves all active users in the system for global notifications
+   */
+  async getAllActiveSalesforceUserIds(): Promise<string[]> {
+    const query = `SELECT Id FROM Contact WHERE AccountId != null`; 
+    const records = await this.core.query<any>(query); 
+    
+    return records.map(r => r.Id);
+  }
+
 }
