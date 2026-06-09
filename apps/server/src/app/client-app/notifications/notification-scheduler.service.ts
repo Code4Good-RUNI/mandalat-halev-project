@@ -70,7 +70,7 @@ export class NotificationSchedulerService {
       return;
     }
 
-    const activeUserIds = await this.getAllActiveSalesforceUserIds();
+    const activeUserIds = await this.sfUserService.getAllActiveSalesforceUserIds();
     
     for (const userId of activeUserIds) {
       const familyMembers = await this.sfUserService.getFamilyMembers(userId);
@@ -173,10 +173,11 @@ export class NotificationSchedulerService {
     // Deduplicate user IDs within the household run
     const uniqueUserIds = Array.from(new Set(userIds));
     
-    for (const userId of uniqueUserIds) {
-      // Calls your existing robust method from notifications.service.ts
-      await this.notificationsService.sendToUser(userId, { title, body, data: payload }, category);
-    }
+    await this.notificationsService.sendToUsers(
+      uniqueUserIds, 
+      { title, body, data: payload }, 
+      category
+    );
   }
 
   private async acquireFirestoreLock(): Promise<boolean> {
@@ -237,7 +238,4 @@ export class NotificationSchedulerService {
     this.logger.log(`Cleaned up ${expiredDocs.size} expired historical state tracking documents.`);
   }
 
-  private async getAllActiveSalesforceUserIds(): Promise<string[]> {
-    return [];
-  }
 }

@@ -109,5 +109,28 @@ export class NotificationsService {
       }
     }
   }
+  async sendToUsers(
+    salesforceUserIds: string[],
+    payload: { title: string; body: string; data?: Record<string, string> },
+    category?: NotificationCategory
+  ) {
+    // 1. Fetch all tokens for all users concurrently
+    const tokensPromises = salesforceUserIds.map(userId => this.repository.getByUserId(userId));
+    const allTokensArrays = await Promise.all(tokensPromises);
+    
+    // 2. Flatten the arrays into a single list
+    const allTokens = allTokensArrays.flat();
+
+    // 3. Filter valid tokens based on enabled status and category preferences
+    const validTokens = this.filterValidTokens(allTokens, category);
+
+    // 4. Deduplicate by nativeToken (this fulfills the household requirement)
+    const uniqueNativeTokens = Array.from(new Set(validTokens));
+
+    if (uniqueNativeTokens.length === 0) return;
+    
+    // 5. Send using the existing chunking logic
+    await this.sendToTokens(uniqueNativeTokens, payload);
+  }
 }    
    
