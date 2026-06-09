@@ -6,10 +6,7 @@ export type LoginFieldErrors = {
   idNumber?: string;
 };
 
-const fieldMessages: Record<
-  keyof LoginFieldErrors,
-  Record<string, string>
-> = {
+const fieldMessages: Record<keyof LoginFieldErrors, Record<string, string>> = {
   phoneNumber: {
     invalid_string: 'מספר טלפון חייב להכיל ספרות בלבד',
     too_small: 'מספר טלפון חייב להיות 10 ספרות',

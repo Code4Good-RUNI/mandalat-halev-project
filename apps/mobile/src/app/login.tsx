@@ -21,7 +21,7 @@ import {
   getLoginBanner,
   getLoginFieldErrors,
   LoginFieldErrors,
-} from './_loginErrors';
+} from '../utils/loginErrors';
 
 export default function LoginScreen() {
   const [idNumber, setIdNumber] = useState('');
@@ -120,7 +120,9 @@ export default function LoginScreen() {
                   textAlign="right"
                 />
                 {fieldErrors.idNumber && (
-                  <Text style={styles.fieldErrorText}>{fieldErrors.idNumber}</Text>
+                  <Text style={styles.fieldErrorText}>
+                    {fieldErrors.idNumber}
+                  </Text>
                 )}
               </View>
 
@@ -145,7 +147,9 @@ export default function LoginScreen() {
               </View>
 
               <TouchableOpacity
-                onPress={() => void Linking.openURL('mailto:mandalatlev@gmail.com')}
+                onPress={() =>
+                  void Linking.openURL('mailto:mandalatlev@gmail.com')
+                }
               >
                 <Text style={styles.linkText}>נתקלת בבעיה? צור איתנו קשר</Text>
               </TouchableOpacity>
