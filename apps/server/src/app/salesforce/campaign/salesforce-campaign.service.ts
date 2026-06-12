@@ -382,5 +382,56 @@ export class SalesforceCampaignService {
       .map((id) => `'${id}'`)
       .join(', ');
   }
-}
 
+  // =========================================================================
+  // CRON JOB GLOBAL QUERIES 
+  // =========================================================================
+
+  /**
+   * Fetch all campaigns created or activated today
+   */
+  async getNewCampaignsToday(): Promise<{ campaignId: string }[]> {
+    const query = `SELECT Id FROM Campaign WHERE CreatedDate = TODAY AND IsActive = true`;
+    const records = await this.core.query<any>(query);
+    
+    return records.map(r => ({ campaignId: r.Id }));
+  }
+
+  /**
+   * Fetch contacts who have an activity starting tomorrow
+   */
+  async getUpcomingActivityReminders(): Promise<{ campaignName: string; contactId: string; daysUntil: number }[]> {
+    const query = `
+      SELECT CampaignId, Campaign.Name, ContactId 
+      FROM CampaignMember 
+      WHERE Campaign.StartDate = TOMORROW 
+      AND Status IN ('Confirmed', 'Approved', 'Registered')
+    `;
+    const records = await this.core.query<any>(query);
+    
+    return records.map(r => ({
+      campaignName: r.Campaign.Name,
+      contactId: r.ContactId,
+      daysUntil: 1
+    }));
+  }
+
+  /**
+   * Fetch registration statuses modified recently (last 2 days)
+   */
+  async getUpcomingRegistrationStatuses(): Promise<{ salesforceUserId: string; campaignId: string; campaignName: string; registrationStatus: string }[]> {
+    const query = `
+      SELECT CampaignId, Campaign.Name, ContactId, Status 
+      FROM CampaignMember 
+      WHERE LastModifiedDate = LAST_N_DAYS:2
+    `;
+    const records = await this.core.query<any>(query);
+    
+    return records.map(r => ({
+      salesforceUserId: r.ContactId,
+      campaignId: r.CampaignId,
+      campaignName: r.Campaign.Name,
+      registrationStatus: SalesforceMapper.mapStatusToApproval(r.Status)
+    }));
+  }
+}

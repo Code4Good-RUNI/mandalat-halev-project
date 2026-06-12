@@ -69,38 +69,68 @@ export class NotificationsService {
   }
 
   private async sendToTokens(tokens: string[], payload: { title: string; body: string; data?: Record<string, string> }) {
-    const message: admin.messaging.MulticastMessage = {
-      notification: {
-        title: payload.title,
-        body: payload.body,
-      },
-      data: payload.data, 
-      tokens: tokens,
-    };
-
-    try {
-      const response = await admin.messaging().sendEachForMulticast(message);
+    const chunkSize = 500;
+    
+    for (let i = 0; i < tokens.length; i += chunkSize) {
+      const chunk = tokens.slice(i, i + chunkSize);
       
-      if (response.failureCount > 0) {
-        const failedTokens: string[] = [];
-        response.responses.forEach((resp, idx) => {
-          if (!resp.success) {
-            const errorCode = resp.error?.code;
-            if (errorCode === 'messaging/invalid-registration-token' || errorCode === 'messaging/registration-token-not-registered') {
-              failedTokens.push(tokens[idx]);
-            } else {
-              this.logger.error(`FCM Error for token ${tokens[idx]}: ${errorCode}`);
-            }
-          }
-        });
+      const message: admin.messaging.MulticastMessage = {
+        notification: {
+          title: payload.title,
+          body: payload.body,
+        },
+        data: payload.data, 
+        tokens: chunk,
+      };
 
-        for (const token of failedTokens) {
-          await this.repository.deleteByToken(token);
-          this.logger.log(`Deleted invalid token: ${token}`);
+      try {
+        const response = await admin.messaging().sendEachForMulticast(message);
+        
+        if (response.failureCount > 0) {
+          const failedTokens: string[] = [];
+          response.responses.forEach((resp, idx) => {
+            if (!resp.success) {
+              const errorCode = resp.error?.code;
+              if (errorCode === 'messaging/invalid-registration-token' || errorCode === 'messaging/registration-token-not-registered') {
+                failedTokens.push(chunk[idx]);
+              } else {
+                this.logger.error(`FCM Error for token ${chunk[idx]}: ${errorCode}`);
+              }
+            }
+          });
+
+          for (const token of failedTokens) {
+            await this.repository.deleteByToken(token);
+            this.logger.log(`Deleted invalid token: ${token}`);
+          }
         }
+      } catch (error) {
+        this.logger.error('Error sending multicast message chunk', error);
       }
-    } catch (error) {
-      this.logger.error('Error sending multicast message', error);
     }
   }
-}
+  async sendToUsers(
+    salesforceUserIds: string[],
+    payload: { title: string; body: string; data?: Record<string, string> },
+    category?: NotificationCategory
+  ) {
+    // 1. Fetch all tokens for all users concurrently
+    const tokensPromises = salesforceUserIds.map(userId => this.repository.getByUserId(userId));
+    const allTokensArrays = await Promise.all(tokensPromises);
+    
+    // 2. Flatten the arrays into a single list
+    const allTokens = allTokensArrays.flat();
+
+    // 3. Filter valid tokens based on enabled status and category preferences
+    const validTokens = this.filterValidTokens(allTokens, category);
+
+    // 4. Deduplicate by nativeToken (this fulfills the household requirement)
+    const uniqueNativeTokens = Array.from(new Set(validTokens));
+
+    if (uniqueNativeTokens.length === 0) return;
+    
+    // 5. Send using the existing chunking logic
+    await this.sendToTokens(uniqueNativeTokens, payload);
+  }
+}    
+   
