@@ -9,6 +9,7 @@ import { NotificationTemplates } from './notification-copy';
 import { SalesforceCampaignService } from '../../salesforce/campaign/salesforce-campaign.service';
 import { SalesforceUserService } from '../../salesforce/user/salesforce-user.service';
 
+const ENABLE_NOTIFICATION_CRON = true;
 
 @Injectable()
 export class NotificationSchedulerService {
@@ -27,10 +28,8 @@ export class NotificationSchedulerService {
     timeZone: 'Asia/Jerusalem',
   })
   async handleDailyNotifications() {
-    const isCronEnabled = this.configService.get<boolean>('ENABLE_NOTIFICATION_CRON', false);
-    
-    if (!isCronEnabled) {
-      this.logger.log('Daily notification cron is disabled via ENABLE_NOTIFICATION_CRON.');
+    if (!ENABLE_NOTIFICATION_CRON) {
+      this.logger.log('Daily notification cron is disabled via development plain flag.');
       return;
     }
 
@@ -72,17 +71,23 @@ export class NotificationSchedulerService {
 
     const activeUserIds = await this.sfUserService.getAllActiveSalesforceUserIds();
     
-    for (const userId of activeUserIds) {
-      const familyMembers = await this.sfUserService.getFamilyMembers(userId);
-      const familyUserIds = familyMembers.map(m => m.salesforceUserId);
-      
-      const payload = {
-        type: 'new_campaign',
-        screen: 'activities',
-      };
-      
+    // Batch Fetching: Gather all family members for all active users concurrently
+    const familyPromises = activeUserIds.map(userId => this.sfUserService.getFamilyMembers(userId));
+    const familiesArrays = await Promise.all(familyPromises);
+    
+    const allUniqueTargetIds = new Set<string>();
+    familiesArrays.flat().forEach(m => allUniqueTargetIds.add(m.salesforceUserId));
+
+    if (allUniqueTargetIds.size > 0) {
+      const payload = { type: 'new_campaign', screen: 'activities' };
       const copy = NotificationTemplates.newCampaign;
-      await this.broadcastToHousehold(familyUserIds, copy.title, copy.body, payload, NotificationCategory.ORG_MESSAGES);
+      
+      // Send one massive batch to Firebase
+      await this.notificationsService.sendToUsers(
+        Array.from(allUniqueTargetIds), 
+        { title: copy.title, body: copy.body, data: payload }, 
+        NotificationCategory.ORG_MESSAGES
+      );
     }
   }
 
@@ -90,17 +95,35 @@ export class NotificationSchedulerService {
     this.logger.log('Polling Phase 2: Activity reminders...');
     const reminders = await this.sfCampaignService.getUpcomingActivityReminders();
 
+    // Group reminders by identical message (campaignName + daysUntil) to batch send
+    const batchedReminders = new Map<string, { campaignName: string, daysUntil: number, contactIds: string[] }>();
+
     for (const reminder of reminders) {
-      const familyMembers = await this.sfUserService.getFamilyMembers(reminder.contactId);
-      const familyUserIds = familyMembers.map(m => m.salesforceUserId);
+      const key = `${reminder.campaignName}_${reminder.daysUntil}`;
+      if (!batchedReminders.has(key)) {
+        batchedReminders.set(key, { campaignName: reminder.campaignName, daysUntil: reminder.daysUntil, contactIds: [] });
+      }
+      batchedReminders.get(key)!.contactIds.push(reminder.contactId);
+    }
 
-      const payload = {
-        type: 'reminder',
-        screen: 'my-activities/future',
-      };
+    // Process each unique reminder batch
+    for (const batch of batchedReminders.values()) {
+      const familyPromises = batch.contactIds.map(id => this.sfUserService.getFamilyMembers(id));
+      const familiesArrays = await Promise.all(familyPromises);
 
-      const copy = NotificationTemplates.reminder(reminder.campaignName, reminder.daysUntil);
-      await this.broadcastToHousehold(familyUserIds, copy.title, copy.body, payload, NotificationCategory.ACTIVITY_REMINDERS);
+      const allUniqueTargetIds = new Set<string>();
+      familiesArrays.flat().forEach(m => allUniqueTargetIds.add(m.salesforceUserId));
+
+      if (allUniqueTargetIds.size > 0) {
+        const payload = { type: 'reminder', screen: 'my-activities/future' };
+        const copy = NotificationTemplates.reminder(batch.campaignName, batch.daysUntil);
+        
+        await this.notificationsService.sendToUsers(
+          Array.from(allUniqueTargetIds), 
+          { title: copy.title, body: copy.body, data: payload }, 
+          NotificationCategory.ACTIVITY_REMINDERS
+        );
+      }
     }
   }
 
@@ -145,39 +168,20 @@ export class NotificationSchedulerService {
         if (shouldNotify) {
           const familyMembers = await this.sfUserService.getFamilyMembers(row.salesforceUserId);
           const familyUserIds = familyMembers.map(m => m.salesforceUserId);
-          const payload = {
-            type: 'status_change',
-            screen: 'my-activities/future',
-          };
+          
+          const payload = { type: 'status_change', screen: 'my-activities/future' };
           const copy = NotificationTemplates.statusChange(row.campaignName, row.registrationStatus);
           
-          await this.broadcastToHousehold(familyUserIds, copy.title, copy.body, payload, NotificationCategory.ACTIVITY_UPDATES);
+          await this.notificationsService.sendToUsers(
+            familyUserIds, 
+            { title: copy.title, body: copy.body, data: payload }, 
+            NotificationCategory.ACTIVITY_UPDATES
+          );
         }
       });
     }
 
     await this.cleanupOldStatusStates(stateCollection, now);
-  }
-
-  /**
-   * Reuses your existing NotificationsService to send messages.
-   * This guarantees preference validation, deduplication, chunking, and invalid token deletion.
-   */
-  private async broadcastToHousehold(
-    userIds: string[], 
-    title: string, 
-    body: string, 
-    payload: Record<string, string>, 
-    category: NotificationCategory
-  ) {
-    // Deduplicate user IDs within the household run
-    const uniqueUserIds = Array.from(new Set(userIds));
-    
-    await this.notificationsService.sendToUsers(
-      uniqueUserIds, 
-      { title, body, data: payload }, 
-      category
-    );
   }
 
   private async acquireFirestoreLock(): Promise<boolean> {
@@ -210,7 +214,7 @@ export class NotificationSchedulerService {
       const err = error as Error; 
       this.logger.error(`Exception thrown while acquiring lease: ${err.message}`);
       return false;
-}
+    }
   }
 
   private async releaseFirestoreLock(): Promise<void> {
@@ -220,10 +224,10 @@ export class NotificationSchedulerService {
         expiresAt: admin.firestore.Timestamp.fromDate(new Date(0)),
       }, { merge: true });
       this.logger.log('Distributed lease lock released.');
-   } catch (error) {
-    const err = error as Error; 
-    this.logger.error(`Failed to release lease lock cleanly: ${err.message}`);
-  }
+    } catch (error) {
+      const err = error as Error; 
+      this.logger.error(`Failed to release lease lock cleanly: ${err.message}`);
+    }
   }
 
   private async cleanupOldStatusStates(collection: admin.firestore.CollectionReference, now: Date) {
@@ -237,5 +241,4 @@ export class NotificationSchedulerService {
     await batch.commit();
     this.logger.log(`Cleaned up ${expiredDocs.size} expired historical state tracking documents.`);
   }
-
 }
