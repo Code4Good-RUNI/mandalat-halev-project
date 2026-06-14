@@ -10,13 +10,18 @@ if (process.env.EXPO_APP_TARGET === 'local') {
   envPaths.push(path.join(mobileDir, '.env.mobile.local'));
 }
 
-dotenvx.config({
-  path: envPaths,
-  envKeysFile: path.join(mobileDir, '.env.mobile.keys'),
-  ignore: ['MISSING_ENV_FILE'],
-  overload: true,
-  quiet: true,
-});
+// On EAS Build / CI, EXPO_PUBLIC_API_BASE_URL is injected directly as an env var and the
+// gitignored .env.mobile.keys decryption key isn't present. Skip dotenvx there so we don't
+// fail with MISSING_PRIVATE_KEY or clobber the injected value with the encrypted ciphertext.
+if (!process.env.EXPO_PUBLIC_API_BASE_URL) {
+  dotenvx.config({
+    path: envPaths,
+    envKeysFile: path.join(mobileDir, '.env.mobile.keys'),
+    ignore: ['MISSING_ENV_FILE'],
+    overload: true,
+    quiet: true,
+  });
+}
 
 const { withNxMetro } = require('@nx/expo');
 const { getDefaultConfig } = require('@expo/metro-config');

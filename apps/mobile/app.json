@@ -1,17 +1,18 @@
 {
   "expo": {
-    "name": "Mobile",
-    "slug": "mobile",
+    "name": "מנדלת הלב",
+    "slug": "mandalat-halev",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "mandalat-halev",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "package": "org.mandalathalev.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -38,6 +39,14 @@
           "root": "./src/app"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {
+        "root": "./src/app"
+      },
+      "eas": {
+        "projectId": "42ffcae4-d4c6-4e52-a553-acd58bc4b853"
+      }
+    }
   }
 }
