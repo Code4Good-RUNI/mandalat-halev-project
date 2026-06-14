@@ -9,41 +9,39 @@ import {
   StyleSheet,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
-import {
-  signInWithPhoneNumber,
-  type ConfirmationResult,
-} from 'firebase/auth';
-import { FirebaseError } from 'firebase/app';
-import { auth, firebaseConfig } from '../firebase/config';
+import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
+import { auth } from '../firebase/config';
 import { toE164 } from '../firebase/phoneAuth';
 import { useCreateSession } from '../api/hooks';
 import { setSession } from '../api/session';
 
+// Firebase Auth errors (web SDK and @react-native-firebase) both carry a string
+// `code` like 'auth/invalid-phone-number'; read it without coupling to either SDK.
+function errorCode(err: unknown): string | undefined {
+  return err && typeof err === 'object' && 'code' in err
+    ? String((err as { code: unknown }).code)
+    : undefined;
+}
+
 function sendSmsErrorMessage(err: unknown): string {
-  if (err instanceof FirebaseError) {
-    if (err.code === 'auth/invalid-phone-number') {
-      return 'מספר הטלפון אינו תקין.';
-    }
-    if (err.code === 'auth/too-many-requests') {
-      return 'יותר מדי ניסיונות. המתן מעט ונסה שוב.';
-    }
-    if (
-      err.code === 'auth/captcha-check-failed' ||
-      err.code === 'auth/missing-client-identifier'
-    ) {
-      return 'אימות reCAPTCHA נכשל. נסה שוב.';
-    }
-    return `שליחת קוד האימות נכשלה (${err.code}).`;
+  const code = errorCode(err);
+  if (code === 'auth/invalid-phone-number') {
+    return 'מספר הטלפון אינו תקין.';
+  }
+  if (code === 'auth/too-many-requests') {
+    return 'יותר מדי ניסיונות. המתן מעט ונסה שוב.';
+  }
+  if (code) {
+    return `שליחת קוד האימות נכשלה (${code}).`;
   }
   return 'שליחת קוד האימות נכשלה. נסה שוב.';
 }
 
 function verifyErrorMessage(err: unknown): string {
+  const code = errorCode(err);
   if (
-    err instanceof FirebaseError &&
-    (err.code === 'auth/invalid-verification-code' ||
-      err.code === 'auth/code-expired')
+    code === 'auth/invalid-verification-code' ||
+    code === 'auth/code-expired'
   ) {
     return 'הקוד שגוי או שפג תוקפו. נסה שוב.';
   }
@@ -56,10 +54,8 @@ export default function VerifySmsScreen() {
     idNumber: string;
   }>();
 
-  const recaptchaVerifier = useRef<FirebaseRecaptchaVerifierModal>(null);
-  const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(
-    null,
-  );
+  const [confirmation, setConfirmation] =
+    useState<FirebaseAuthTypes.ConfirmationResult | null>(null);
   const [digits, setDigits] = useState(['', '', '', '', '', '']);
   const codeInputRef = useRef<TextInput>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,16 +67,10 @@ export default function VerifySmsScreen() {
   const sendSms = useCallback(async () => {
     if (!phoneNumber || !e164Phone) return;
 
-    const verifier = recaptchaVerifier.current;
-    if (!verifier) {
-      setError('reCAPTCHA עדיין נטען. נסה שוב בעוד רגע.');
-      return;
-    }
-
     setError(null);
     setSending(true);
     try {
-      const result = await signInWithPhoneNumber(auth, e164Phone, verifier);
+      const result = await auth.signInWithPhoneNumber(e164Phone);
       setConfirmation(result);
     } catch (err) {
       setError(sendSmsErrorMessage(err));
@@ -100,6 +90,10 @@ export default function VerifySmsScreen() {
     setVerifying(true);
     try {
       const cred = await confirmation.confirm(code);
+      if (!cred) {
+        setError(verifyErrorMessage(null));
+        return;
+      }
       const idToken = await cred.user.getIdToken();
 
       // Finalize the session: the server verifies the token and sets the
@@ -147,11 +141,6 @@ export default function VerifySmsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaVerifier}
-        firebaseConfig={firebaseConfig}
-        attemptInvisibleVerification={false}
-      />
       <View>
         <Text style={styles.title}>אימות מספר טלפון</Text>
         <Text style={styles.subText}>הזן את הקוד שנשלח ל-{phoneNumber}</Text>
