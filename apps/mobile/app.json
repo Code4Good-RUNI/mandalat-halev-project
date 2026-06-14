@@ -39,7 +39,9 @@
         {
           "root": "./src/app"
         }
-      ]
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth"
     ],
     "extra": {
       "router": {
