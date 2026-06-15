@@ -70,7 +70,12 @@ export default function PersonalDataScreen() {
 
           <View style={styles.row}>
             <Text style={styles.label}>כתובת מגורים</Text>
-            <Text style={styles.value}>{profile?.address}, {profile?.city}</Text>
+            <Text style={styles.value}>{profile?.address}</Text>
+          </View>
+
+          <View style={styles.row}>
+            <Text style={styles.label}>עיר</Text>
+            <Text style={styles.value}>{profile?.city}</Text>
           </View>
 
           <View style={[styles.row, styles.rowLast]}>

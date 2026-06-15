@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   metaItem: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     gap: 4,
   },

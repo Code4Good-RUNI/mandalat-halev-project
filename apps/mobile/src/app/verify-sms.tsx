@@ -161,6 +161,7 @@ export default function VerifySmsScreen() {
             maxLength={6}
             caretHidden
             style={styles.hiddenCodeInput}
+            textAlign="left"
           />
           {digits.map((digit, i) => (
             <View
@@ -213,6 +214,7 @@ const styles = StyleSheet.create({
   },
   digitsContainer: {
     flexDirection: 'row',
+    direction: 'ltr',
     justifyContent: 'center',
     gap: 10,
     marginHorizontal: 20,

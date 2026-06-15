@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   metaItem: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     gap: 4,
     alignSelf: 'flex-end',

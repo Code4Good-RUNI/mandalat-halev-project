@@ -1,8 +1,15 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { I18nManager, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, router } from 'expo-router';
 import { registerQueryClient } from '../api/session';
+
+// The app is Hebrew-only, so force RTL layout regardless of the device's
+// system locale (some users keep their OS in English but use Hebrew apps).
+if (!I18nManager.isRTL) {
+  I18nManager.allowRTL(true);
+  I18nManager.forceRTL(true);
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
