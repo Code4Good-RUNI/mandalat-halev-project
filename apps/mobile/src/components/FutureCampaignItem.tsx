@@ -195,6 +195,7 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
         date={`${campaign.startDate} | ${campaign.durationInHours} שעות`}
         location={`${campaign.locationAddress}, ${campaign.locationCity}`}
         status={members.length >= 1 ? undefined : statusText}
+        imageUrl={campaign.imageUrl}
         onPressDetails={onPressDetails}
       >
         {members.length >= 1 && (

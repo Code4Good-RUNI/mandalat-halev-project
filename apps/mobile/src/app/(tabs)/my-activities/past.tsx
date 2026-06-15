@@ -37,6 +37,7 @@ export default function PreviousActivitiesScreen() {
             date={`${item.startDate} | ${item.durationInHours} שעות`}
             location={`${item.locationAddress}, ${item.locationCity}`}
             status={item.hasUserParticipated ? 'נוכח' : 'לא נוכח'}
+            imageUrl={item.imageUrl}
             onPressDetails={() => setSelectedCampaign(item)}
           />
         )}

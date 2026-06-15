@@ -92,6 +92,7 @@ function ActiveCampaignItem({ item, contacts, contactsLoading, onShowModal, onPr
         duration={`${item.durationInHours} שעות`}
         location={`${item.locationAddress}, ${item.locationCity}`}
         status={isRegistered ? 'נרשמת בהצלחה' : 'פתוח להרשמה'}
+        imageUrl={item.imageUrl}
         onPressDetails={onPressDetails}
       >
         <View style={styles.actionContainer}>
