@@ -100,62 +100,8 @@ export class SalesforceCampaignService {
   //ID: 701Vk00000TkSa5IAF | Name: "קבוצת תמיכה אדוות - מחלימות" | Dates: 2025-10-15 - 2026-06-30
 
   async onModuleInit() {
-    this.logger.log(
-      '🚀 [Campaign Sandbox] Starting Household Registration Logic Test...',
-    );
+    //this.logger.log('🚀 [Campaign Sandbox] Starting Household Registration Logic Test...',);
     //await this.testCronMethodsSandbox();
-  }
-
-  /**
-   * 🧪 CRON SANDBOX TEST (Family Context)
-   */
-  private async testCronMethodsSandbox() {
-    this.logger.log(
-      '🚀 [CRON Sandbox] Starting tests for MAN-31 (Family Context)...',
-    );
-
-    // הכנס כאן את ה-ID של משתמש הבדיקה שלך (למשל אלון)
-    const testContactId = '003JW00001J9Bu1YAF';
-
-    try {
-      this.logger.log('\n--- 1. Testing getAvailableCampaignsForFamily ---');
-      const availableCampaigns =
-        await this.getAvailableCampaignsForFamily(testContactId);
-      this.logger.log(
-        `✅ Found ${availableCampaigns.length} available campaigns for the family.`,
-      );
-      availableCampaigns.forEach((c) =>
-        this.logger.debug(`   🆕 [${c.campaignId}] ${c.name}`),
-      );
-
-      this.logger.log(
-        '\n--- 2. Testing getUpcomingActivityRemindersForFamily ---',
-      );
-      const reminders =
-        await this.getUpcomingActivityRemindersForFamily(testContactId);
-      this.logger.log(`✅ Found ${reminders.length} reminders.`);
-      reminders.forEach((r) =>
-        this.logger.debug(
-          `   ⏰ ${r.contact.firstName} -> ${r.campaignName} (Starts in: ${r.daysUntil} days)`,
-        ),
-      );
-
-      this.logger.log(
-        '\n--- 3. Testing getUpcomingRegistrationStatusesForFamily ---',
-      );
-      const statuses =
-        await this.getUpcomingRegistrationStatusesForFamily(testContactId);
-      this.logger.log(`✅ Found ${statuses.length} upcoming statuses.`);
-      statuses.forEach((s) =>
-        this.logger.debug(
-          `   📋 ${s.contact.firstName} -> ${s.campaignName} | Status: [${s.registrationStatus}]`,
-        ),
-      );
-
-      this.logger.log('\n🏁 --- END OF CRON SANDBOX TEST --- 🏁\n');
-    } catch (error) {
-      this.logger.error(`🚨 Cron Test failed with error:`, error);
-    }
   }
 
   //------------------------------------------------------------------------------------------------------------------
