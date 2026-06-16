@@ -17,7 +17,8 @@ export class NotificationSchedulerService {
 
   constructor(
     private readonly configService: ConfigService,
-    @Inject(PUSH_TOKEN_REPOSITORY) private readonly tokenRepo: IPushTokenRepository,
+    @Inject(PUSH_TOKEN_REPOSITORY)
+    private readonly tokenRepo: IPushTokenRepository,
     private readonly notificationsService: NotificationsService,
     private readonly sfCampaignService: SalesforceCampaignService,
     private readonly sfUserService: SalesforceUserService,
@@ -29,7 +30,9 @@ export class NotificationSchedulerService {
   })
   async handleDailyNotifications() {
     if (!ENABLE_NOTIFICATION_CRON) {
-      this.logger.log('Daily notification cron is disabled via development plain flag.');
+      this.logger.log(
+        'Daily notification cron is disabled via development plain flag.',
+      );
       return;
     }
 
@@ -38,156 +41,284 @@ export class NotificationSchedulerService {
     try {
       const lockAcquired = await this.acquireFirestoreLock();
       if (!lockAcquired) {
-        this.logger.warn('Could not acquire Firestore lock. Skipping execution.');
+        this.logger.warn(
+          'Could not acquire Firestore lock. Skipping execution.',
+        );
         return;
       }
 
-      await this.pollNewCampaigns();
-      await this.pollActivityReminders();
-      await this.pollRegistrationStatusChanges();
+      const activeUserIds =
+        await this.sfUserService.getAllActiveSalesforceUserIds();
+
+      await this.pollAvailableCampaignsDiff(activeUserIds);
+      await this.pollActivityReminders(activeUserIds);
+      await this.pollRegistrationStatusChanges(activeUserIds);
 
       await this.releaseFirestoreLock();
       this.logger.log('Cron completed successfully.');
-
     } catch (error) {
-      const err = error as Error; 
+      const err = error as Error;
       this.logger.error(`Cron job failed: ${err.message}`, err.stack);
-      
+
       await this.releaseFirestoreLock().catch((e) => {
         const releaseErr = e as Error;
-        this.logger.error(`Failed to release lock on error path: ${releaseErr.message}`);
+        this.logger.error(
+          `Failed to release lock on error path: ${releaseErr.message}`,
+        );
       });
     }
   }
 
-  private async pollNewCampaigns() {
-    this.logger.log('Polling Phase 1: New campaigns today...');
-    const newCampaigns = await this.sfCampaignService.getNewCampaignsToday();
-    
-    if (newCampaigns.length === 0) {
-      this.logger.log('No new campaigns found today.');
-      return;
-    }
+  private async pollAvailableCampaignsDiff(activeUserIds: string[]) {
+    this.logger.log(
+      'Polling Phase 1: Available campaigns diffing (by Family)...',
+    );
+    const db = admin.firestore();
+    const stateCollection = db.collection('availableCampaignsState');
 
-    const activeUserIds = await this.sfUserService.getAllActiveSalesforceUserIds();
-    
-    // Batch Fetching: Gather all family members for all active users concurrently
-    const familyPromises = activeUserIds.map(userId => this.sfUserService.getFamilyMembers(userId));
-    const familiesArrays = await Promise.all(familyPromises);
-    
-    const allUniqueTargetIds = new Set<string>();
-    familiesArrays.flat().forEach(m => allUniqueTargetIds.add(m.salesforceUserId));
+    // Set to store processed family IDs to avoid redundant processing for multiple parents
+    const processedFamilies = new Set<string>();
 
-    if (allUniqueTargetIds.size > 0) {
-      const payload = { type: 'new_campaign', screen: 'activities' };
-      const copy = NotificationTemplates.newCampaign;
-      
-      // Send one massive batch to Firebase
-      await this.notificationsService.sendToUsers(
-        Array.from(allUniqueTargetIds), 
-        { title: copy.title, body: copy.body, data: payload }, 
-        NotificationCategory.ORG_MESSAGES
-      );
-    }
-  }
+    for (const userId of activeUserIds) {
+      try {
+        // Fetch all family members and generate a unique family key
+        const familyMembers = await this.sfUserService.getFamilyMembers(userId);
+        const familyUserIds = familyMembers
+          .map((m) => m.salesforceUserId)
+          .sort();
+        const familyKey = familyUserIds.join('_'); // e.g., id1_id2_id3
 
-  private async pollActivityReminders() {
-    this.logger.log('Polling Phase 2: Activity reminders...');
-    const reminders = await this.sfCampaignService.getUpcomingActivityReminders();
+        // Skip if this family was already processed in this cron run
+        if (processedFamilies.has(familyKey)) {
+          continue;
+        }
+        processedFamilies.add(familyKey);
 
-    // Group reminders by identical message (campaignName + daysUntil) to batch send
-    const batchedReminders = new Map<string, { campaignName: string, daysUntil: number, contactIds: string[] }>();
+        // Fetch available campaigns from Salesforce (once per family)
+        const availableCampaigns =
+          await this.sfCampaignService.getAvailableCampaignsForFamily(userId);
+        const currentCampaignIds = availableCampaigns.map((c) => c.campaignId);
 
-    for (const reminder of reminders) {
-      const key = `${reminder.campaignName}_${reminder.daysUntil}`;
-      if (!batchedReminders.has(key)) {
-        batchedReminders.set(key, { campaignName: reminder.campaignName, daysUntil: reminder.daysUntil, contactIds: [] });
-      }
-      batchedReminders.get(key)!.contactIds.push(reminder.contactId);
-    }
+        // The Firebase document is managed by the family key
+        const docRef = stateCollection.doc(familyKey);
 
-    // Process each unique reminder batch
-    for (const batch of batchedReminders.values()) {
-      const familyPromises = batch.contactIds.map(id => this.sfUserService.getFamilyMembers(id));
-      const familiesArrays = await Promise.all(familyPromises);
+        await db.runTransaction(async (transaction) => {
+          const doc = await transaction.get(docRef);
+          const prevState = doc.data();
+          const previousCampaignIds: string[] = prevState?.campaignIds || [];
 
-      const allUniqueTargetIds = new Set<string>();
-      familiesArrays.flat().forEach(m => allUniqueTargetIds.add(m.salesforceUserId));
+          // Filter out the truly new campaigns
+          const newCampaigns = availableCampaigns.filter(
+            (c) => !previousCampaignIds.includes(c.campaignId),
+          );
 
-      if (allUniqueTargetIds.size > 0) {
-        const payload = { type: 'reminder', screen: 'my-activities/future' };
-        const copy = NotificationTemplates.reminder(batch.campaignName, batch.daysUntil);
-        
-        await this.notificationsService.sendToUsers(
-          Array.from(allUniqueTargetIds), 
-          { title: copy.title, body: copy.body, data: payload }, 
-          NotificationCategory.ACTIVITY_REMINDERS
+          // Overwrite the family state with today's updated campaign IDs
+          transaction.set(docRef, {
+            campaignIds: currentCampaignIds,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          // If there are new campaigns, send a notification
+          if (newCampaigns.length > 0) {
+            const payload = { type: 'new_campaign', screen: 'activities' };
+            const copy = NotificationTemplates.newCampaign;
+
+            // Determine which family members actually have the app installed
+            const familyMembersWithApp = familyUserIds.filter((id) =>
+              activeUserIds.includes(id),
+            );
+
+            if (familyMembersWithApp.length > 0) {
+              // Send to all relevant family members at once
+              await this.notificationsService.sendToUsers(
+                familyMembersWithApp,
+                { title: copy.title, body: copy.body, data: payload },
+                NotificationCategory.ORG_MESSAGES,
+              );
+            }
+          }
+        });
+      } catch (error) {
+        this.logger.error(
+          `Error polling available campaigns for family of user ${userId}`,
+          error,
         );
       }
     }
   }
 
-  private async pollRegistrationStatusChanges() {
-    this.logger.log('Polling Phase 3: Registration status changes...');
-    const currentStatuses = await this.sfCampaignService.getUpcomingRegistrationStatuses();
+  private async pollActivityReminders(activeUserIds: string[]) {
+    this.logger.log('Polling Phase 2: Activity reminders (by Family)...');
+
+    // Set to store processed family IDs to avoid redundant processing
+    const processedFamilies = new Set<string>();
+
+    for (const userId of activeUserIds) {
+      try {
+        // Fetch family members and generate unique family key
+        const familyMembers = await this.sfUserService.getFamilyMembers(userId);
+        const familyUserIds = familyMembers
+          .map((m) => m.salesforceUserId)
+          .sort();
+        const familyKey = familyUserIds.join('_');
+
+        // Skip if this family was already processed in this cron run
+        if (processedFamilies.has(familyKey)) {
+          continue;
+        }
+        processedFamilies.add(familyKey);
+
+        // Fetch upcoming reminders for the entire family from Salesforce
+        const reminders =
+          await this.sfCampaignService.getUpcomingActivityRemindersForFamily(
+            userId,
+          );
+        if (reminders.length === 0) continue;
+
+        // Determine which family members actually have the app installed
+        const familyMembersWithApp = familyUserIds.filter((id) =>
+          activeUserIds.includes(id),
+        );
+        if (familyMembersWithApp.length === 0) continue;
+
+        // Send notifications for each reminder to all relevant family members
+        for (const reminder of reminders) {
+          const payload = { type: 'reminder', screen: 'my-activities/future' };
+          const copy = NotificationTemplates.reminder(
+            reminder.campaignName,
+            reminder.daysUntil,
+            reminder.contact.firstName,
+          );
+
+          await this.notificationsService.sendToUsers(
+            familyMembersWithApp,
+            { title: copy.title, body: copy.body, data: payload },
+            NotificationCategory.ACTIVITY_REMINDERS,
+          );
+        }
+      } catch (error) {
+        this.logger.error(
+          `Error polling reminders for family of user ${userId}`,
+          error,
+        );
+      }
+    }
+  }
+
+  private async pollRegistrationStatusChanges(activeUserIds: string[]) {
+    this.logger.log(
+      'Polling Phase 3: Registration status changes (by Family)...',
+    );
     const db = admin.firestore();
     const stateCollection = db.collection('registrationNotificationState');
     const now = new Date();
 
-    for (const row of currentStatuses) {
-      const docKey = `${row.salesforceUserId}_${row.campaignId}`;
-      const docRef = stateCollection.doc(docKey);
+    // Set to store processed family IDs to avoid redundant processing
+    const processedFamilies = new Set<string>();
 
-      await db.runTransaction(async (transaction) => {
-        const doc = await transaction.get(docRef);
-        let shouldNotify = false;
+    for (const userId of activeUserIds) {
+      try {
+        // Fetch family members and generate unique family key
+        const familyMembers = await this.sfUserService.getFamilyMembers(userId);
+        const familyUserIds = familyMembers
+          .map((m) => m.salesforceUserId)
+          .sort();
+        const familyKey = familyUserIds.join('_');
 
-        if (!doc.exists) {
-          if (row.registrationStatus !== 'pending') {
-            shouldNotify = false; 
-          }
-        } else {
-          const prevState = doc.data();
-          const updatedAt = prevState?.updatedAt?.toDate();
-          const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
-
-          if (
-            prevState?.lastKnownStatus !== row.registrationStatus &&
-            row.registrationStatus !== 'pending' &&
-            (!updatedAt || updatedAt >= twoDaysAgo)
-          ) {
-            shouldNotify = true;
-          }
+        // Skip if this family was already processed in this cron run
+        if (processedFamilies.has(familyKey)) {
+          continue;
         }
+        processedFamilies.add(familyKey);
 
-        transaction.set(docRef, {
-          lastKnownStatus: row.registrationStatus,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        }, { merge: true });
-
-        if (shouldNotify) {
-          const familyMembers = await this.sfUserService.getFamilyMembers(row.salesforceUserId);
-          const familyUserIds = familyMembers.map(m => m.salesforceUserId);
-          
-          const payload = { type: 'status_change', screen: 'my-activities/future' };
-          const copy = NotificationTemplates.statusChange(row.campaignName, row.registrationStatus);
-          
-          await this.notificationsService.sendToUsers(
-            familyUserIds, 
-            { title: copy.title, body: copy.body, data: payload }, 
-            NotificationCategory.ACTIVITY_UPDATES
+        // Fetch current registration statuses for the entire family
+        const currentStatuses =
+          await this.sfCampaignService.getUpcomingRegistrationStatusesForFamily(
+            userId,
           );
+        if (currentStatuses.length === 0) continue;
+
+        // Determine which family members actually have the app installed
+        const familyMembersWithApp = familyUserIds.filter((id) =>
+          activeUserIds.includes(id),
+        );
+        if (familyMembersWithApp.length === 0) continue;
+
+        for (const row of currentStatuses) {
+          // Unique document key per specific contact and campaign
+          const docKey = `${row.contact.salesforceUserId}_${row.campaignId}`;
+          const docRef = stateCollection.doc(docKey);
+
+          await db.runTransaction(async (transaction) => {
+            const doc = await transaction.get(docRef);
+            let shouldNotify = false;
+
+            if (!doc.exists) {
+              // Do not notify on initial state sync
+              shouldNotify = false;
+            } else {
+              const prevState = doc.data();
+              const updatedAt = prevState?.updatedAt?.toDate();
+              const twoDaysAgo = new Date(
+                now.getTime() - 2 * 24 * 60 * 60 * 1000,
+              );
+
+              // Notify if status changed, is not pending, and the record isn't completely stale
+              if (
+                prevState?.lastKnownStatus !== row.registrationStatus &&
+                row.registrationStatus !== 'pending' &&
+                (!updatedAt || updatedAt >= twoDaysAgo)
+              ) {
+                shouldNotify = true;
+              }
+            }
+
+            // Save the current state to Firebase
+            transaction.set(
+              docRef,
+              {
+                lastKnownStatus: row.registrationStatus,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              },
+              { merge: true },
+            );
+
+            if (shouldNotify) {
+              const payload = {
+                type: 'status_change',
+                screen: 'my-activities/future',
+              };
+              const copy = NotificationTemplates.statusChange(
+                row.campaignName,
+                row.registrationStatus,
+                row.contact.firstName,
+              );
+
+              // Send to all relevant family members at once
+              await this.notificationsService.sendToUsers(
+                familyMembersWithApp,
+                { title: copy.title, body: copy.body, data: payload },
+                NotificationCategory.ACTIVITY_UPDATES,
+              );
+            }
+          });
         }
-      });
+      } catch (error) {
+        this.logger.error(
+          `Error polling status changes for family of user ${userId}`,
+          error,
+        );
+      }
     }
 
+    // Cleanup historical states that are older than 2 days
     await this.cleanupOldStatusStates(stateCollection, now);
   }
 
   private async acquireFirestoreLock(): Promise<boolean> {
     const db = admin.firestore();
     const lockRef = db.collection('cronLocks').doc('daily-notifications');
-    
+
     try {
       return await db.runTransaction(async (transaction) => {
         const lockDoc = await transaction.get(lockRef);
@@ -196,23 +327,31 @@ export class NotificationSchedulerService {
         if (lockDoc.exists) {
           const expiresAt = lockDoc.data()?.expiresAt?.toDate();
           if (expiresAt && expiresAt > now) {
-            this.logger.warn(`Lock is already active. Current lease expires at: ${expiresAt}`);
+            this.logger.warn(
+              `Lock is already active. Current lease expires at: ${expiresAt}`,
+            );
             return false;
           }
         }
 
         const leaseTime = new Date(now.getTime() + 30 * 60 * 1000);
-        transaction.set(lockRef, {
-          expiresAt: admin.firestore.Timestamp.fromDate(leaseTime),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        }, { merge: true });
+        transaction.set(
+          lockRef,
+          {
+            expiresAt: admin.firestore.Timestamp.fromDate(leaseTime),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
 
         this.logger.log('Distributed lease lock secured for 30 minutes.');
         return true;
       });
     } catch (error) {
-      const err = error as Error; 
-      this.logger.error(`Exception thrown while acquiring lease: ${err.message}`);
+      const err = error as Error;
+      this.logger.error(
+        `Exception thrown while acquiring lease: ${err.message}`,
+      );
       return false;
     }
   }
@@ -220,25 +359,38 @@ export class NotificationSchedulerService {
   private async releaseFirestoreLock(): Promise<void> {
     const db = admin.firestore();
     try {
-      await db.collection('cronLocks').doc('daily-notifications').set({
-        expiresAt: admin.firestore.Timestamp.fromDate(new Date(0)),
-      }, { merge: true });
+      await db
+        .collection('cronLocks')
+        .doc('daily-notifications')
+        .set(
+          {
+            expiresAt: admin.firestore.Timestamp.fromDate(new Date(0)),
+          },
+          { merge: true },
+        );
       this.logger.log('Distributed lease lock released.');
     } catch (error) {
-      const err = error as Error; 
+      const err = error as Error;
       this.logger.error(`Failed to release lease lock cleanly: ${err.message}`);
     }
   }
 
-  private async cleanupOldStatusStates(collection: admin.firestore.CollectionReference, now: Date) {
+  private async cleanupOldStatusStates(
+    collection: admin.firestore.CollectionReference,
+    now: Date,
+  ) {
     const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
-    const expiredDocs = await collection.where('updatedAt', '<', admin.firestore.Timestamp.fromDate(twoDaysAgo)).get();
-    
+    const expiredDocs = await collection
+      .where('updatedAt', '<', admin.firestore.Timestamp.fromDate(twoDaysAgo))
+      .get();
+
     if (expiredDocs.empty) return;
-    
+
     const batch = collection.firestore.batch();
-    expiredDocs.docs.forEach(doc => batch.delete(doc.ref));
+    expiredDocs.docs.forEach((doc) => batch.delete(doc.ref));
     await batch.commit();
-    this.logger.log(`Cleaned up ${expiredDocs.size} expired historical state tracking documents.`);
+    this.logger.log(
+      `Cleaned up ${expiredDocs.size} expired historical state tracking documents.`,
+    );
   }
 }
