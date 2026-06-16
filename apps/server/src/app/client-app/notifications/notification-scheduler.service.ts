@@ -316,38 +316,32 @@ export class NotificationSchedulerService {
     const lockRef = db.collection('cronLocks').doc('daily-notifications');
 
     try {
-      return await db.runTransaction(async (transaction) => {
-        const lockDoc = await transaction.get(lockRef);
-        const now = new Date();
+      // We don't need a transaction for the initial check if we use set with merge
+      const lockDoc = await lockRef.get();
+      const now = new Date();
 
-        // If doc doesn't exist, we treat it as expired (no lock)
-        if (lockDoc.exists) {
-          const expiresAt = lockDoc.data()?.expiresAt?.toDate();
-          if (expiresAt && expiresAt > now) {
-            this.logger.warn(
-              `Lock is already active. Current lease expires at: ${expiresAt}`,
-            );
-            return false;
-          }
+      if (lockDoc.exists) {
+        const expiresAt = lockDoc.data()?.expiresAt?.toDate();
+        if (expiresAt && expiresAt > now) {
+          this.logger.warn(
+            `Lock is already active. Current lease expires at: ${expiresAt}`,
+          );
+          return false;
         }
+      }
 
-        const leaseTime = new Date(now.getTime() + 30 * 60 * 1000);
+      const leaseTime = new Date(now.getTime() + 30 * 60 * 1000);
+      await lockRef.set(
+        {
+          expiresAt: admin.firestore.Timestamp.fromDate(leaseTime),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
 
-        // Use set with merge to create if it doesn't exist
-        transaction.set(
-          lockRef,
-          {
-            expiresAt: admin.firestore.Timestamp.fromDate(leaseTime),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          },
-          { merge: true },
-        );
-
-        this.logger.log('Distributed lease lock secured for 30 minutes.');
-        return true;
-      });
+      this.logger.log('Distributed lease lock secured for 30 minutes.');
+      return true;
     } catch (error) {
-      // If error is just missing collection, we can initialize it
       this.logger.error(
         `Exception thrown while acquiring lease: ${(error as Error).message}`,
       );
