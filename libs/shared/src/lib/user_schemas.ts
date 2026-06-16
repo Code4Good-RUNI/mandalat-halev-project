@@ -252,3 +252,34 @@ export const UpdateNotificationPreferencesSchema = z.object({
   }),
 });
 export type UpdateNotificationPreferencesDto = z.infer<typeof UpdateNotificationPreferencesSchema>;
+
+// --------------------------------------------------------
+// CRON NOTIFICATIONS SCHEMAS (MAN-31)
+// --------------------------------------------------------
+
+// New Campaigns Notification
+export const NewCampaignNotificationRowSchema = z.object({
+  campaignId: z.string(),
+  name: z.string(),
+});
+export type NewCampaignNotificationRow = z.infer<typeof NewCampaignNotificationRowSchema>;
+
+// Activity Reminder Notification
+export const ActivityReminderNotificationRowSchema = z.object({
+  salesforceUserId: z.string(),
+  contact: ContactSchema,
+  campaignId: z.string(),
+  campaignName: z.string(),
+  daysUntil: z.union([z.literal(1), z.literal(3)]),
+});
+export type ActivityReminderNotificationRow = z.infer<typeof ActivityReminderNotificationRowSchema>;
+
+// egistration Status Notification
+export const RegistrationStatusNotificationRowSchema = z.object({
+  salesforceUserId: z.string(),
+  contact: ContactSchema,
+  campaignId: z.string(),
+  campaignName: z.string(),
+  registrationStatus: ApprovalStatusSchema,
+});
+export type RegistrationStatusNotificationRow = z.infer<typeof RegistrationStatusNotificationRowSchema>;

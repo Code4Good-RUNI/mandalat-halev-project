@@ -4,7 +4,7 @@ import { userContract } from '@mandalat-halev-project/api-interfaces';
 import { FirebaseAuthGuard } from '../auth/firebase-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { SalesforceCampaignService } from '../../salesforce/campaign/salesforce-campaign.service';
-import { SalesforceUserService } from '../../salesforce/user/salesforce-user.service'; // ודא שהנתיב מדויק
+import { SalesforceUserService } from '../../salesforce/user/salesforce-user.service';
 
 @Controller()
 @UseGuards(FirebaseAuthGuard)
