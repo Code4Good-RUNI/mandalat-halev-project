@@ -320,6 +320,7 @@ export class NotificationSchedulerService {
         const lockDoc = await transaction.get(lockRef);
         const now = new Date();
 
+        // If doc doesn't exist, we treat it as expired (no lock)
         if (lockDoc.exists) {
           const expiresAt = lockDoc.data()?.expiresAt?.toDate();
           if (expiresAt && expiresAt > now) {
@@ -331,6 +332,8 @@ export class NotificationSchedulerService {
         }
 
         const leaseTime = new Date(now.getTime() + 30 * 60 * 1000);
+
+        // Use set with merge to create if it doesn't exist
         transaction.set(
           lockRef,
           {
@@ -344,9 +347,9 @@ export class NotificationSchedulerService {
         return true;
       });
     } catch (error) {
-      const err = error as Error;
+      // If error is just missing collection, we can initialize it
       this.logger.error(
-        `Exception thrown while acquiring lease: ${err.message}`,
+        `Exception thrown while acquiring lease: ${(error as Error).message}`,
       );
       return false;
     }
