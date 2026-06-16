@@ -1,9 +1,7 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { ConfigService } from '@nestjs/config';
 import * as admin from 'firebase-admin';
 import { PUSH_TOKEN_REPOSITORY } from './push-token.repository';
-import type { IPushTokenRepository } from './push-token.repository';
 import { NotificationsService, NotificationCategory } from './notifications.service';
 import { NotificationTemplates } from './notification-copy';
 import { SalesforceCampaignService } from '../../salesforce/campaign/salesforce-campaign.service';
@@ -16,9 +14,7 @@ export class NotificationSchedulerService {
   private readonly logger = new Logger(NotificationSchedulerService.name);
 
   constructor(
-    private readonly configService: ConfigService,
     @Inject(PUSH_TOKEN_REPOSITORY)
-    private readonly tokenRepo: IPushTokenRepository,
     private readonly notificationsService: NotificationsService,
     private readonly sfCampaignService: SalesforceCampaignService,
     private readonly sfUserService: SalesforceUserService,
