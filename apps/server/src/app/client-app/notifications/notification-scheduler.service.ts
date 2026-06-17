@@ -9,6 +9,8 @@ import { NotificationTemplates } from './notification-copy';
 import { SalesforceCampaignService } from '../../salesforce/campaign/salesforce-campaign.service';
 import { SalesforceUserService } from '../../salesforce/user/salesforce-user.service';
 
+import { getFirestore } from 'firebase-admin/firestore';
+
 const ENABLE_NOTIFICATION_CRON = true;
 
 @Injectable()
@@ -130,7 +132,7 @@ export class NotificationSchedulerService {
   private async pollRegistrationStatusChanges() {
     this.logger.log('Polling Phase 3: Registration status changes...');
     const currentStatuses = await this.sfCampaignService.getUpcomingRegistrationStatuses();
-    const db = admin.firestore();
+    const db = getFirestore('mandalat-halev-app-db');
     const stateCollection = db.collection('registrationNotificationState');
     const now = new Date();
 
@@ -185,7 +187,7 @@ export class NotificationSchedulerService {
   }
 
   private async acquireFirestoreLock(): Promise<boolean> {
-    const db = admin.firestore();
+    const db = getFirestore('mandalat-halev-app-db');
     const lockRef = db.collection('cronLocks').doc('daily-notifications');
     
     try {
@@ -218,7 +220,7 @@ export class NotificationSchedulerService {
   }
 
   private async releaseFirestoreLock(): Promise<void> {
-    const db = admin.firestore();
+    const db = getFirestore('mandalat-halev-app-db');
     try {
       await db.collection('cronLocks').doc('daily-notifications').set({
         expiresAt: admin.firestore.Timestamp.fromDate(new Date(0)),
