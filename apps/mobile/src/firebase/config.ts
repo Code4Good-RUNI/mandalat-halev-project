@@ -1,13 +1,10 @@
 import { Platform } from 'react-native';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, initializeAuth } from 'firebase/auth';
-// getReactNativePersistence ships in the RN build but is missing from the web
-// type defs Metro/TS resolve here (firebase-js-sdk#7615).
-// @ts-expect-error -- present at runtime in the React Native bundle
-import { getReactNativePersistence } from 'firebase/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// Type-only: erased at build (isolatedModules), so @react-native-firebase/auth
+// is never bundled for web. The runtime instance is loaded per-platform below.
+import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
 
-// Your web app's Firebase configuration
+// Your web app's Firebase configuration. Only used by the web (dev) branch
+// below; native reads google-services.json via @react-native-firebase/app.
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 export const firebaseConfig = {
   apiKey: 'AIzaSyAjMYuzz_-NXgFyP2XslePuyaRga25dYAs',
@@ -19,25 +16,22 @@ export const firebaseConfig = {
   measurementId: 'G-QBCBFW0JG3',
 };
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-
-// On native, back Firebase Auth with AsyncStorage so the session (refresh token)
-// survives app restarts and Firebase can keep issuing fresh ID tokens; without
-// it auth defaults to memory and the user is logged out ~1h after a cold start.
-// On web the default getAuth persistence (IndexedDB) is used, and the web build
-// has no getReactNativePersistence. initializeAuth throws if called twice (Fast
-// Refresh), so fall back to getAuth.
-function initAuth() {
+// Native (iOS/Android) uses @react-native-firebase/auth, which auto-initializes
+// the default app from google-services.json, persists the session natively, and
+// verifies phone numbers via Play Integrity (no reCAPTCHA modal).
+//
+// Web (dev only) keeps the Firebase JS SDK. The require() is lazy and only
+// reached when Platform.OS === 'web', so the native module is never executed in
+// the web bundle. Both the web Auth instance and the RNFB module expose the
+// compatible currentUser.getIdToken(forceRefresh) surface used by api/session.ts.
+function initAuth(): FirebaseAuthTypes.Module {
   if (Platform.OS === 'web') {
-    return getAuth(app);
+    const { initializeApp, getApps, getApp } = require('firebase/app');
+    const { getAuth } = require('firebase/auth');
+    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    return getAuth(app) as FirebaseAuthTypes.Module;
   }
-  try {
-    return initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage),
-    });
-  } catch {
-    return getAuth(app);
-  }
+  return require('@react-native-firebase/auth').default();
 }
 
 export const auth = initAuth();

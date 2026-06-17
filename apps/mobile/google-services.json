@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "742059784204",
+    "project_id": "mandalat-halev-app",
+    "storage_bucket": "mandalat-halev-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:742059784204:android:ba69429d3e0ef0bdad9629",
+        "android_client_info": {
+          "package_name": "com.mandalathalev.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBIZtlVio9eg_qYAUc2fWIBcuzZOuKAQuo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:742059784204:android:565d8bce3233f240ad9629",
+        "android_client_info": {
+          "package_name": "org.mandalathalev.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBIZtlVio9eg_qYAUc2fWIBcuzZOuKAQuo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
