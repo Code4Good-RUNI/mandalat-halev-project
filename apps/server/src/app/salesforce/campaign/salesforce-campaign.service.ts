@@ -101,7 +101,7 @@ export class SalesforceCampaignService {
 
   async onModuleInit() {
     //this.logger.log('🚀 [Campaign Sandbox] Starting Household Registration Logic Test...',);
-    //await this.testCronMethodsSandbox();
+    //await this.testCampaignDiffingSandbox();
   }
 
   //------------------------------------------------------------------------------------------------------------------
@@ -404,22 +404,17 @@ export class SalesforceCampaignService {
   }
 
   /**
-   * Get ALL currently available campaigns for the family.
-   * This replaces the "CreatedDate = TODAY" logic to allow diffing in the Cron.
+   * Get ALL currently available campaigns globally.
+   * Used for global cron diffing to notify all users about newly opened campaigns.
    */
-  async getAvailableCampaignsForFamily(
-    contactId: string,
-  ): Promise<NewCampaignNotificationRow[]> {
-    const familyIds = await this.getSecureFamilyIdsForQuery(contactId);
+  async getAllAvailableCampaigns(): Promise<NewCampaignNotificationRow[]> {
     const allowedStatusesSOQL = ALLOWED_REGISTRATION_STATUSES.map(
       (status) => `'${status}'`,
     ).join(', ');
 
-    // ללא soql, עם שימוש ב-CF ו-CMF
     const query = `SELECT ${CF.ID}, ${CF.NAME} FROM Campaign
                    WHERE ${CF.END_DATE} >= TODAY 
-                   AND ${CF.STATUS} IN (${allowedStatusesSOQL})
-                   AND ${CF.ID} NOT IN (SELECT ${CMF.CAMPAIGN_ID} FROM CampaignMember WHERE ${CMF.CONTACT_ID} IN (${familyIds}))`;
+                   AND ${CF.STATUS} IN (${allowedStatusesSOQL})`;
 
     const records = await this.core.query<any>(query);
 
@@ -452,7 +447,7 @@ export class SalesforceCampaignService {
         record.Campaign?.[CF.START_DATE] === tomorrowStr ? 1 : 3;
 
       return {
-        salesforceUserId: contactId, // המשתמש הראשי שמקבל את ההתראה
+        salesforceUserId: contactId,
         contact: {
           salesforceUserId: record[CMF.CONTACT_ID],
           firstName: record.Contact?.FirstName || '',
