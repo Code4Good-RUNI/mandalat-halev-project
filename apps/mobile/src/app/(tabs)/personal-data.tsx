@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,16 +10,49 @@ import {
   Linking,
 } from 'react-native';
 import { clearSession } from '../../api/session';
-import { unregisterAndroidPushNotifications } from '../../notifications/notification.service';
+import {
+  unregisterAndroidPushNotifications,
+  updateAndroidNotificationPreference,
+} from '../../notifications/notification.service';
+import { getPreferences } from '../../notifications/notification.storage';
+import {
+  DEFAULT_PREFERENCES,
+  NotificationPreferences,
+  NotificationPreferenceKey,
+} from '../../notifications/notification.types';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserProfile, useUserContacts } from '../../api/hooks';
 import { QueryErrorState } from '../../components/QueryErrorState';
 
 export default function PersonalDataScreen() {
-  // switch states
-  const [activityUpdates, setActivityUpdates] = useState(true);
-  const [futureActivities, setFutureActivities] = useState(true);
-  const [orgMessages, setOrgMessages] = useState(true);
+  // Notification preferences, rehydrated from local storage on mount. On load
+  // failure we fall back to defaults (all on) — see accepted tradeoffs in the
+  // plan: the user isn't told the displayed values may differ from what's saved.
+  const [preferences, setPreferencesState] =
+    useState<NotificationPreferences>(DEFAULT_PREFERENCES);
+
+  useEffect(() => {
+    getPreferences()
+      .then(setPreferencesState)
+      .catch((err) =>
+        console.warn('Failed to load notification preferences', err),
+      );
+  }, []);
+
+  // Optimistic: reflect the change in the UI immediately, then let the service
+  // persist it locally and PATCH only the changed key to the backend (no-op on
+  // web/iOS). The functional update orders React state only — it does not order
+  // the service's storage writes, and a failed PATCH is not rolled back (both
+  // accepted tradeoffs, documented in the plan).
+  const handlePreferenceChange = (
+    key: NotificationPreferenceKey,
+    value: boolean,
+  ) => {
+    setPreferencesState((prev) => ({ ...prev, [key]: value }));
+    updateAndroidNotificationPreference(key, value).catch((err) =>
+      console.warn('Failed to update notification preference', err),
+    );
+  };
 
   const { data, isPending, isError, refetch } = useUserProfile();
   const profile = data?.status === 200 ? data.body : undefined;
@@ -123,8 +156,8 @@ export default function PersonalDataScreen() {
               <Text style={styles.switchSub}>קבל הודעות על שינויים בסטטוס הרישום</Text>
             </View>
             <Switch
-              value={activityUpdates}
-              onValueChange={setActivityUpdates}
+              value={preferences.activityUpdates}
+              onValueChange={(v) => handlePreferenceChange('activityUpdates', v)}
               trackColor={{ true: '#FF8C00' }}
             />
           </View>
@@ -135,8 +168,10 @@ export default function PersonalDataScreen() {
               <Text style={styles.switchSub}>קבל תזכורות לפני פעילויות מתוזמנות</Text>
             </View>
             <Switch
-              value={futureActivities}
-              onValueChange={setFutureActivities}
+              value={preferences.activityReminders}
+              onValueChange={(v) =>
+                handlePreferenceChange('activityReminders', v)
+              }
               trackColor={{ true: '#FF8C00' }}
             />
           </View>
@@ -149,8 +184,8 @@ export default function PersonalDataScreen() {
               </Text>
             </View>
             <Switch
-              value={orgMessages}
-              onValueChange={setOrgMessages}
+              value={preferences.orgMessages}
+              onValueChange={(v) => handlePreferenceChange('orgMessages', v)}
               trackColor={{ true: '#FF8C00' }}
             />
           </View>
