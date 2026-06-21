@@ -44,17 +44,4 @@ export class NotificationsController {
       return { status: 200, body: { ok: true } };
     });
   }
-
-  @TsRestHandler(userContract.notifications.test)
-  async sendTestNotification(@CurrentUser('sub') salesforceUserId: string) {
-    return tsRestHandler(userContract.notifications.test, async ({ body }) => {
-      await this.notificationsService.sendToUser(salesforceUserId, {
-        title: body.title,
-        body: body.body,
-        data: body.data,
-      });
-
-      return { status: 200, body: { ok: true } };
-    });
-  }
 }

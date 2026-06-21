@@ -1,5 +1,6 @@
 import * as admin from 'firebase-admin';
 import { ConfigService } from '@nestjs/config';
+import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
 // A service-account private key is a multi-line PEM. Stored in an env var it can
 // arrive escaped (\n, \r\n) or wrapped in stray quotes/whitespace; any of these
@@ -33,4 +34,14 @@ export const initializeFirebaseAdmin = (configService: ConfigService) => {
   return admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });
+};
+
+export const getConfiguredFirestore = (
+  configService: ConfigService,
+): Firestore => {
+  const databaseId = configService.get<string>('FIREBASE_FIRESTORE_DATABASE_ID');
+  if (!databaseId) {
+    throw new Error('FIREBASE_FIRESTORE_DATABASE_ID is not configured');
+  }
+  return getFirestore(databaseId);
 };
