@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: { marginHorizontal: 20, marginBottom: 15 },
   label: {
-    textAlign: 'right' as const,
+    textAlign: 'auto' as const,
     fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 6,
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
   fieldErrorText: {
     color: 'red',
     fontSize: 12,
-    textAlign: 'right' as const,
+    textAlign: 'auto' as const,
     marginTop: 4,
   },
 });

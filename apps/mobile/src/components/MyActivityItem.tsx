@@ -84,22 +84,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
-    textAlign: 'right',
+    textAlign: 'auto',
     flex: 1,
     paddingRight: 8,
   },
   metaItem: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    alignSelf: 'flex-end',
+    alignSelf: 'flex-start',
   },
   metaText: {
     fontSize: 13,
     color: '#666',
   },
   detailsBtn: {
-    alignSelf: 'flex-end',
+    alignSelf: 'flex-start',
     marginTop: 4,
   },
   detailsLink: {

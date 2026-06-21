@@ -60,6 +60,6 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   center: { justifyContent: 'center', alignItems: 'center' },
   header: { padding: 15 },
-  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right' },
+  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'auto' },
   emptyText: { textAlign: 'center', marginTop: 30, color: '#666', fontSize: 16 },
 });

@@ -214,13 +214,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    textAlign: 'right',
+    textAlign: 'auto',
     marginRight: 20,
     marginTop: 40,
   },
   subText: {
     fontSize: 18,
-    textAlign: 'right',
+    textAlign: 'auto',
     marginRight: 20,
     marginBottom: 20,
   },

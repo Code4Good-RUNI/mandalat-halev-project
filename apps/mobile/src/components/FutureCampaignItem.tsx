@@ -304,7 +304,7 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
 const styles = StyleSheet.create({
   memberStatusList: { gap: 4, marginBottom: 12 },
   memberStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  memberName: { flex: 1, fontSize: 14, color: '#333', textAlign: 'right' },
+  memberName: { flex: 1, fontSize: 14, color: '#333', textAlign: 'auto' },
   actionContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'stretch', gap: 8, marginTop: 4 },
   registerButton: {
     flex: 1,
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   },
   disabledButton: { opacity: 0.6 },
   unregisterButtonText: { color: '#fff', fontWeight: 'bold', textAlign: 'center' },
-  errorContainer: { alignItems: 'flex-end', gap: 4 },
+  errorContainer: { alignItems: 'flex-start', gap: 4 },
   errorText: { color: '#ff4444', fontSize: 13 },
   retryText: { color: '#FF8C00', fontSize: 13, fontWeight: 'bold' },
   // Contact selection bottom sheet
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
   selectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    textAlign: 'right',
+    textAlign: 'auto',
     color: '#ff4444',
     marginBottom: 16,
   },
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ff4444',
     borderColor: '#ff4444',
   },
-  contactName: { fontSize: 16, textAlign: 'right', flex: 1, paddingLeft: 12 },
+  contactName: { fontSize: 16, textAlign: 'auto', flex: 1, paddingLeft: 12 },
   checkmark: { color: '#fff', fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
   selectionButtons: {
     flexDirection: 'row',

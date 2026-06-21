@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: 'bold',
-    textAlign: 'right',
+    textAlign: 'auto',
     color: '#333',
     flex: 1,
     paddingRight: 8,
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   metaItem: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     marginLeft: 20,
   },
   locationItem: {
-    alignSelf: 'flex-end',
+    alignSelf: 'flex-start',
   },
   metaText: {
     fontSize: 13,
@@ -128,10 +128,10 @@ const styles = StyleSheet.create({
   host: {
     fontSize: 13,
     color: '#888',
-    textAlign: 'right',
+    textAlign: 'auto',
   },
   detailsBtn: {
-    alignSelf: 'flex-end',
+    alignSelf: 'flex-start',
   },
   detailsLink: {
     color: '#FF8C00',
