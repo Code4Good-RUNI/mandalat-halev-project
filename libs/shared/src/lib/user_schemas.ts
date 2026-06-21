@@ -216,11 +216,18 @@ export type RegisterDeviceTokenDto = z.infer<typeof RegisterDeviceTokenSchema>;
 
 // Request body for sending a test notification (dev only)
 export const TestNotificationSchema = z.object({
+  salesforceUserId: z.string(),
   title: z.string(),
   body: z.string(),
   data: z.record(z.string()).optional(), // payload values must be strings per FCM requirements
 });
 export type TestNotificationDto = z.infer<typeof TestNotificationSchema>;
+
+export const CronRunResponseSchema = z.object({
+  ok: z.literal(true),
+  message: z.string(),
+});
+export type CronRunResponseDto = z.infer<typeof CronRunResponseSchema>;
 
 // Generic success response for notifications
 export const NotificationSuccessResponseSchema = z.object({
