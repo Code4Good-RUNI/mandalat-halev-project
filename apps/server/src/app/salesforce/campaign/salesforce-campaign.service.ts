@@ -21,6 +21,9 @@ import {
   GetRegistrationStatusDto,
   CampaignMemberRegistrationDto,
   ContactDto,
+  NewCampaignNotificationRow,
+  ActivityReminderNotificationRow,
+  RegistrationStatusNotificationRow,
 } from '@mandalat-halev-project/api-interfaces';
 import { SalesforceUserService } from '../user/salesforce-user.service';
 
@@ -97,9 +100,8 @@ export class SalesforceCampaignService {
   //ID: 701Vk00000TkSa5IAF | Name: "קבוצת תמיכה אדוות - מחלימות" | Dates: 2025-10-15 - 2026-06-30
 
   async onModuleInit() {
-    //this.logger.log(
-     // '🚀 [Campaign Sandbox] Starting Household Registration Logic Test...',
-    //);
+    //this.logger.log('🚀 [Campaign Sandbox] Starting Household Registration Logic Test...',);
+    //await this.testCampaignDiffingSandbox();
   }
 
   //------------------------------------------------------------------------------------------------------------------
@@ -384,54 +386,114 @@ export class SalesforceCampaignService {
   }
 
   // =========================================================================
-  // CRON JOB GLOBAL QUERIES 
+  // CRON JOB METHODS (MAN-31) - Family Context
   // =========================================================================
 
   /**
-   * Fetch all campaigns created or activated today
+   * Helper: Get current date in Jerusalem timezone formatted as YYYY-MM-DD for SOQL
    */
-  async getNewCampaignsToday(): Promise<{ campaignId: string }[]> {
-    const query = `SELECT Id FROM Campaign WHERE CreatedDate = TODAY AND IsActive = true`;
-    const records = await this.core.query<any>(query);
-    
-    return records.map(r => ({ campaignId: r.Id }));
+  private getJerusalemDateString(offsetDays = 0): string {
+    const date = new Date();
+    date.setDate(date.getDate() + offsetDays);
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Jerusalem',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
   }
 
   /**
-   * Fetch contacts who have an activity starting tomorrow
+   * Get ALL currently available campaigns globally.
+   * Used for global cron diffing to notify all users about newly opened campaigns.
    */
-  async getUpcomingActivityReminders(): Promise<{ campaignName: string; contactId: string; daysUntil: number }[]> {
-    const query = `
-      SELECT CampaignId, Campaign.Name, ContactId 
-      FROM CampaignMember 
-      WHERE Campaign.StartDate = TOMORROW 
-      AND Status IN ('Confirmed', 'Approved', 'Registered')
-    `;
+  async getAllAvailableCampaigns(): Promise<NewCampaignNotificationRow[]> {
+    const allowedStatusesSOQL = ALLOWED_REGISTRATION_STATUSES.map(
+      (status) => `'${status}'`,
+    ).join(', ');
+
+    const query = `SELECT ${CF.ID}, ${CF.NAME} FROM Campaign
+                   WHERE ${CF.END_DATE} >= TODAY 
+                   AND ${CF.STATUS} IN (${allowedStatusesSOQL})`;
+
     const records = await this.core.query<any>(query);
-    
-    return records.map(r => ({
-      campaignName: r.Campaign.Name,
-      contactId: r.ContactId,
-      daysUntil: 1
+
+    return records.map((record) => ({
+      campaignId: record[CF.ID],
+      name: record[CF.NAME],
     }));
   }
 
   /**
-   * Fetch registration statuses modified recently (last 2 days)
+   * Get upcoming activity reminders (1 or 3 days from today) for the entire family.
    */
-  async getUpcomingRegistrationStatuses(): Promise<{ salesforceUserId: string; campaignId: string; campaignName: string; registrationStatus: string }[]> {
-    const query = `
-      SELECT CampaignId, Campaign.Name, ContactId, Status 
-      FROM CampaignMember 
-      WHERE LastModifiedDate = LAST_N_DAYS:2
-    `;
+  async getUpcomingActivityRemindersForFamily(
+    contactId: string,
+  ): Promise<ActivityReminderNotificationRow[]> {
+    const familyIds = await this.getSecureFamilyIdsForQuery(contactId);
+    const tomorrowStr = this.getJerusalemDateString(1);
+    const inThreeDaysStr = this.getJerusalemDateString(3);
+
+    const query = `SELECT ${CMF.CAMPAIGN_ID}, Campaign.${CF.NAME}, Campaign.${CF.START_DATE},
+                          ${CMF.CONTACT_ID}, Contact.FirstName, Contact.LastName, Contact.Birthdate, Contact.RegisteredID__c
+                   FROM CampaignMember 
+                   WHERE ${CMF.CONTACT_ID} IN (${familyIds}) 
+                   AND (Campaign.${CF.START_DATE} = ${tomorrowStr} OR Campaign.${CF.START_DATE} = ${inThreeDaysStr})`;
+
     const records = await this.core.query<any>(query);
-    
-    return records.map(r => ({
-      salesforceUserId: r.ContactId,
-      campaignId: r.CampaignId,
-      campaignName: r.Campaign.Name,
-      registrationStatus: SalesforceMapper.mapStatusToApproval(r.Status)
-    }));
+
+    return records.map((record): ActivityReminderNotificationRow => {
+      const daysUntil =
+        record.Campaign?.[CF.START_DATE] === tomorrowStr ? 1 : 3;
+
+      return {
+        salesforceUserId: contactId,
+        contact: {
+          salesforceUserId: record[CMF.CONTACT_ID],
+          firstName: record.Contact?.FirstName || '',
+          lastName: record.Contact?.LastName || '',
+          idNumber: record.Contact?.RegisteredID__c || '',
+          birthDate: record.Contact?.Birthdate || '',
+        },
+        campaignId: record[CMF.CAMPAIGN_ID],
+        campaignName: record.Campaign?.[CF.NAME] || '',
+        daysUntil,
+      };
+    });
+  }
+
+  /**
+   * Get current registration statuses for all upcoming activities for the entire family.
+   */
+  async getUpcomingRegistrationStatusesForFamily(
+    contactId: string,
+  ): Promise<RegistrationStatusNotificationRow[]> {
+    const familyIds = await this.getSecureFamilyIdsForQuery(contactId);
+
+    const query = `SELECT ${CMF.CAMPAIGN_ID}, Campaign.${CF.NAME}, ${CMF.STATUS},
+                          ${CMF.CONTACT_ID}, Contact.FirstName, Contact.LastName, Contact.Birthdate, Contact.RegisteredID__c
+                   FROM CampaignMember 
+                   WHERE ${CMF.CONTACT_ID} IN (${familyIds}) 
+                   AND Campaign.${CF.END_DATE} >= TODAY`;
+
+    const records = await this.core.query<any>(query);
+
+    return records.map(
+      (record): RegistrationStatusNotificationRow => ({
+        salesforceUserId: contactId,
+        contact: {
+          salesforceUserId: record[CMF.CONTACT_ID],
+          firstName: record.Contact?.FirstName || '',
+          lastName: record.Contact?.LastName || '',
+          idNumber: record.Contact?.RegisteredID__c || '',
+          birthDate: record.Contact?.Birthdate || '',
+        },
+        campaignId: record[CMF.CAMPAIGN_ID],
+        campaignName: record.Campaign?.[CF.NAME] || '',
+        registrationStatus: SalesforceMapper.mapStatusToApproval(
+          record[CMF.STATUS],
+        ),
+      }),
+    );
   }
 }

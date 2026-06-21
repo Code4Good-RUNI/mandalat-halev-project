@@ -5,7 +5,7 @@ import { PUSH_TOKEN_REPOSITORY } from './push-token.repository';
 import { FirestorePushTokenRepository } from './push-token.repository.firestore';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
-import { NotificationCronController } from './notification-cron.controller'; 
+import { NotificationsDevController } from './notifications-dev.controller';
 import { NotificationSchedulerService } from './notification-scheduler.service';
 
 @Module({
@@ -14,8 +14,8 @@ import { NotificationSchedulerService } from './notification-scheduler.service';
     SalesforceModule,
   ],
   controllers: [
-    NotificationsController, 
-    NotificationCronController
+    NotificationsController,
+    NotificationsDevController,
   ], 
   providers: [
     {
