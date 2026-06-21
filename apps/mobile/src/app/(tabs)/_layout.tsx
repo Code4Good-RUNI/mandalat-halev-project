@@ -1,8 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { syncAndroidPushNotifications } from '../../notifications/notification.service';
 
 export default function TabsLayout() {
+  useEffect(() => {
+    // Runs once when the authenticated area mounts (after fresh login or
+    // cold-start redirect), so the api client has a bearer token. The
+    // Android-only guard lives in the service. Fire-and-forget: never block
+    // render, never crash on failure.
+    syncAndroidPushNotifications().catch((err) => {
+      console.warn('Push notification sync failed', err);
+    });
+  }, []);
+
   return (
     <Tabs initialRouteName="activities">
       <Tabs.Screen
