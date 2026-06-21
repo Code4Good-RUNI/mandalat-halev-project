@@ -3,12 +3,12 @@ export const NotificationTemplates = {
     title: 'פעילויות חדשות באפליקציה! 🎉',
     body: 'נפתחו פעילויות חדשות שזמינות עבורך להרשמה. לחצו כאן כדי לצפות.',
   },
-  reminder: (campaignName: string, daysUntil: number, firstName: string) => ({
+  reminder: (campaignName: string, daysUntil: number) => ({
     title: 'תזכורת לפעילות קרובה ⏰',
     body:
       daysUntil === 1
-        ? `הפעילות "${campaignName}" של ${firstName} מתחילה מחר! אל תשכחו.`
-        : `הפעילות "${campaignName}" של ${firstName} מתחילה בעוד ${daysUntil} ימים.`,
+        ? `הפעילות "${campaignName}" מתחילה מחר! אל תשכחו.`
+        : `הפעילות "${campaignName}" מתחילה בעוד ${daysUntil} ימים.`,
   }),
   statusChange: (campaignName: string, status: string, firstName: string) => {
     const statusHebrew =

@@ -1,7 +1,6 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import * as admin from 'firebase-admin';
-import { PUSH_TOKEN_REPOSITORY } from './push-token.repository';
 import { NotificationsService, NotificationCategory } from './notifications.service';
 import { NotificationTemplates } from './notification-copy';
 import { SalesforceCampaignService } from '../../salesforce/campaign/salesforce-campaign.service';
@@ -16,7 +15,6 @@ export class NotificationSchedulerService {
   private readonly logger = new Logger(NotificationSchedulerService.name);
 
   constructor(
-    @Inject(PUSH_TOKEN_REPOSITORY)
     private readonly notificationsService: NotificationsService,
     private readonly sfCampaignService: SalesforceCampaignService,
     private readonly sfUserService: SalesforceUserService,
@@ -92,10 +90,9 @@ export class NotificationSchedulerService {
     const db = getFirestore('mandalat-halev-app-db');
     const globalStateRef = db.collection('cronState').doc('global-campaigns');
 
-    await db.runTransaction(async (transaction) => {
+    const shouldSend = await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(globalStateRef);
-      const prevState = doc.data();
-      const previousCampaignIds: string[] = prevState?.campaignIds || [];
+      const previousCampaignIds: string[] = doc.data()?.campaignIds ?? [];
 
       const newCampaigns = availableCampaigns.filter(
         (c) => !previousCampaignIds.includes(c.campaignId),
@@ -106,20 +103,22 @@ export class NotificationSchedulerService {
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      if (newCampaigns.length > 0) {
-        this.logger.log(
-          `Found ${newCampaigns.length} new campaigns. Sending notifications...`,
-        );
-        const payload = { type: 'new_campaign', screen: 'activities' };
-        const copy = NotificationTemplates.newCampaign;
-
-        await this.notificationsService.sendToUsers(
-          activeUserIds,
-          { title: copy.title, body: copy.body, data: payload },
-          NotificationCategory.ORG_MESSAGES,
-        );
-      }
+      return newCampaigns.length;
     });
+
+    if (shouldSend > 0) {
+      this.logger.log(
+        `Found ${shouldSend} new campaigns. Sending notifications...`,
+      );
+      const payload = { type: 'new_campaign', screen: 'activities' };
+      const copy = NotificationTemplates.newCampaign;
+
+      await this.notificationsService.sendToUsers(
+        activeUserIds,
+        { title: copy.title, body: copy.body, data: payload },
+        NotificationCategory.ORG_MESSAGES,
+      );
+    }
   }
 
   private async pollActivityReminders(activeUserIds: string[]) {
@@ -142,10 +141,6 @@ export class NotificationSchedulerService {
         reminders: ActivityReminderNotificationRow[];
       }
     >();
-    this.logger.log(
-      `Phase 2: Processed ${allReminders.length} total reminder records for ${batchedReminders.size} unique campaign groups.`,
-    );
-
     for (const reminder of allReminders) {
       const key = `${reminder.campaignName}_${reminder.daysUntil}`;
       if (!batchedReminders.has(key)) {
@@ -158,6 +153,10 @@ export class NotificationSchedulerService {
       batchedReminders.get(key)!.reminders.push(reminder);
     }
 
+    this.logger.log(
+      `Phase 2: Processed ${allReminders.length} total reminder records for ${batchedReminders.size} unique campaign groups.`,
+    );
+
     for (const batch of batchedReminders.values()) {
       const familyUserIds = Array.from(
         new Set(batch.reminders.map((r) => r.salesforceUserId)),
@@ -165,7 +164,6 @@ export class NotificationSchedulerService {
       const copy = NotificationTemplates.reminder(
         batch.campaignName,
         batch.daysUntil,
-        '',
       );
 
       await this.notificationsService.sendToUsers(
@@ -204,19 +202,19 @@ export class NotificationSchedulerService {
         const docKey = `${row.salesforceUserId}_${row.campaignId}`;
         const docRef = stateCollection.doc(docKey);
 
-        await db.runTransaction(async (transaction) => {
+        const shouldNotify = await db.runTransaction(async (transaction) => {
           const doc = await transaction.get(docRef);
-          let shouldNotify = false;
+          let notify = false;
 
           if (!doc.exists) {
-            shouldNotify = row.registrationStatus !== 'pending';
+            notify = row.registrationStatus !== 'pending';
           } else {
             const prevState = doc.data();
             if (
               prevState?.lastKnownStatus !== row.registrationStatus &&
               row.registrationStatus !== 'pending'
             ) {
-              shouldNotify = true;
+              notify = true;
             }
           }
 
@@ -229,27 +227,30 @@ export class NotificationSchedulerService {
             { merge: true },
           );
 
-          if (shouldNotify) {
-            const familyMembers = await this.sfUserService.getFamilyMembers(
-              row.salesforceUserId,
-            );
-            const familyUserIds = familyMembers.map((m) => m.salesforceUserId);
-
-            const copy = NotificationTemplates.statusChange(
-              row.campaignName,
-              row.registrationStatus, ''
-            );
-            await this.notificationsService.sendToUsers(
-              familyUserIds,
-              {
-                title: copy.title,
-                body: copy.body,
-                data: { type: 'status_change', screen: 'my-activities/future' },
-              },
-              NotificationCategory.ACTIVITY_UPDATES,
-            );
-          }
+          return notify;
         });
+
+        if (shouldNotify) {
+          const familyMembers = await this.sfUserService.getFamilyMembers(
+            row.salesforceUserId,
+          );
+          const familyUserIds = familyMembers.map((m) => m.salesforceUserId);
+
+          const copy = NotificationTemplates.statusChange(
+            row.campaignName,
+            row.registrationStatus,
+            row.contact.firstName,
+          );
+          await this.notificationsService.sendToUsers(
+            familyUserIds,
+            {
+              title: copy.title,
+              body: copy.body,
+              data: { type: 'status_change', screen: 'my-activities/future' },
+            },
+            NotificationCategory.ACTIVITY_UPDATES,
+          );
+        }
       }
     }
   }
