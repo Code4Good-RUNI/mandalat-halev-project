@@ -1,14 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import * as admin from 'firebase-admin';
+import { ConfigService } from '@nestjs/config';
 import { IPushTokenRepository, PushTokenRecord, NotificationPreferencesRecord } from './push-token.repository';
-
-import { getFirestore } from 'firebase-admin/firestore';
+import { getConfiguredFirestore } from '../auth/firebase-admin.init';
 
 @Injectable()
 export class FirestorePushTokenRepository implements IPushTokenRepository {
-  
+  constructor(private readonly configService: ConfigService) {}
+
+  private get db() {
+    return getConfiguredFirestore(this.configService);
+  }
+
   private get collection() {
-    return getFirestore('mandalat-halev-app-db').collection('pushTokens');
+    return this.db.collection('pushTokens');
   }
 
   async upsert(tokenData: Omit<PushTokenRecord, 'id' | 'updatedAt' | 'enabled' | 'preferences'>): Promise<PushTokenRecord> {
@@ -87,7 +91,7 @@ export class FirestorePushTokenRepository implements IPushTokenRepository {
   async deleteByToken(nativeToken: string): Promise<void> {
     const snapshot = await this.collection.where('nativeToken', '==', nativeToken).get();
     
-    const batch = getFirestore('mandalat-halev-app-db').batch();
+    const batch = this.db.batch();
     snapshot.docs.forEach((doc) => {
       batch.delete(doc.ref);
     });

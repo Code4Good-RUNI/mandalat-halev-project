@@ -1,12 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { ConfigService } from '@nestjs/config';
 import * as admin from 'firebase-admin';
 import { NotificationsService, NotificationCategory } from './notifications.service';
 import { NotificationTemplates } from './notification-copy';
 import { SalesforceCampaignService } from '../../salesforce/campaign/salesforce-campaign.service';
 import { SalesforceUserService } from '../../salesforce/user/salesforce-user.service';
 import { ActivityReminderNotificationRow, } from '@mandalat-halev-project/api-interfaces';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getConfiguredFirestore } from '../auth/firebase-admin.init';
 
 const ENABLE_NOTIFICATION_CRON = true;
 
@@ -15,10 +16,15 @@ export class NotificationSchedulerService {
   private readonly logger = new Logger(NotificationSchedulerService.name);
 
   constructor(
+    private readonly configService: ConfigService,
     private readonly notificationsService: NotificationsService,
     private readonly sfCampaignService: SalesforceCampaignService,
     private readonly sfUserService: SalesforceUserService,
   ) {}
+
+  private get db() {
+    return getConfiguredFirestore(this.configService);
+  }
 
   @Cron('0 19 * * *', {
     name: 'daily-salesforce-notifications',
@@ -87,7 +93,7 @@ export class NotificationSchedulerService {
     );
     const currentCampaignIds = availableCampaigns.map((c) => c.campaignId);
 
-    const db = getFirestore('mandalat-halev-app-db');
+    const db = this.db;
     const globalStateRef = db.collection('cronState').doc('global-campaigns');
 
     const shouldSend = await db.runTransaction(async (transaction) => {
@@ -195,7 +201,7 @@ export class NotificationSchedulerService {
         );
       }
 
-      const db = getFirestore('mandalat-halev-app-db');
+      const db = this.db;
       const stateCollection = db.collection('registrationNotificationState');
 
       for (const row of currentStatuses) {
@@ -256,7 +262,7 @@ export class NotificationSchedulerService {
   }
 
   private async acquireFirestoreLock(): Promise<boolean> {
-    const db = getFirestore('mandalat-halev-app-db');
+    const db = this.db;
     const lockRef = db.collection('cronLocks').doc('daily-notifications');
 
     try {
@@ -297,7 +303,7 @@ export class NotificationSchedulerService {
   }
 
   private async releaseFirestoreLock(): Promise<void> {
-    const db = getFirestore('mandalat-halev-app-db');
+    const db = this.db;
     try {
       await db
         .collection('cronLocks')
