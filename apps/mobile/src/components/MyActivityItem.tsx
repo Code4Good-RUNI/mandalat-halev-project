@@ -35,13 +35,13 @@ export const MyActivityItem = ({
       </View>
 
       <View style={styles.metaItem}>
-        <Text style={styles.metaText}>{date}</Text>
         <Ionicons name="time-outline" size={13} color="#888" />
+        <Text style={styles.metaText}>{date}</Text>
       </View>
 
       <View style={styles.metaItem}>
-        <Text style={styles.metaText}>{location}</Text>
         <Ionicons name="location-outline" size={13} color="#888" />
+        <Text style={styles.metaText}>{location}</Text>
       </View>
 
       <TouchableOpacity onPress={onPressDetails} style={styles.detailsBtn}>

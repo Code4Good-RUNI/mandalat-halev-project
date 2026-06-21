@@ -42,22 +42,22 @@ export const ActivityItem = ({
         <View style={styles.metaRow}>
           {duration && (
             <View style={[styles.metaItem, styles.durationItem]}>
-              <Text style={styles.metaText}>{duration}</Text>
               <Ionicons name="time-outline" size={13} color="#888" />
+              <Text style={styles.metaText}>{duration}</Text>
             </View>
           )}
           {date && (
             <View style={styles.metaItem}>
-              <Text style={styles.metaText}>{date}</Text>
               <Ionicons name="calendar-outline" size={13} color="#888" />
+              <Text style={styles.metaText}>{date}</Text>
             </View>
           )}
         </View>
       )}
 
       <View style={[styles.metaItem, styles.locationItem]}>
-        <Text style={styles.metaText}>{location}</Text>
         <Ionicons name="location-outline" size={13} color="#888" />
+        <Text style={styles.metaText}>{location}</Text>
       </View>
 
       {host && <Text style={styles.host}>{host}</Text>}
