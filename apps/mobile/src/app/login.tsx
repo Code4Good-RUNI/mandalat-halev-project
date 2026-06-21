@@ -190,7 +190,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: 24,
   },
-  logo: { width: 150, height: 115, alignSelf: 'center', marginTop: 40 },
+  logo: {
+    width: '40%',
+    maxWidth: 150,
+    aspectRatio: 150 / 115,
+    alignSelf: 'center',
+    marginTop: 40,
+  },
   welcome: {
     fontSize: 32,
     fontWeight: 'bold',
@@ -204,7 +210,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: { marginHorizontal: 20, marginBottom: 15 },
   label: {
-    textAlign: 'right' as const,
+    textAlign: 'auto' as const,
     fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 6,
@@ -242,7 +248,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 12,
-    marginHorizontal: 80,
+    marginHorizontal: '20%',
   },
   donationButtonText: {
     color: '#fff',
@@ -258,7 +264,7 @@ const styles = StyleSheet.create({
   fieldErrorText: {
     color: 'red',
     fontSize: 12,
-    textAlign: 'right' as const,
+    textAlign: 'auto' as const,
     marginTop: 4,
   },
 });

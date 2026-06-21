@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Pressable,
   StyleSheet,
+  useWindowDimensions,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
@@ -63,6 +64,13 @@ export default function VerifySmsScreen() {
   const [verifying, setVerifying] = useState(false);
   const { mutateAsync: createSession } = useCreateSession();
   const e164Phone = phoneNumber ? toE164(phoneNumber) : '';
+
+  // Shrink the OTP digit boxes to fit narrow screens instead of overflowing.
+  const { width: screenWidth } = useWindowDimensions();
+  const availableWidth =
+    screenWidth - styles.digitsContainer.marginHorizontal * 2 - styles.digitsContainer.gap * 5;
+  const digitBoxWidth = Math.min(44, availableWidth / 6);
+  const digitBoxHeight = digitBoxWidth * (52 / 44);
 
   const sendSms = useCallback(async () => {
     if (!phoneNumber || !e164Phone) return;
@@ -161,11 +169,16 @@ export default function VerifySmsScreen() {
             maxLength={6}
             caretHidden
             style={styles.hiddenCodeInput}
+            textAlign="left"
           />
           {digits.map((digit, i) => (
             <View
               key={i}
-              style={[styles.digitBox, digit ? styles.digitInputFilled : null]}
+              style={[
+                styles.digitBox,
+                { width: digitBoxWidth, height: digitBoxHeight },
+                digit ? styles.digitInputFilled : null,
+              ]}
             >
               <Text style={styles.digitText}>{digit}</Text>
             </View>
@@ -201,18 +214,19 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    textAlign: 'right',
+    textAlign: 'auto',
     marginRight: 20,
     marginTop: 40,
   },
   subText: {
     fontSize: 18,
-    textAlign: 'right',
+    textAlign: 'auto',
     marginRight: 20,
     marginBottom: 20,
   },
   digitsContainer: {
     flexDirection: 'row',
+    direction: 'ltr',
     justifyContent: 'center',
     gap: 10,
     marginHorizontal: 20,
@@ -226,8 +240,6 @@ const styles = StyleSheet.create({
     color: 'transparent',
   },
   digitBox: {
-    width: 44,
-    height: 52,
     borderBottomWidth: 2,
     borderBottomColor: '#ccc',
     justifyContent: 'center',

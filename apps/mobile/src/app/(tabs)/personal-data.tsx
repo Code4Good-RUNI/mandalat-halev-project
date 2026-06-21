@@ -70,7 +70,12 @@ export default function PersonalDataScreen() {
 
           <View style={styles.row}>
             <Text style={styles.label}>כתובת מגורים</Text>
-            <Text style={styles.value}>{profile?.address}, {profile?.city}</Text>
+            <Text style={styles.value}>{profile?.address}</Text>
+          </View>
+
+          <View style={styles.row}>
+            <Text style={styles.label}>עיר</Text>
+            <Text style={styles.value}>{profile?.city}</Text>
           </View>
 
           <View style={[styles.row, styles.rowLast]}>
@@ -95,7 +100,7 @@ export default function PersonalDataScreen() {
         </View>
 
         {/* Notification Settings */}
-        <View style={[styles.section, { display: 'none' }]}>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>הגדרת התראות</Text>
 
           <View style={styles.switchRow}>
@@ -168,10 +173,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FF8C00',
     marginBottom: 10,
-    textAlign: 'right',
+    textAlign: 'auto',
   },
   row: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: 1,
@@ -186,8 +191,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 10,
   },
-  cardName: { fontWeight: 'bold', textAlign: 'right' },
-  cardDetail: { textAlign: 'right', color: '#666' },
+  cardName: { fontWeight: 'bold', textAlign: 'auto' },
+  cardDetail: { textAlign: 'auto', color: '#666' },
   updateButton: {
     backgroundColor: '#FF8C00',
     padding: 15,
@@ -199,12 +204,12 @@ const styles = StyleSheet.create({
   logoutButton: { marginTop: 16, alignItems: 'center' },
   logoutText: { color: 'red', fontSize: 16 },
   switchRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
   },
   switchTextContainer: { flex: 1, paddingRight: 10 },
-  switchTitle: { fontWeight: 'bold', textAlign: 'right' },
-  switchSub: { fontSize: 12, color: '#666', textAlign: 'right' },
+  switchTitle: { fontWeight: 'bold', textAlign: 'auto' },
+  switchSub: { fontSize: 12, color: '#666', textAlign: 'auto' },
 });

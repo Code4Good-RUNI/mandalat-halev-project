@@ -72,7 +72,7 @@ export default function FutureActivitiesScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   center: { justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right', padding: 15 },
+  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'auto', padding: 15 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { backgroundColor: '#fff', padding: 20, borderRadius: 10, width: '80%', alignItems: 'center' },
   modalText: { fontSize: 16, marginBottom: 20, textAlign: 'center' },

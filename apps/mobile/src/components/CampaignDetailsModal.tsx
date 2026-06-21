@@ -43,12 +43,12 @@ export function CampaignDetailsModal({ visible, campaign, onClose }: CampaignDet
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   content: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 25, maxHeight: '80%' },
-  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right', marginBottom: 4, color: '#333' },
-  host: { fontSize: 14, textAlign: 'right', color: '#888', marginBottom: 15 },
-  detailText: { fontSize: 16, textAlign: 'right', marginBottom: 8, color: '#555' },
+  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'auto', marginBottom: 4, color: '#333' },
+  host: { fontSize: 14, textAlign: 'auto', color: '#888', marginBottom: 15 },
+  detailText: { fontSize: 16, textAlign: 'auto', marginBottom: 8, color: '#555' },
   descriptionContainer: { marginTop: 20, borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 15 },
-  descriptionTitle: { fontSize: 18, fontWeight: 'bold', textAlign: 'right', marginBottom: 5, color: '#333' },
-  descriptionText: { fontSize: 16, textAlign: 'right', color: '#444', lineHeight: 24 },
+  descriptionTitle: { fontSize: 18, fontWeight: 'bold', textAlign: 'auto', marginBottom: 5, color: '#333' },
+  descriptionText: { fontSize: 16, textAlign: 'auto', color: '#444', lineHeight: 24 },
   closeButton: { backgroundColor: '#FF8C00', padding: 15, borderRadius: 10, alignItems: 'center', marginTop: 25 },
   closeButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
 });

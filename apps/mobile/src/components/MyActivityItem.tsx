@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Status } from './Status';
 
@@ -8,6 +8,7 @@ interface MyActivityItemProps {
   date: string;
   location: string;
   status?: string;
+  imageUrl?: string;
   onPressDetails?: () => void;
   children?: React.ReactNode;
 }
@@ -17,37 +18,35 @@ export const MyActivityItem = ({
   date,
   location,
   status,
+  imageUrl,
   onPressDetails,
   children,
 }: MyActivityItemProps) => (
   <View style={styles.container}>
-    <View style={styles.cardRow}>
-      {/* Details column on the left */}
-      <View style={styles.info}>
-        {/* Status on left, name on right */}
-        <View style={styles.nameRow}>
-          {status ? <Status label={status} /> : null}
-          <Text style={styles.title}>{title}</Text>
-        </View>
+    {imageUrl && (
+      <Image source={{ uri: imageUrl }} style={styles.photo} resizeMode="cover" />
+    )}
 
-        {/* Date+time and location aligned to the right (photo side) */}
-        <View style={styles.metaItem}>
-          <Text style={styles.metaText}>{date}</Text>
-          <Ionicons name="time-outline" size={13} color="#888" />
-        </View>
-
-        <View style={styles.metaItem}>
-          <Text style={styles.metaText}>{location}</Text>
-          <Ionicons name="location-outline" size={13} color="#888" />
-        </View>
-
-        <TouchableOpacity onPress={onPressDetails} style={styles.detailsBtn}>
-          <Text style={styles.detailsLink}>לפרטים נוספים</Text>
-        </TouchableOpacity>
+    <View style={styles.info}>
+      {/* Status on left, name on right */}
+      <View style={styles.nameRow}>
+        {status ? <Status label={status} /> : null}
+        <Text style={styles.title}>{title}</Text>
       </View>
 
-      {/* Photo on the right */}
-      <View style={styles.photo} />
+      <View style={styles.metaItem}>
+        <Ionicons name="time-outline" size={13} color="#888" />
+        <Text style={styles.metaText}>{date}</Text>
+      </View>
+
+      <View style={styles.metaItem}>
+        <Ionicons name="location-outline" size={13} color="#888" />
+        <Text style={styles.metaText}>{location}</Text>
+      </View>
+
+      <TouchableOpacity onPress={onPressDetails} style={styles.detailsBtn}>
+        <Text style={styles.detailsLink}>לפרטים נוספים</Text>
+      </TouchableOpacity>
     </View>
 
     {children && <View style={styles.actions}>{children}</View>}
@@ -66,20 +65,15 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  cardRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  info: {
-    flex: 1,
-    gap: 6,
-  },
   photo: {
-    width: 80,
-    height: 80,
+    width: '100%',
+    aspectRatio: 16 / 9,
     borderRadius: 8,
     backgroundColor: '#ddd',
-    flexShrink: 0,
+    marginBottom: 12,
+  },
+  info: {
+    gap: 6,
   },
   nameRow: {
     flexDirection: 'row',
@@ -90,7 +84,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
-    textAlign: 'right',
+    textAlign: 'auto',
     flex: 1,
     paddingRight: 8,
   },
@@ -98,14 +92,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    alignSelf: 'flex-end',
+    alignSelf: 'flex-start',
   },
   metaText: {
     fontSize: 13,
     color: '#666',
   },
   detailsBtn: {
-    alignSelf: 'flex-end',
+    alignSelf: 'flex-start',
     marginTop: 4,
   },
   detailsLink: {

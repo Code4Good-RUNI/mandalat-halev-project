@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Status } from './Status';
 
@@ -11,6 +11,7 @@ interface ActivityItemProps {
   time?: string;
   location: string;
   status: string;
+  imageUrl?: string;
   onPressDetails?: () => void;
   children?: React.ReactNode;
 }
@@ -22,49 +23,48 @@ export const ActivityItem = ({
   duration,
   location,
   status,
+  imageUrl,
   onPressDetails,
   children,
 }: ActivityItemProps) => (
   <View style={styles.container}>
-    <View style={styles.cardRow}>
-      {/* Details column on the left */}
-      <View style={styles.info}>
-        <Text style={styles.title}>{title}</Text>
+    {imageUrl && (
+      <Image source={{ uri: imageUrl }} style={styles.photo} resizeMode="cover" />
+    )}
 
-        {(date || duration) && (
-          <View style={styles.metaRow}>
-            {duration && (
-              <View style={[styles.metaItem, styles.durationItem]}>
-                <Text style={styles.metaText}>{duration}</Text>
-                <Ionicons name="time-outline" size={13} color="#888" />
-              </View>
-            )}
-            {date && (
-              <View style={styles.metaItem}>
-                <Text style={styles.metaText}>{date}</Text>
-                <Ionicons name="calendar-outline" size={13} color="#888" />
-              </View>
-            )}
-          </View>
-        )}
-
-        <View style={[styles.metaItem, styles.locationItem]}>
-          <Text style={styles.metaText}>{location}</Text>
-          <Ionicons name="location-outline" size={13} color="#888" />
-        </View>
-
-        {host && <Text style={styles.host}>{host}</Text>}
-
-        <TouchableOpacity onPress={onPressDetails} style={styles.detailsBtn}>
-          <Text style={styles.detailsLink}>לפרטים נוספים</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Right column: status badge + photo */}
-      <View style={styles.rightCol}>
+    <View style={styles.info}>
+      <View style={styles.titleRow}>
         <Status label={status} />
-        <View style={styles.photo} />
+        <Text style={styles.title}>{title}</Text>
       </View>
+
+      {(date || duration) && (
+        <View style={styles.metaRow}>
+          {duration && (
+            <View style={[styles.metaItem, styles.durationItem]}>
+              <Ionicons name="time-outline" size={13} color="#888" />
+              <Text style={styles.metaText}>{duration}</Text>
+            </View>
+          )}
+          {date && (
+            <View style={styles.metaItem}>
+              <Ionicons name="calendar-outline" size={13} color="#888" />
+              <Text style={styles.metaText}>{date}</Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      <View style={[styles.metaItem, styles.locationItem]}>
+        <Ionicons name="location-outline" size={13} color="#888" />
+        <Text style={styles.metaText}>{location}</Text>
+      </View>
+
+      {host && <Text style={styles.host}>{host}</Text>}
+
+      <TouchableOpacity onPress={onPressDetails} style={styles.detailsBtn}>
+        <Text style={styles.detailsLink}>לפרטים נוספים</Text>
+      </TouchableOpacity>
     </View>
 
     {children && <View style={styles.actions}>{children}</View>}
@@ -83,30 +83,28 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  cardRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  info: {
-    flex: 1,
-    gap: 6,
-  },
-  rightCol: {
-    alignItems: 'flex-start',
-    gap: 6,
-    flexShrink: 0,
-  },
   photo: {
-    width: 80,
-    height: 80,
+    width: '100%',
+    aspectRatio: 16 / 9,
     borderRadius: 8,
     backgroundColor: '#ddd',
+    marginBottom: 12,
+  },
+  info: {
+    gap: 6,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   title: {
     fontSize: 16,
     fontWeight: 'bold',
-    textAlign: 'right',
+    textAlign: 'auto',
     color: '#333',
+    flex: 1,
+    paddingRight: 8,
   },
   metaRow: {
     flexDirection: 'row',
@@ -121,7 +119,7 @@ const styles = StyleSheet.create({
     marginLeft: 20,
   },
   locationItem: {
-    alignSelf: 'flex-end',
+    alignSelf: 'flex-start',
   },
   metaText: {
     fontSize: 13,
@@ -130,10 +128,10 @@ const styles = StyleSheet.create({
   host: {
     fontSize: 13,
     color: '#888',
-    textAlign: 'right',
+    textAlign: 'auto',
   },
   detailsBtn: {
-    alignSelf: 'flex-end',
+    alignSelf: 'flex-start',
   },
   detailsLink: {
     color: '#FF8C00',

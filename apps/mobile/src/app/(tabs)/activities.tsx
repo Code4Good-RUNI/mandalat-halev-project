@@ -92,6 +92,7 @@ function ActiveCampaignItem({ item, contacts, contactsLoading, onShowModal, onPr
         duration={`${item.durationInHours} שעות`}
         location={`${item.locationAddress}, ${item.locationCity}`}
         status={isRegistered ? 'נרשמת בהצלחה' : 'פתוח להרשמה'}
+        imageUrl={item.imageUrl}
         onPressDetails={onPressDetails}
       >
         <View style={styles.actionContainer}>
@@ -284,7 +285,7 @@ const styles = StyleSheet.create({
   selectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    textAlign: 'right',
+    textAlign: 'auto',
     color: '#FF8C00',
     marginBottom: 16,
   },
@@ -307,7 +308,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF8C00',
     borderColor: '#FF8C00',
   },
-  contactName: { fontSize: 16, textAlign: 'right', flex: 1, paddingLeft: 12 },
+  contactName: { fontSize: 16, textAlign: 'auto', flex: 1, paddingLeft: 12 },
   checkmark: { color: '#fff', fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
   selectionButtons: {
     flexDirection: 'row',
