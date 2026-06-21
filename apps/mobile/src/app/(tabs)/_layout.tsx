@@ -1,17 +1,34 @@
 import React, { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { syncAndroidPushNotifications } from '../../notifications/notification.service';
 
 export default function TabsLayout() {
   useEffect(() => {
-    // Runs once when the authenticated area mounts (after fresh login or
-    // cold-start redirect), so the api client has a bearer token. The
-    // Android-only guard lives in the service. Fire-and-forget: never block
+    // Fire-and-forget: the Android-only guard lives in the service; never block
     // render, never crash on failure.
-    syncAndroidPushNotifications().catch((err) => {
-      console.warn('Push notification sync failed', err);
+    const sync = () => {
+      syncAndroidPushNotifications().catch((err) => {
+        console.warn('Push notification sync failed', err);
+      });
+    };
+
+    // Initial sync on mount (after fresh login or cold-start redirect), so the
+    // api client has a bearer token.
+    sync();
+
+    // Re-sync on return to foreground so a permission change made in Android
+    // settings while backgrounded is picked up (the service unregisters the
+    // stored token when permission is now denied). AppState's 'change' event
+    // fires only on actual transitions, so this never double-fires the mount sync.
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        sync();
+      }
     });
+
+    return () => subscription.remove();
   }, []);
 
   return (
