@@ -10,6 +10,7 @@ import {
   Linking,
 } from 'react-native';
 import { clearSession } from '../../api/session';
+import { unregisterAndroidPushNotifications } from '../../notifications/notification.service';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserProfile, useUserContacts } from '../../api/hooks';
 import { QueryErrorState } from '../../components/QueryErrorState';
@@ -26,6 +27,19 @@ export default function PersonalDataScreen() {
   const { data: contactsData } = useUserContacts();
   const contacts = contactsData?.status === 200 ? contactsData.body : [];
   const familyContacts = contacts.filter((c) => c.salesforceUserId !== profile?.salesforceUserId);
+
+  // Unregister the device's push token before clearing the session so the
+  // request still carries a valid bearer token. clearSession() runs in finally
+  // so logout always completes, even if unregister fails (or is a web/iOS no-op).
+  const handleLogout = async () => {
+    try {
+      await unregisterAndroidPushNotifications();
+    } catch (err) {
+      console.warn('Push notification unregister failed', err);
+    } finally {
+      await clearSession();
+    }
+  };
 
   if (isPending) {
     return (
@@ -149,7 +163,7 @@ export default function PersonalDataScreen() {
           <Text style={styles.updateButtonText}>עדכון פרטים אישיים</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => void clearSession()} style={styles.logoutButton}>
+        <TouchableOpacity onPress={() => void handleLogout()} style={styles.logoutButton}>
           <Text style={styles.logoutText}>התנתק</Text>
         </TouchableOpacity>
       </ScrollView>
