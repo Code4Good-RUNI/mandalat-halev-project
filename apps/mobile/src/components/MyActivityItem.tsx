@@ -36,10 +36,10 @@ export const MyActivityItem = ({
       )}
 
       <View style={styles.info}>
-        {/* Status on left, name on right */}
+        {/* Name on the right (same side as the details link), status on the left */}
         <View style={styles.nameRow}>
-          {status ? <Status label={status} /> : null}
           <Text style={styles.title}>{title}</Text>
+          {status ? <Status label={status} /> : null}
         </View>
 
         <View style={styles.metaItem}>
@@ -88,6 +88,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
   },
   title: {
     fontSize: 16,
@@ -95,7 +96,6 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'auto',
     flex: 1,
-    paddingRight: 8,
   },
   metaItem: {
     flexDirection: 'row',

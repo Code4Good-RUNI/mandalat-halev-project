@@ -42,14 +42,14 @@ export const ActivityItem = ({
 
       <View style={styles.info}>
         <View style={styles.titleRow}>
-          <Status label={status} />
           <Text style={styles.title}>{title}</Text>
+          <Status label={status} />
         </View>
 
         {(date || duration) && (
           <View style={styles.metaRow}>
             {duration && (
-              <View style={[styles.metaItem, styles.durationItem]}>
+              <View style={styles.metaItem}>
                 <Ionicons name="time-outline" size={13} color="#888" />
                 <Text style={styles.metaText}>{duration}</Text>
               </View>
@@ -106,6 +106,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
   },
   title: {
     fontSize: 16,
@@ -113,19 +114,16 @@ const styles = StyleSheet.create({
     textAlign: 'auto',
     color: '#333',
     flex: 1,
-    paddingRight: 8,
   },
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 12,
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-  },
-  durationItem: {
-    marginLeft: 20,
   },
   locationItem: {
     alignSelf: 'flex-start',
