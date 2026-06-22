@@ -9,6 +9,7 @@
 dist
 tmp
 out-tsc
+android
 
 # dependencies
 node_modules

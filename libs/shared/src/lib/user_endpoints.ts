@@ -17,6 +17,7 @@ import {
   RegisterDeviceTokenSchema,
   TestNotificationSchema,
   NotificationSuccessResponseSchema,
+  CronRunResponseSchema,
   UnregisterDeviceTokenSchema,
   UpdateNotificationPreferencesSchema,
 } from './user_schemas.js';
@@ -196,10 +197,20 @@ export const userContract = c.router({
       responses: {
         200: NotificationSuccessResponseSchema,
         400: ValidationErrorResponseSchema,
-        401: ErrorResponseSchema,
         500: ErrorResponseSchema,
       },
-      summary: 'Send a test notification to all devices of the user (dev only)',
+      summary: 'Send a test notification to all devices of a user (dev only, no auth)',
+    },
+    cronRun: {
+      method: 'POST',
+      path: '/notifications/cron-run',
+      body: z.object({}),
+      responses: {
+        200: CronRunResponseSchema,
+        404: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+      summary: 'Manually trigger the daily notification cron (dev only, no auth)',
     },
     unregister: {
       method: 'POST',

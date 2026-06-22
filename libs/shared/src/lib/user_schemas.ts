@@ -216,11 +216,18 @@ export type RegisterDeviceTokenDto = z.infer<typeof RegisterDeviceTokenSchema>;
 
 // Request body for sending a test notification (dev only)
 export const TestNotificationSchema = z.object({
+  salesforceUserId: z.string(),
   title: z.string(),
   body: z.string(),
   data: z.record(z.string()).optional(), // payload values must be strings per FCM requirements
 });
 export type TestNotificationDto = z.infer<typeof TestNotificationSchema>;
+
+export const CronRunResponseSchema = z.object({
+  ok: z.literal(true),
+  message: z.string(),
+});
+export type CronRunResponseDto = z.infer<typeof CronRunResponseSchema>;
 
 // Generic success response for notifications
 export const NotificationSuccessResponseSchema = z.object({
@@ -252,3 +259,34 @@ export const UpdateNotificationPreferencesSchema = z.object({
   }),
 });
 export type UpdateNotificationPreferencesDto = z.infer<typeof UpdateNotificationPreferencesSchema>;
+
+// --------------------------------------------------------
+// CRON NOTIFICATIONS SCHEMAS (MAN-31)
+// --------------------------------------------------------
+
+// New Campaigns Notification
+export const NewCampaignNotificationRowSchema = z.object({
+  campaignId: z.string(),
+  name: z.string(),
+});
+export type NewCampaignNotificationRow = z.infer<typeof NewCampaignNotificationRowSchema>;
+
+// Activity Reminder Notification
+export const ActivityReminderNotificationRowSchema = z.object({
+  salesforceUserId: z.string(),
+  contact: ContactSchema,
+  campaignId: z.string(),
+  campaignName: z.string(),
+  daysUntil: z.union([z.literal(1), z.literal(3)]),
+});
+export type ActivityReminderNotificationRow = z.infer<typeof ActivityReminderNotificationRowSchema>;
+
+// egistration Status Notification
+export const RegistrationStatusNotificationRowSchema = z.object({
+  salesforceUserId: z.string(),
+  contact: ContactSchema,
+  campaignId: z.string(),
+  campaignName: z.string(),
+  registrationStatus: ApprovalStatusSchema,
+});
+export type RegistrationStatusNotificationRow = z.infer<typeof RegistrationStatusNotificationRowSchema>;
