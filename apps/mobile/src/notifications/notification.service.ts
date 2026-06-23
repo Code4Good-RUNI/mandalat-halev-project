@@ -23,8 +23,9 @@ export async function syncAndroidPushNotifications(): Promise<void> {
   if (Platform.OS !== 'android') return;
 
   await Notifications.setNotificationChannelAsync('default', {
-    name: 'Default',
-    importance: Notifications.AndroidImportance.DEFAULT,
+    name: 'default',
+    importance: Notifications.AndroidImportance.MAX,
+    sound: 'default',
   });
 
   const existing = await Notifications.getPermissionsAsync();
