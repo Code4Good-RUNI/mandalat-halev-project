@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Status } from './Status';
@@ -26,50 +26,59 @@ export const ActivityItem = ({
   imageUrl,
   onPressDetails,
   children,
-}: ActivityItemProps) => (
-  <View style={styles.container}>
-    {imageUrl && (
-      <Image source={{ uri: imageUrl }} style={styles.photo} resizeMode="cover" />
-    )}
+}: ActivityItemProps) => {
+  const [imageFailed, setImageFailed] = useState(false);
 
-    <View style={styles.info}>
-      <View style={styles.titleRow}>
-        <Status label={status} />
-        <Text style={styles.title}>{title}</Text>
-      </View>
-
-      {(date || duration) && (
-        <View style={styles.metaRow}>
-          {duration && (
-            <View style={[styles.metaItem, styles.durationItem]}>
-              <Ionicons name="time-outline" size={13} color="#888" />
-              <Text style={styles.metaText}>{duration}</Text>
-            </View>
-          )}
-          {date && (
-            <View style={styles.metaItem}>
-              <Ionicons name="calendar-outline" size={13} color="#888" />
-              <Text style={styles.metaText}>{date}</Text>
-            </View>
-          )}
-        </View>
+  return (
+    <View style={styles.container}>
+      {imageUrl && !imageFailed && (
+        <Image
+          source={{ uri: imageUrl }}
+          style={styles.photo}
+          resizeMode="cover"
+          onError={() => setImageFailed(true)}
+        />
       )}
 
-      <View style={[styles.metaItem, styles.locationItem]}>
-        <Ionicons name="location-outline" size={13} color="#888" />
-        <Text style={styles.metaText}>{location}</Text>
+      <View style={styles.info}>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>{title}</Text>
+          <Status label={status} />
+        </View>
+
+        {(date || duration) && (
+          <View style={styles.metaRow}>
+            {duration && (
+              <View style={styles.metaItem}>
+                <Ionicons name="time-outline" size={13} color="#888" />
+                <Text style={styles.metaText}>{duration}</Text>
+              </View>
+            )}
+            {date && (
+              <View style={styles.metaItem}>
+                <Ionicons name="calendar-outline" size={13} color="#888" />
+                <Text style={styles.metaText}>{date}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        <View style={[styles.metaItem, styles.locationItem]}>
+          <Ionicons name="location-outline" size={13} color="#888" />
+          <Text style={styles.metaText}>{location}</Text>
+        </View>
+
+        {host && <Text style={styles.host}>{host}</Text>}
+
+        <TouchableOpacity onPress={onPressDetails} style={styles.detailsBtn}>
+          <Text style={styles.detailsLink}>לפרטים נוספים</Text>
+        </TouchableOpacity>
       </View>
 
-      {host && <Text style={styles.host}>{host}</Text>}
-
-      <TouchableOpacity onPress={onPressDetails} style={styles.detailsBtn}>
-        <Text style={styles.detailsLink}>לפרטים נוספים</Text>
-      </TouchableOpacity>
+      {children && <View style={styles.actions}>{children}</View>}
     </View>
-
-    {children && <View style={styles.actions}>{children}</View>}
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -97,6 +106,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
   },
   title: {
     fontSize: 16,
@@ -104,19 +114,16 @@ const styles = StyleSheet.create({
     textAlign: 'auto',
     color: '#333',
     flex: 1,
-    paddingRight: 8,
   },
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 12,
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-  },
-  durationItem: {
-    marginLeft: 20,
   },
   locationItem: {
     alignSelf: 'flex-start',

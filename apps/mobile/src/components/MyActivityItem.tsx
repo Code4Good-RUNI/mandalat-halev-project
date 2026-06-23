@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Status } from './Status';
@@ -21,37 +21,46 @@ export const MyActivityItem = ({
   imageUrl,
   onPressDetails,
   children,
-}: MyActivityItemProps) => (
-  <View style={styles.container}>
-    {imageUrl && (
-      <Image source={{ uri: imageUrl }} style={styles.photo} resizeMode="cover" />
-    )}
+}: MyActivityItemProps) => {
+  const [imageFailed, setImageFailed] = useState(false);
 
-    <View style={styles.info}>
-      {/* Status on left, name on right */}
-      <View style={styles.nameRow}>
-        {status ? <Status label={status} /> : null}
-        <Text style={styles.title}>{title}</Text>
+  return (
+    <View style={styles.container}>
+      {imageUrl && !imageFailed && (
+        <Image
+          source={{ uri: imageUrl }}
+          style={styles.photo}
+          resizeMode="cover"
+          onError={() => setImageFailed(true)}
+        />
+      )}
+
+      <View style={styles.info}>
+        {/* Name on the right (same side as the details link), status on the left */}
+        <View style={styles.nameRow}>
+          <Text style={styles.title}>{title}</Text>
+          {status ? <Status label={status} /> : null}
+        </View>
+
+        <View style={styles.metaItem}>
+          <Ionicons name="time-outline" size={13} color="#888" />
+          <Text style={styles.metaText}>{date}</Text>
+        </View>
+
+        <View style={styles.metaItem}>
+          <Ionicons name="location-outline" size={13} color="#888" />
+          <Text style={styles.metaText}>{location}</Text>
+        </View>
+
+        <TouchableOpacity onPress={onPressDetails} style={styles.detailsBtn}>
+          <Text style={styles.detailsLink}>לפרטים נוספים</Text>
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.metaItem}>
-        <Ionicons name="time-outline" size={13} color="#888" />
-        <Text style={styles.metaText}>{date}</Text>
-      </View>
-
-      <View style={styles.metaItem}>
-        <Ionicons name="location-outline" size={13} color="#888" />
-        <Text style={styles.metaText}>{location}</Text>
-      </View>
-
-      <TouchableOpacity onPress={onPressDetails} style={styles.detailsBtn}>
-        <Text style={styles.detailsLink}>לפרטים נוספים</Text>
-      </TouchableOpacity>
+      {children && <View style={styles.actions}>{children}</View>}
     </View>
-
-    {children && <View style={styles.actions}>{children}</View>}
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -79,6 +88,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
   },
   title: {
     fontSize: 16,
@@ -86,7 +96,6 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'auto',
     flex: 1,
-    paddingRight: 8,
   },
   metaItem: {
     flexDirection: 'row',
