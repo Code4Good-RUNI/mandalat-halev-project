@@ -1,6 +1,6 @@
 export const ALLOWED_REGISTRATION_STATUSES = ['בתהליך'];
 export const CANCELED_STATUSES = ['בוטל'];
-export const COMPLETED_PARTICIPATION_STATUSES = ['בתכנון', 'בתהליך', 'הסתיים', 'פעיל']; // סטטוסים שמעידים על השתתפות
+export const COMPLETED_PARTICIPATION_STATUSES = ['בתכנון', 'בתהליך', 'הסתיים', 'פעיל'];
 
 export class SalesforceMapper {
   /**
@@ -12,9 +12,6 @@ export class SalesforceMapper {
     return `${day}/${month}/${year}`;
   }
 
-  /**
-   * Maps the fields of CampaignDto
-   */
   /**
    * Maps the fields of CampaignDto
    */
@@ -36,7 +33,7 @@ export class SalesforceMapper {
       imageUrl: 'https://mandalat-halev.org/assets/default-campaign.png',
       startDate: this.formatDateToIsraeli(reg.StartDate),
       endDate: this.formatDateToIsraeli(reg.EndDate),
-      durationInHours: this.calculateDuration(reg.StartDate, reg.EndDate),
+      duration: reg.Activities_Days_And_Hours__c || '',
       locationAddress: reg.ActivityLocation__c || '',
       locationCity: reg.ActivityLocation__c || '',
       numOfParticipants: reg.max_participants__c || 0,
@@ -66,17 +63,6 @@ export class SalesforceMapper {
     if (normalizedStatus === 'wait') return 'waiting_list'; // need to verify the correct name in SF after created
 
     return 'pending';
-  }
-
-  /**
-   * Calculates duration
-   */
-  static calculateDuration(start: string, end: string): number {
-    if (!start || !end) return 0;
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const diffInMs = endDate.getTime() - startDate.getTime();
-    return Math.max(0, Math.floor(diffInMs / (1000 * 60 * 60)));
   }
 
   /**
