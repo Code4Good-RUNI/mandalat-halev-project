@@ -232,8 +232,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
   },
   rowLast: { borderBottomWidth: 0 },
-  label: { color: '#666' },
-  value: { fontWeight: '500' },
+  label: { color: '#666', flexShrink: 0 },
+  value: { fontWeight: '500', flex: 1, textAlign: 'auto', marginHorizontal: 8 },
   card: {
     backgroundColor: '#f9f9f9',
     padding: 15,
