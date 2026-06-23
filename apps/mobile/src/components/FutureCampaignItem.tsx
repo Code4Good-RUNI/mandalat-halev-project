@@ -192,7 +192,7 @@ export function FutureCampaignItem({ campaign, onShowModal, onPressDetails }: {
     <>
       <MyActivityItem
         title={campaign.name}
-        date={`${campaign.startDate} | ${campaign.durationInHours} שעות`}
+        date={`${campaign.startDate} | ${campaign.duration}`}
         location={`${campaign.locationAddress}, ${campaign.locationCity}`}
         status={members.length >= 1 ? undefined : statusText}
         imageUrl={campaign.imageUrl}

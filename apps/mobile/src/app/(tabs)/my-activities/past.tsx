@@ -34,7 +34,7 @@ export default function PreviousActivitiesScreen() {
         renderItem={({ item }) => (
           <MyActivityItem
             title={item.name}
-            date={`${item.startDate} | ${item.durationInHours} שעות`}
+            date={`${item.startDate} | ${item.duration}`}
             location={`${item.locationAddress}, ${item.locationCity}`}
             status={item.hasUserParticipated ? 'נוכח' : 'לא נוכח'}
             imageUrl={item.imageUrl}
