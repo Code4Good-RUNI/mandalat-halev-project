@@ -5,7 +5,7 @@
     "slug": "mandalat-halev",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/mandalat-halev-icon.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "mandalat-halev",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -16,7 +16,7 @@
       "package": "org.mandalathalev.app",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/mandalat-halev-icon.png",
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true

@@ -20,7 +20,7 @@ export function CampaignDetailsModal({ visible, campaign, onClose }: CampaignDet
             <Text style={styles.host}>{campaign.host.firstName} {campaign.host.lastName}</Text>
 
             <Text style={styles.detailText}>תאריך: {campaign.startDate} {campaign.endDate && campaign.endDate !== campaign.startDate ? `- ${campaign.endDate}` : ''}</Text>
-            <Text style={styles.detailText}>משך זמן: {campaign.durationInHours} שעות</Text>
+            <Text style={styles.detailText}>משך זמן: {campaign.duration}</Text>
             <Text style={styles.detailText}>מיקום: {campaign.locationAddress}, {campaign.locationCity}</Text>
             <Text style={styles.detailText}>מקומות פנויים: {campaign.numOfParticipants ? campaign.numOfParticipants - (campaign.numOfParticipantsRegistered || 0) : 'לא מוגבל'}</Text>
             

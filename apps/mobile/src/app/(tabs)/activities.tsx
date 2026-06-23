@@ -89,7 +89,7 @@ function ActiveCampaignItem({ item, contacts, contactsLoading, onShowModal, onPr
         title={item.name}
         host={`${item.host.firstName} ${item.host.lastName}`}
         date={item.startDate}
-        duration={`${item.durationInHours} שעות`}
+        duration={item.duration}
         location={`${item.locationAddress}, ${item.locationCity}`}
         status={isRegistered ? 'נרשמת בהצלחה' : 'פתוח להרשמה'}
         imageUrl={item.imageUrl}
