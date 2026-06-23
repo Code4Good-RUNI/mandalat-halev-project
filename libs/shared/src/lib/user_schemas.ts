@@ -121,7 +121,7 @@ export const CampaignSchema = z.object({
   imageUrl: z.string().url(), // Built-in URL validation
   startDate: z.string(), // DD/MM/YYYY
   endDate: z.string(), // DD/MM/YYYY
-  durationInHours: z.number(),
+  duration: z.string(),
   locationAddress: z.string(),
   locationCity: z.string(),
   numOfParticipants: z.number(),
