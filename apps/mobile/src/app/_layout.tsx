@@ -1,7 +1,8 @@
-import React from 'react';
-import { I18nManager, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useEffect } from 'react';
+import { I18nManager, View, Text, TouchableOpacity, StyleSheet, AppState } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, router } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import { registerQueryClient } from '../api/session';
 
 // The app is Hebrew-only, so force RTL layout regardless of the device's
@@ -10,6 +11,18 @@ if (!I18nManager.isRTL) {
   I18nManager.allowRTL(true);
   I18nManager.forceRTL(true);
 }
+
+// Display incoming notifications visibly (banner + list + sound) instead of
+// only updating the badge. Set once at app startup, before any notification
+// can be delivered.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,6 +42,25 @@ const queryClient = new QueryClient({
 registerQueryClient(queryClient);
 
 export default function RootLayout() {
+  // Reset the local app badge to 0 whenever the app opens or returns to the
+  // foreground, so the counter doesn't accumulate. This is a device-local
+  // action only — there is no backend "mark as read".
+  useEffect(() => {
+    const clearBadge = () => {
+      Notifications.setBadgeCountAsync(0).catch(() => {
+        // Best-effort: badge APIs are unavailable on web and may no-op.
+      });
+    };
+
+    clearBadge(); // initial startup
+
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') clearBadge();
+    });
+
+    return () => subscription.remove();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Stack>
