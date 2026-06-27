@@ -13,6 +13,7 @@ import {
   Platform,
   ScrollView,
   TouchableWithoutFeedback,
+  useWindowDimensions,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useLogin } from '../api/hooks';
@@ -23,7 +24,18 @@ import {
   LoginFieldErrors,
 } from '../utils/loginErrors';
 
+const LOGO_ASPECT = 321 / 270;
+
 export default function LoginScreen() {
+  const { height: windowHeight } = useWindowDimensions();
+  const logoHeight = Math.round(
+    Math.min(96, Math.max(80, windowHeight * 0.11)),
+  );
+  const logoWidth = Math.round(logoHeight * LOGO_ASPECT);
+  const topPadding = Math.round(
+    Math.min(20, Math.max(10, windowHeight * 0.02)),
+  );
+
   const [idNumber, setIdNumber] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
@@ -90,14 +102,17 @@ export default function LoginScreen() {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <ScrollView
             style={styles.flex}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingTop: topPadding },
+            ]}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
           >
             <View>
               <Image
-                source={require('../../assets/images/logo.png')}
-                style={styles.logo}
+                source={require('../../assets/images/logo-login.png')}
+                style={[styles.logo, { width: logoWidth, height: logoHeight }]}
                 resizeMode="contain"
               />
               <Text style={styles.welcome}>שלום!</Text>
@@ -164,17 +179,17 @@ export default function LoginScreen() {
               >
                 <Text style={styles.donationButtonText}>לתרומות ♥</Text>
               </TouchableOpacity>
-            </View>
 
-            <TouchableOpacity
-              style={[styles.loginButton, isPending && { opacity: 0.6 }]}
-              disabled={isPending}
-              onPress={handleSubmit}
-            >
-              <Text style={styles.loginButtonText}>
-                {isPending ? 'מתחבר...' : 'התחבר'}
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.loginButton, isPending && { opacity: 0.6 }]}
+                disabled={isPending}
+                onPress={handleSubmit}
+              >
+                <Text style={styles.loginButtonText}>
+                  {isPending ? 'מתחבר...' : 'התחבר'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -186,27 +201,22 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   flex: { flex: 1 },
   scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'space-between',
     paddingBottom: 24,
   },
   logo: {
-    width: '40%',
-    maxWidth: 150,
-    aspectRatio: 150 / 115,
     alignSelf: 'center',
-    marginTop: 40,
+    marginBottom: 2,
   },
   welcome: {
     fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: 6,
   },
   subText: {
     fontSize: 18,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 14,
   },
   inputContainer: { marginHorizontal: 20, marginBottom: 15 },
   label: {
