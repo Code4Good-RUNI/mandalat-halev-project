@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "org.mandalathalev.app",
-      "googleServicesFile": "./google-services.json",
+      "googleServicesFile": "./credentials/google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
