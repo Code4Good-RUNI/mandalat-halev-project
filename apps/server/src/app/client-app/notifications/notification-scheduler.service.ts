@@ -30,6 +30,16 @@ export class NotificationSchedulerService {
     name: 'daily-salesforce-notifications',
     timeZone: 'Asia/Jerusalem',
   })
+  async handleScheduledRun() {
+    if (process.env.NODE_ENV === 'production') {
+      // In production Cloud Scheduler triggers the run via POST
+      // /notifications/cron-run; the in-process timer must stay silent so the
+      // two can never double-fire.
+      return;
+    }
+    await this.handleDailyNotifications();
+  }
+
   async handleDailyNotifications() {
     if (!ENABLE_NOTIFICATION_CRON) {
       this.logger.log(

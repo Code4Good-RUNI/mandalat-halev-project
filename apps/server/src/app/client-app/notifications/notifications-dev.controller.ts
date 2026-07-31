@@ -1,5 +1,6 @@
 import {
   Controller,
+  Headers,
   HttpException,
   HttpStatus,
   Logger,
@@ -20,9 +21,31 @@ export class NotificationsDevController {
     private readonly notificationSchedulerService: NotificationSchedulerService,
   ) {}
 
+  // Env values are always strings, so compare against 'true' explicitly —
+  // a get<boolean>() cast would treat the string 'false' as truthy.
+  private get devEndpointsEnabled(): boolean {
+    return (
+      this.configService.get<string>(
+        'ENABLE_NOTIFICATION_CRON_MANUAL_TRIGGER',
+        'false',
+      ) === 'true'
+    );
+  }
+
+  private assertDevEndpointsEnabled() {
+    if (!this.devEndpointsEnabled) {
+      this.logger.warn(
+        'Dev notification endpoint attempted but it is disabled in this environment.',
+      );
+      throw new HttpException('Not Found', HttpStatus.NOT_FOUND);
+    }
+  }
+
   @TsRestHandler(userContract.notifications.test)
   async sendTestNotification() {
     return tsRestHandler(userContract.notifications.test, async ({ body }) => {
+      this.assertDevEndpointsEnabled();
+
       await this.notificationsService.sendToUser(body.salesforceUserId, {
         title: body.title,
         body: body.body,
@@ -34,18 +57,16 @@ export class NotificationsDevController {
   }
 
   @TsRestHandler(userContract.notifications.cronRun)
-  async manualCronRun() {
+  async manualCronRun(@Headers('x-cron-secret') cronSecretHeader?: string) {
     return tsRestHandler(userContract.notifications.cronRun, async () => {
-      const isManualTriggerEnabled = this.configService.get<boolean>(
-        'ENABLE_NOTIFICATION_CRON_MANUAL_TRIGGER',
-        false,
-      );
+      // Production trigger: Cloud Scheduler calls this endpoint with the
+      // X-Cron-Secret header. Otherwise fall back to the dev-only flag.
+      const cronSecret = this.configService.get<string>('CRON_SECRET');
+      const isSchedulerCall =
+        !!cronSecret && !!cronSecretHeader && cronSecretHeader === cronSecret;
 
-      if (!isManualTriggerEnabled) {
-        this.logger.warn(
-          'Manual cron trigger attempted but it is disabled in this environment.',
-        );
-        throw new HttpException('Not Found', HttpStatus.NOT_FOUND);
+      if (!isSchedulerCall) {
+        this.assertDevEndpointsEnabled();
       }
 
       this.logger.log(
