@@ -1,8 +1,3 @@
-/**
- * This is not a production server yet!
- * This is only a minimal backend to get started.
- */
-
 import { join } from 'path';
 import { config as loadEnv } from '@dotenvx/dotenvx';
 import { Logger } from '@nestjs/common';
@@ -45,38 +40,45 @@ async function bootstrap() {
   );
 
   const port = process.env.PORT || 3000;
+  const isProduction = process.env.NODE_ENV === 'production';
 
-  // Swagger
-  const document = generateOpenApi(userContract, {
-    info: {
-      title: 'Mandalat Halev Project API',
-      description:
-        'API for the Mandalat Halev Project (Generated from ts-rest Contract)',
-      version: '1.0.0',
-    },
-    servers: [{ url: '/api' }],
-  });
-
-  document.components = {
-    ...document.components,
-    securitySchemes: {
-      bearerAuth: {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
+  // Swagger — development only
+  if (!isProduction) {
+    const document = generateOpenApi(userContract, {
+      info: {
+        title: 'Mandalat Halev Project API',
+        description:
+          'API for the Mandalat Halev Project (Generated from ts-rest Contract)',
+        version: '1.0.0',
       },
-    },
-  };
+      servers: [{ url: '/api' }],
+    });
 
-  document.security = [{ bearerAuth: [] }];
+    document.components = {
+      ...document.components,
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    };
 
-  SwaggerModule.setup('api/docs', app, document);
+    document.security = [{ bearerAuth: [] }];
+
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
   await app.listen(port);
   Logger.log(
     `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`,
   );
-  Logger.log(`📄 Swagger docs available at: http://localhost:${port}/api/docs`);
+  if (!isProduction) {
+    Logger.log(
+      `📄 Swagger docs available at: http://localhost:${port}/api/docs`,
+    );
+  }
 }
 
 bootstrap();

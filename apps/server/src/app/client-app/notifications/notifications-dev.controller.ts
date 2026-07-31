@@ -20,9 +20,31 @@ export class NotificationsDevController {
     private readonly notificationSchedulerService: NotificationSchedulerService,
   ) {}
 
+  // Env values are always strings, so compare against 'true' explicitly —
+  // a get<boolean>() cast would treat the string 'false' as truthy.
+  private get devEndpointsEnabled(): boolean {
+    return (
+      this.configService.get<string>(
+        'ENABLE_NOTIFICATION_CRON_MANUAL_TRIGGER',
+        'false',
+      ) === 'true'
+    );
+  }
+
+  private assertDevEndpointsEnabled() {
+    if (!this.devEndpointsEnabled) {
+      this.logger.warn(
+        'Dev notification endpoint attempted but it is disabled in this environment.',
+      );
+      throw new HttpException('Not Found', HttpStatus.NOT_FOUND);
+    }
+  }
+
   @TsRestHandler(userContract.notifications.test)
   async sendTestNotification() {
     return tsRestHandler(userContract.notifications.test, async ({ body }) => {
+      this.assertDevEndpointsEnabled();
+
       await this.notificationsService.sendToUser(body.salesforceUserId, {
         title: body.title,
         body: body.body,
@@ -36,17 +58,7 @@ export class NotificationsDevController {
   @TsRestHandler(userContract.notifications.cronRun)
   async manualCronRun() {
     return tsRestHandler(userContract.notifications.cronRun, async () => {
-      const isManualTriggerEnabled = this.configService.get<boolean>(
-        'ENABLE_NOTIFICATION_CRON_MANUAL_TRIGGER',
-        false,
-      );
-
-      if (!isManualTriggerEnabled) {
-        this.logger.warn(
-          'Manual cron trigger attempted but it is disabled in this environment.',
-        );
-        throw new HttpException('Not Found', HttpStatus.NOT_FOUND);
-      }
+      this.assertDevEndpointsEnabled();
 
       this.logger.log(
         'Manual trigger received via POST /notifications/cron-run. Executing orchestration...',
