@@ -1,5 +1,6 @@
 import {
   Controller,
+  Headers,
   HttpException,
   HttpStatus,
   Logger,
@@ -56,9 +57,17 @@ export class NotificationsDevController {
   }
 
   @TsRestHandler(userContract.notifications.cronRun)
-  async manualCronRun() {
+  async manualCronRun(@Headers('x-cron-secret') cronSecretHeader?: string) {
     return tsRestHandler(userContract.notifications.cronRun, async () => {
-      this.assertDevEndpointsEnabled();
+      // Production trigger: Cloud Scheduler calls this endpoint with the
+      // X-Cron-Secret header. Otherwise fall back to the dev-only flag.
+      const cronSecret = this.configService.get<string>('CRON_SECRET');
+      const isSchedulerCall =
+        !!cronSecret && !!cronSecretHeader && cronSecretHeader === cronSecret;
+
+      if (!isSchedulerCall) {
+        this.assertDevEndpointsEnabled();
+      }
 
       this.logger.log(
         'Manual trigger received via POST /notifications/cron-run. Executing orchestration...',
