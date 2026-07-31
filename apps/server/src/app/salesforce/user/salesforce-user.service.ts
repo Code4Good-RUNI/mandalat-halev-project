@@ -27,18 +27,6 @@ export class SalesforceUserService {
 
   constructor(private readonly core: SalesforceCoreService) {}
 
-  // -------------------------------------For testing------------------------------------------------
-
-  async onModuleInit() {
-    this.logger.log(
-      '🚀 [Profile Sandbox] Starting User Profile Verification Flow...',
-    );
-    //await this.testUserProfileSandbox();
-  }
-
-  // ---------------------------------------------------------------------------------------------
-  // ---------------------------------------------------------------------------------------------
-
   async validateLogin(credentials: LoginRequestDto): Promise<string | null> {
     const { phoneNumber, idNumber } = credentials;
     const phoneVariations = SalesforceMapper.getPhoneVariations(phoneNumber);
